@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import platform
 import random
@@ -99,6 +100,29 @@ def _validate_phase0_inputs(config: ExperimentConfig, data_root: Path) -> dict[s
     return metadata
 
 
+def _enforce_fp32_model(torch: Any, model: Any, device: Any) -> Any:
+    """Make the declared Phase-0 FP32 precision an enforced runtime invariant."""
+
+    model.to(device=device, dtype=torch.float32)
+    bad_dtypes = {
+        str(parameter.dtype)
+        for parameter in model.parameters()
+        if parameter.is_floating_point() and parameter.dtype != torch.float32
+    }
+    if bad_dtypes:
+        raise TypeError(f"Phase-0 model contains non-FP32 trainable tensors: {sorted(bad_dtypes)}")
+    _assert_finite_parameters(torch, model, context="initial model load")
+    return model
+
+
+def _assert_finite_parameters(torch: Any, model: Any, *, context: str) -> None:
+    """Fail closed if any floating-point parameter has NaN or Inf values."""
+
+    for name, parameter in model.named_parameters():
+        if parameter.is_floating_point() and not bool(torch.isfinite(parameter.detach()).all()):
+            raise FloatingPointError(f"Non-finite parameter detected in {name!r} during {context}")
+
+
 def train_endpoint(
     config: ExperimentConfig,
     *,
@@ -146,7 +170,7 @@ def train_endpoint(
         tokenizer.pad_token = tokenizer.eos_token
 
     model = AutoModelForCausalLM.from_pretrained(base_model, revision=revision)
-    model.to(device)
+    model = _enforce_fp32_model(torch, model, device)
 
     max_length = int(training_cfg["max_length"])
 
@@ -213,25 +237,46 @@ def train_endpoint(
         )
         model.train()
         losses: list[float] = []
+        preclip_grad_norms: list[float] = []
         stage_steps = int(training_cfg["stage_steps"])
-        for _ in range(stage_steps):
+        for step_index in range(stage_steps):
             batch = next(stream)
             batch = {name: value.to(device) for name, value in batch.items()}
             optimizer.zero_grad(set_to_none=True)
             output = model(**batch)
-            output.loss.backward()
-            if training_cfg.get("max_grad_norm") is not None:
-                torch.nn.utils.clip_grad_norm_(
-                    model.parameters(), float(training_cfg["max_grad_norm"])
+            loss_value = float(output.loss.detach().cpu())
+            if not math.isfinite(loss_value):
+                raise FloatingPointError(
+                    f"Non-finite loss in stage {stage} at step {step_index}: {loss_value}"
                 )
+            output.loss.backward()
+
+            max_grad_norm = training_cfg.get("max_grad_norm")
+            norm_limit = float(max_grad_norm) if max_grad_norm is not None else float("inf")
+            grad_norm_tensor = torch.nn.utils.clip_grad_norm_(
+                model.parameters(),
+                norm_limit,
+                error_if_nonfinite=True,
+            )
+            grad_norm = float(grad_norm_tensor.detach().cpu())
+            if not math.isfinite(grad_norm):
+                raise FloatingPointError(
+                    f"Non-finite gradient norm in stage {stage} at step {step_index}"
+                )
+
             optimizer.step()
-            losses.append(float(output.loss.detach().cpu()))
+            losses.append(loss_value)
+            preclip_grad_norms.append(grad_norm)
+
+        _assert_finite_parameters(torch, model, context=f"end of stage {stage}")
         stage_metrics[stage] = {
             "mean_loss": sum(losses) / len(losses),
             "final_loss": losses[-1],
+            "max_preclip_grad_norm": max(preclip_grad_norms),
             "steps": float(stage_steps),
         }
 
+    _assert_finite_parameters(torch, model, context="before endpoint serialization")
     model.save_pretrained(endpoint_dir, safe_serialization=True)
     tokenizer.save_pretrained(endpoint_dir)
 
@@ -259,11 +304,13 @@ def train_endpoint(
             "torch": torch.__version__,
             "cuda_available": bool(torch.cuda.is_available()),
             "device": str(device),
+            "model_dtype": str(next(model.parameters()).dtype),
         },
         artifacts={"endpoint": str(endpoint_dir)},
         notes=[
             "Optimizer reset at each macro stage.",
             "Stage shuffle seeds are independent of macro order.",
+            "FP32 precision is explicitly enforced on all floating-point model parameters.",
         ],
     )
     manifest.write_json(run_dir / "manifest.json")
