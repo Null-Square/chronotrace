@@ -1,4 +1,4 @@
-"""Matched sequential fine-tuning for the Phase-0 histories."""
+"""Matched sequential fine-tuning for ChronoTrace Phase-0 histories."""
 
 from __future__ import annotations
 
@@ -38,9 +38,12 @@ def _git_commit() -> str:
 
 
 def _stable_stage_seed(training_seed: int, stage: str) -> int:
-    """Make stage randomness independent of whether the stage came first or second."""
+    """Make stage randomness independent of where that stage appears in history."""
 
-    return training_seed * 1009 + (17 if stage == "A" else 43)
+    offsets = {"A": 17, "B": 43, "C": 71}
+    if stage not in offsets:
+        raise ValueError(f"unsupported training stage: {stage}")
+    return training_seed * 1009 + offsets[stage]
 
 
 def _seed_everything(torch: Any, seed: int) -> None:
@@ -60,13 +63,28 @@ def _device(torch: Any, requested: str) -> Any:
 
 
 def _read_stage_rows(data_root: Path, stage: str) -> list[dict[str, Any]]:
-    filename = "stage_a.jsonl" if stage == "A" else "stage_b.jsonl"
-    return read_jsonl(data_root / filename)
+    filenames = {"A": "stage_a.jsonl", "B": "stage_b.jsonl", "C": "stage_c.jsonl"}
+    if stage not in filenames:
+        raise ValueError(f"unsupported training stage: {stage}")
+    return read_jsonl(data_root / filenames[stage])
 
 
 def _batch_stream(loader: Any) -> Iterator[dict[str, Any]]:
     while True:
         yield from loader
+
+
+def _configured_stage_steps(training_cfg: dict[str, Any], stage: str) -> int:
+    per_stage = training_cfg.get("stage_steps_by_stage")
+    if per_stage is not None:
+        if stage not in per_stage:
+            raise ValueError(f"stage_steps_by_stage is missing stage {stage}")
+        steps = int(per_stage[stage])
+    else:
+        steps = int(training_cfg["stage_steps"])
+    if steps <= 0:
+        raise ValueError(f"stage {stage} must have a positive training step count")
+    return steps
 
 
 def _validate_phase0_inputs(config: ExperimentConfig, data_root: Path) -> dict[str, Any]:
@@ -79,19 +97,23 @@ def _validate_phase0_inputs(config: ExperimentConfig, data_root: Path) -> dict[s
 
     metadata_path = data_root / "metadata.json"
     if not metadata_path.exists():
-        raise FileNotFoundError(
-            f"Missing {metadata_path}. Run `chronotrace --config configs/mvp.yaml generate`."
-        )
+        raise FileNotFoundError(f"Missing generated metadata: {metadata_path}")
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+
     artifact_paths = {
         "stage_a": data_root / "stage_a.jsonl",
         "stage_b": data_root / "stage_b.jsonl",
         "probes": data_root / "probes.jsonl",
     }
+    if any("C" in str(history) for history in config.histories):
+        artifact_paths["stage_c"] = data_root / "stage_c.jsonl"
+
     for name, path in artifact_paths.items():
         if not path.exists():
             raise FileNotFoundError(f"Missing generated artifact: {path}")
-        expected = metadata["sha256"][name]
+        expected = metadata["sha256"].get(name)
+        if expected is None:
+            raise ValueError(f"Generated metadata is missing the hash for {name}")
         actual = file_sha256(path)
         if actual != expected:
             raise ValueError(
@@ -130,15 +152,21 @@ def train_endpoint(
     training_seed: int,
     output_root: str | Path | None = None,
 ) -> Path:
-    """Train one AB or BA endpoint from the same base checkpoint.
+    """Train one configured history endpoint from the same base checkpoint.
 
-    The optimizer is reset at each macro stage. This avoids making the first experiment
-    depend on Adam moment carry-over. A/B data shuffling also uses a stage-specific seed
-    that does not depend on whether the stage came first or second.
+    Optimizer state is reset at every macro stage. Stage A/B/C shuffling uses a
+    stage-specific seed that depends on the training seed but not on the stage position,
+    so an identical terminal C stage is genuinely identical across matched histories.
     """
 
-    if history not in {"AB", "BA"}:
-        raise ValueError("history must be AB or BA")
+    declared_histories = {str(value) for value in config.histories}
+    if history not in declared_histories:
+        raise ValueError(
+            f"history {history!r} is not declared in config.histories={sorted(declared_histories)}"
+        )
+    unsupported = set(history) - {"A", "B", "C"}
+    if unsupported:
+        raise ValueError(f"history contains unsupported stages: {sorted(unsupported)}")
 
     model_cfg = config.model
     training_cfg = config.training
@@ -238,7 +266,7 @@ def train_endpoint(
         model.train()
         losses: list[float] = []
         preclip_grad_norms: list[float] = []
-        stage_steps = int(training_cfg["stage_steps"])
+        stage_steps = _configured_stage_steps(training_cfg, stage)
         for step_index in range(stage_steps):
             batch = next(stream)
             batch = {name: value.to(device) for name, value in batch.items()}
@@ -280,6 +308,14 @@ def train_endpoint(
     model.save_pretrained(endpoint_dir, safe_serialization=True)
     tokenizer.save_pretrained(endpoint_dir)
 
+    stage_artifacts = {
+        "stage_a_sha256": metadata["sha256"]["stage_a"],
+        "stage_b_sha256": metadata["sha256"]["stage_b"],
+        "probes_sha256": metadata["sha256"]["probes"],
+    }
+    if "stage_c" in metadata["sha256"]:
+        stage_artifacts["stage_c_sha256"] = metadata["sha256"]["stage_c"]
+
     manifest = RunManifest(
         run_id=run_id,
         history=history,
@@ -288,11 +324,7 @@ def train_endpoint(
         status="trained",
         base_model=base_model,
         base_revision=str(revision) if revision is not None else None,
-        stage_artifacts={
-            "stage_a_sha256": metadata["sha256"]["stage_a"],
-            "stage_b_sha256": metadata["sha256"]["stage_b"],
-            "probes_sha256": metadata["sha256"]["probes"],
-        },
+        stage_artifacts=stage_artifacts,
         config={
             "model": dict(config.model),
             "training": dict(config.training),
@@ -309,7 +341,7 @@ def train_endpoint(
         artifacts={"endpoint": str(endpoint_dir)},
         notes=[
             "Optimizer reset at each macro stage.",
-            "Stage shuffle seeds are independent of macro order.",
+            "Stage shuffle seeds are independent of macro order and stage position.",
             "FP32 precision is explicitly enforced on all floating-point model parameters.",
         ],
     )
