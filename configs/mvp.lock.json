@@ -1,0 +1,91 @@
+{
+  "config": {
+    "controls": {
+      "capability_matching_max_mean_margin_gap": 1.0,
+      "optimizer_reset_between_stages": true,
+      "require_capability_matching": true,
+      "same_example_multiset": true,
+      "same_hyperparameters": true,
+      "same_optimizer": true,
+      "same_tokens_per_stage": true,
+      "stage_shuffle_seed_independent_of_order": true
+    },
+    "data": {
+      "decoys_per_probe": 3,
+      "relation_design": "alias_to_entity__entity_to_signal",
+      "root": "data/mvp",
+      "seed": 20260828,
+      "worlds": 96
+    },
+    "experiment": {
+      "name": "phase0_ab_ba",
+      "protocol_version": 1
+    },
+    "forensics": {
+      "confirmation_locked": true,
+      "detector": "standardized_logistic_regression",
+      "detector_c": 1.0,
+      "discovery_validation": "leave_one_training_seed_out",
+      "feature_family": "contextual_binding_margin",
+      "score_batch_size": 16
+    },
+    "histories": [
+      "AB",
+      "BA"
+    ],
+    "metrics": {
+      "primary": "seed_held_out_balanced_accuracy",
+      "secondary": [
+        "auroc",
+        "paired_seed_bootstrap_confidence_interval",
+        "capability_gap",
+        "capability_only_baseline",
+        "cross_seed_stability"
+      ]
+    },
+    "model": {
+      "checkpoint": "EleutherAI/pythia-70m-deduped",
+      "family": "pythia",
+      "revision": "step143000"
+    },
+    "seeds": {
+      "confirmation": [
+        101,
+        103,
+        107,
+        109
+      ],
+      "discovery": [
+        11,
+        13,
+        17,
+        19,
+        23,
+        29,
+        31,
+        37
+      ]
+    },
+    "training": {
+      "batch_size": 8,
+      "device": "auto",
+      "learning_rate": 0.0002,
+      "max_grad_norm": 1.0,
+      "max_length": 96,
+      "precision": "fp32",
+      "reset_optimizer_each_stage": true,
+      "stage_a": "alias_to_entity",
+      "stage_b": "entity_to_signal",
+      "stage_steps": 150,
+      "weight_decay": 0.0
+    }
+  },
+  "expected_generated_sha256": {
+    "probes": "90819c468ba2b55841e1998e766344ec771d38e0472da3b831022c0159200c51",
+    "stage_a": "4cff59439d640d68117181000b394d9a604edc53f3d7698c7a2f4c6f3d1fa580",
+    "stage_b": "679d2c0e2549ca572d5a6b8061bf136edf95845d3022015b9431f705a70fa4f9",
+    "worlds": "183b3ab670b9e96708dcc536e2576e477fba5c99ced20bb35d6c09a10f66d460"
+  },
+  "fingerprint": "7bf6a5714a95f3b14780892552777abd45ad99c9830c5b9bb1a88a5c2354a220",
+  "lock_version": 1
+}
