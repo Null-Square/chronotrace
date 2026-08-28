@@ -162,6 +162,12 @@ def _run_phase0b_endpoint_smoke(root: Path) -> None:
     )
     _build_local_tiny_model(base_dir, data_root)
 
+    expected_stage_artifacts = {
+        "stage_a_sha256",
+        "stage_b_sha256",
+        "stage_c_sha256",
+        "probes_sha256",
+    }
     for history in ("ABC", "BAC"):
         run_dir = train_endpoint(
             config,
@@ -174,7 +180,7 @@ def _run_phase0b_endpoint_smoke(root: Path) -> None:
         features = json.loads(features_path.read_text(encoding="utf-8"))
         assert manifest["history"] == history
         assert manifest["environment"]["model_dtype"] == "torch.float32"
-        assert set(manifest["stage_artifacts"]) == {"A", "B", "C"}
+        assert set(manifest["stage_artifacts"]) == expected_stage_artifacts
         assert features["history"] == history
 
 
