@@ -11,6 +11,11 @@ from chronotrace.geometry.commutator import (
     pairwise_chrono_score,
     pairwise_endpoint_geometry,
     parameter_vector,
+    permutation_signature,
+)
+from chronotrace.geometry.identifiability import (
+    chronology_identifiability,
+    normalized_remainder_ratio,
 )
 
 torch = pytest.importorskip("torch")
@@ -112,6 +117,38 @@ def test_all_three_stage_permutations_decode() -> None:
         )
         assert decoded.permutation == candidate
         assert decoded.margin > 0
+
+
+def test_identifiability_margin_certifies_local_decode() -> None:
+    theta0 = torch.tensor([0.35, -0.45, 0.25], dtype=torch.float64)
+    eta = 0.025
+    stages = ("A", "B", "C")
+    base, gradients, cross = _local_geometry(theta0)
+    diagnostic = chronology_identifiability(cross, stages=stages)
+
+    assert diagnostic.stage_count == 3
+    assert diagnostic.pair_count == 3
+    assert diagnostic.bracket_rank >= 1
+    assert diagnostic.minimum_signature_separation > 0
+    assert diagnostic.locally_identifiable is True
+
+    reference = multi_stage_symmetric_reference(
+        base,
+        gradients,
+        cross,
+        stages=stages,
+        step_size=eta,
+    )
+    candidate = ("A", "B", "C")
+    endpoint = _run_history(theta0, "".join(candidate), eta)
+    signature = permutation_signature(candidate, cross, stages=stages, step_size=eta)
+    error = float(torch.linalg.vector_norm((endpoint - reference) - signature))
+    ratio = normalized_remainder_ratio(
+        error,
+        step_size=eta,
+        minimum_signature_separation=diagnostic.minimum_signature_separation,
+    )
+    assert ratio < 1.0
 
 
 def test_parameter_vector_flattens_model_parameters() -> None:
