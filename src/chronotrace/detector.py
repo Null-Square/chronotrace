@@ -1,4 +1,4 @@
-"""Seed-held-out history detection for Phase 0."""
+"""Seed-held-out paired-history detection for ChronoTrace Phase-0 experiments."""
 
 from __future__ import annotations
 
@@ -9,6 +9,18 @@ from pathlib import Path
 from typing import Any
 
 from chronotrace.config import ExperimentConfig
+
+
+def _history_label(history: str) -> int:
+    """Map an A-first/B-first paired history to the fixed binary target."""
+
+    if history.startswith("AB"):
+        return 1
+    if history.startswith("BA"):
+        return 0
+    raise ValueError(
+        f"history {history!r} does not encode the required AB-first versus BA-first contrast"
+    )
 
 
 @dataclass(frozen=True)
@@ -23,7 +35,7 @@ class FeatureSample:
 
     @property
     def label(self) -> int:
-        return 1 if self.history == "AB" else 0
+        return _history_label(self.history)
 
 
 def _require_stack() -> tuple[Any, Any, Any, Any, Any]:
@@ -108,6 +120,13 @@ def _metrics(
     return result
 
 
+def _validate_binary_pair(samples: list[FeatureSample], *, seed: int) -> None:
+    if len(samples) != 2 or {sample.label for sample in samples} != {0, 1}:
+        raise ValueError(
+            f"seed {seed} must contain exactly one A-first and one B-first endpoint"
+        )
+
+
 def _leave_one_seed_out(
     samples: list[FeatureSample],
     *,
@@ -127,8 +146,7 @@ def _leave_one_seed_out(
     for seed in seeds:
         train = [sample for sample in samples if sample.seed != seed]
         test = [sample for sample in samples if sample.seed == seed]
-        if {sample.history for sample in test} != {"AB", "BA"} or len(test) != 2:
-            raise ValueError(f"seed {seed} must contain exactly one AB and one BA endpoint")
+        _validate_binary_pair(test, seed=seed)
         x_train, y_train = _matrix(train, names, np)
         x_test, y_test = _matrix(test, names, np)
         model = _model(
@@ -144,7 +162,7 @@ def _leave_one_seed_out(
         pred.extend(int(value) for value in y_hat)
         prob.extend(float(value) for value in p)
         per_seed[str(seed)] = {
-            sample.run_id: {"true": int(y), "p_ab": float(score)}
+            sample.run_id: {"true": int(y), "p_a_first": float(score)}
             for sample, y, score in zip(test, y_test, p, strict=True)
         }
     return {
@@ -163,13 +181,7 @@ def capability_matching_report(
     config: ExperimentConfig,
     samples: list[FeatureSample],
 ) -> dict[str, Any]:
-    """Evaluate the predeclared AB/BA ordinary-capability matching gate.
-
-    The frozen Phase-0 threshold applies to the difference between the matched AB and BA
-    endpoints for the mean A-only and B-only control margins. This is intentionally a
-    pairwise seed-level check: a history signal is not eligible for confirmation if it can
-    be explained by a large ordinary-capability difference in any matched discovery pair.
-    """
+    """Evaluate the predeclared paired-history ordinary-capability matching gate."""
 
     required = bool(config.controls.get("require_capability_matching", False))
     threshold = float(config.controls["capability_matching_max_mean_margin_gap"])
@@ -185,13 +197,16 @@ def capability_matching_report(
     all_pairs_pass = True
     for seed in seeds:
         pair = [sample for sample in samples if sample.seed == seed]
-        if {sample.history for sample in pair} != {"AB", "BA"} or len(pair) != 2:
-            raise ValueError(f"seed {seed} must contain exactly one AB and one BA endpoint")
-        by_history = {sample.history: sample for sample in pair}
-        ab = by_history["AB"]
-        ba = by_history["BA"]
-        a_gap = abs(ab.features["a_control.mean"] - ba.features["a_control.mean"])
-        b_gap = abs(ab.features["b_control.mean"] - ba.features["b_control.mean"])
+        _validate_binary_pair(pair, seed=seed)
+        by_label = {sample.label: sample for sample in pair}
+        a_first = by_label[1]
+        b_first = by_label[0]
+        a_gap = abs(
+            a_first.features["a_control.mean"] - b_first.features["a_control.mean"]
+        )
+        b_gap = abs(
+            a_first.features["b_control.mean"] - b_first.features["b_control.mean"]
+        )
         pair_max = max(a_gap, b_gap)
         pair_pass = pair_max <= threshold
         max_observed = max(max_observed, pair_max)
@@ -201,6 +216,8 @@ def capability_matching_report(
             "b_control_mean_gap": b_gap,
             "max_mean_margin_gap": pair_max,
             "passed": pair_pass,
+            "a_first_history": a_first.history,
+            "b_first_history": b_first.history,
         }
 
     return {
@@ -288,7 +305,7 @@ def _evaluate_group(
         "discovery_leave_one_seed_out": discovery_cv,
         "confirmation": {
             "metrics": confirmation_metrics,
-            "predictions_p_ab": predictions,
+            "predictions_p_a_first": predictions,
         },
     }
 
@@ -298,17 +315,24 @@ def _select_exact_samples(
     samples: list[FeatureSample],
     split: str,
 ) -> list[FeatureSample]:
+    declared_histories = {str(value) for value in config.histories}
+    if len(declared_histories) != 2:
+        raise ValueError("paired-history analysis requires exactly two declared histories")
+    if {_history_label(history) for history in declared_histories} != {0, 1}:
+        raise ValueError("declared histories must contain one A-first and one B-first condition")
+
     seeds = {int(value) for value in config.seeds[split]}
     selected = [sample for sample in samples if sample.seed in seeds]
-    expected = len(seeds) * 2
+    expected = len(seeds) * len(declared_histories)
     if len(selected) != expected:
         raise ValueError(f"expected {expected} {split} endpoints, found {len(selected)}")
     for seed in seeds:
         pair = [sample for sample in selected if sample.seed == seed]
-        if {sample.history for sample in pair} != {"AB", "BA"} or len(pair) != 2:
+        if {sample.history for sample in pair} != declared_histories:
             raise ValueError(
-                f"{split} seed {seed} does not have exactly one AB and one BA endpoint"
+                f"{split} seed {seed} does not contain the exact declared history pair"
             )
+        _validate_binary_pair(pair, seed=seed)
     return selected
 
 

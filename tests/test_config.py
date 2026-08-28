@@ -32,10 +32,24 @@ def _minimal_mapping() -> dict:
     }
 
 
+def test_phase0b_accepts_abc_bac_history_pair() -> None:
+    data = _minimal_mapping()
+    data["histories"] = ["ABC", "BAC"]
+    config = ExperimentConfig.from_mapping(data)
+    assert config.histories == ("ABC", "BAC")
+
+
 def test_phase0_rejects_wrong_history_set() -> None:
     data = _minimal_mapping()
     data["histories"] = ["AB"]
-    with pytest.raises(ValueError, match="exactly AB and BA"):
+    with pytest.raises(ValueError, match="AB/BA or Phase-0b ABC/BAC"):
+        ExperimentConfig.from_mapping(data)
+
+
+def test_phase0_rejects_unregistered_history_pair() -> None:
+    data = _minimal_mapping()
+    data["histories"] = ["ABC", "CBA"]
+    with pytest.raises(ValueError, match="AB/BA or Phase-0b ABC/BAC"):
         ExperimentConfig.from_mapping(data)
 
 

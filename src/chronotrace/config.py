@@ -8,6 +8,11 @@ from typing import Any
 
 import yaml
 
+_ALLOWED_HISTORY_PAIRS = (
+    frozenset({"AB", "BA"}),
+    frozenset({"ABC", "BAC"}),
+)
+
 
 @dataclass(frozen=True)
 class ExperimentConfig:
@@ -42,9 +47,12 @@ class ExperimentConfig:
         if missing:
             raise ValueError(f"Missing required configuration sections: {sorted(missing)}")
 
-        histories = tuple(data["histories"])
-        if set(histories) != {"AB", "BA"} or len(histories) != 2:
-            raise ValueError("Phase-0 configuration must define exactly AB and BA histories")
+        histories = tuple(str(value) for value in data["histories"])
+        history_set = frozenset(histories)
+        if len(histories) != 2 or history_set not in _ALLOWED_HISTORY_PAIRS:
+            raise ValueError(
+                "Phase-0 configuration must define exactly AB/BA or Phase-0b ABC/BAC histories"
+            )
 
         discovery = tuple(int(value) for value in data["seeds"].get("discovery", []))
         confirmation = tuple(int(value) for value in data["seeds"].get("confirmation", []))

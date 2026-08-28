@@ -7,6 +7,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+_ALLOWED_HISTORIES = frozenset({"AB", "BA", "ABC", "BAC"})
+
 
 @dataclass
 class RunManifest:
@@ -26,8 +28,11 @@ class RunManifest:
     notes: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        if self.history not in {"AB", "BA"}:
-            raise ValueError("Phase-0 history must be AB or BA")
+        if self.history not in _ALLOWED_HISTORIES:
+            allowed = ", ".join(sorted(_ALLOWED_HISTORIES))
+            raise ValueError(
+                f"Unsupported ChronoTrace history {self.history!r}; allowed: {allowed}"
+            )
         if not self.run_id:
             raise ValueError("run_id must not be empty")
         if not self.git_commit:

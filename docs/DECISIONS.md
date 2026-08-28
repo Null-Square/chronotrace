@@ -29,3 +29,43 @@ Use this file for decisions that can affect interpretation of results. Add entri
 **Reason:** The model is small enough for repeated controlled runs. The two-stage synthetic chain creates a real cross-stage interaction without using contradictory labels. The binding probes hold the queried relation and answer fixed, so they can test whether context from the other learned relation changes access to the target relation.
 
 **Consequence:** The first experiment resets optimizer state at each macro stage and uses stage-specific random seeds that do not depend on macro order. This isolates path dependence in the model weights from a simpler Adam-moment or data-shuffle explanation. Confirmation seeds remain frozen and separate from discovery seeds.
+
+## 2026-08-28 — D005 — Reject Phase-0 v1 as capability-confounded
+
+**Decision:** Do not treat the perfect AB/BA discovery classification as evidence for a nontrivial training-path trace.
+
+**Reason:** The forensic LOSO detector and the capability-only LOSO baseline both reached 1.00 balanced accuracy / 1.00 AUROC, and every matched discovery-seed pair violated the frozen capability-equivalence threshold. Ordinary recency/forgetting is sufficient to expose the order.
+
+**Consequence:** Confirmation remains locked. Phase-0b introduces an identical balanced terminal stage C and tests `ABC` versus `BAC` instead.
+
+## 2026-08-28 — D006 — Fix Phase-0b washout selection before reading forensic performance
+
+**Decision:** On already-consumed design seeds `13, 23, 29`, evaluate only C-step candidates `50, 150, 300`. Select the smallest candidate for which every paired A-control and B-control mean-margin gap is at most `1.0`.
+
+**Reason:** The design pilot exists to remove the v1 capability confound, not to optimize history classification. Allowing forensic accuracy to select C would leak the target signal into protocol design.
+
+**Consequence:** Forensic metrics are reported for diagnosis but cannot determine the chosen washout length. If no candidate passes, Phase-0b is not frozen.
+
+## 2026-08-28 — D007 — Reserve fresh Phase-0b discovery seeds before the design result
+
+**Decision:** If a Phase-0b C length qualifies under D006, the next fresh discovery split will use training seeds `41, 43, 47, 53, 59, 61, 67, 71`. The untouched confirmation seeds remain `101, 103, 107, 109`.
+
+**Reason:** These eight seeds are disjoint from the v1 discovery set, the Phase-0b design seeds, and confirmation. Fixing them before reading the valid washout-pilot result prevents favorable-seed selection after observing the design outcome.
+
+**Consequence:** The only design-pilot quantity permitted to enter the fresh protocol is the C-step length selected by the capability-only rule in D006. The fresh discovery seeds cannot be replaced based on pilot or discovery performance.
+
+## 2026-08-28 — D008 — Reject shuffled-union Phase-0b as an endpoint-equivalence mechanism
+
+**Decision:** Do not freeze any of the tested shuffled-union terminal-stage lengths `C in {50, 150, 300}`.
+
+**Reason:** None satisfied the predeclared `<= 1.0` paired capability-gap gate. The maximum observed gap was `12.8486` at C=50, `5.4859` at C=150, and `9.4641` at C=300. The capability-only LOSO balanced accuracy remained `1.000`, `0.833`, and `0.833`, respectively. The Order-Witness detector fell from `1.000` at C=50 to `0.833` at C=150 and `0.500` at C=300. Thus longer shuffled common rehearsal can erase the interaction witness before it reliably equalizes ordinary endpoint capability, and capability matching is not monotonic under this operator.
+
+**Consequence:** Fresh discovery seeds `41, 43, 47, 53, 59, 61, 67, 71` and confirmation seeds `101, 103, 107, 109` remain untouched. Phase-0b is a completed design-only negative result, not a positive chronology result.
+
+## 2026-08-28 — D009 — Test Balanced Joint Washout before increasing terminal duration
+
+**Decision:** Phase-0c will replace shuffled-union C sampling with **Balanced Joint Washout (BJW)**. Every C optimizer step must contain an equal number of matched A and B examples, paired by synthetic world and template, in the same minibatch. The terminal corpus remains exactly the A+B multiset and the batch schedule is identical for matched `ABC` and `BAC` histories.
+
+**Reason:** The Phase-0b operator still introduced stochastic local imbalance inside C even though its aggregate corpus was balanced. Increasing C alone would not directly remove that mechanism. BJW makes each terminal gradient estimate approximately symmetric, `g_C ~= 0.5 g_A + 0.5 g_B`, and therefore provides a stronger test of path identifiability under endpoint equivalence.
+
+**Consequence:** The Phase-0c design pilot will reuse only consumed design seeds `13, 23, 29`, keep C-step candidates `50, 150, 300` for direct operator comparison, and use the same capability-only selection rule as D006. Forensic performance cannot select the BJW duration. Fresh discovery and confirmation remain locked until a BJW candidate passes the capability gate.
