@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 import json
 import math
+from collections import defaultdict
 from pathlib import Path
 from statistics import mean, pstdev
 from typing import Any
 
 from chronotrace.config import ExperimentConfig
 from chronotrace.data import read_jsonl
-
 
 _BINDING_FAMILIES = {
     "a_to_b_congruent",
