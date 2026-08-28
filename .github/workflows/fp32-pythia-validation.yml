@@ -1,0 +1,57 @@
+name: FP32 Pythia Validation
+
+on:
+  push:
+    branches: [fix/enforce-fp32-training]
+
+permissions:
+  contents: read
+
+jobs:
+  endpoint:
+    name: ${{ matrix.history }} seed 17
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        history: [AB, BA]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch
+        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
+      - name: Install MVP stack
+        run: python -m pip install -e ".[mvp]"
+      - name: Generate locked data
+        run: chronotrace generate
+      - name: Train full endpoint
+        run: chronotrace train --history "${{ matrix.history }}" --seed 17
+      - name: Extract features
+        shell: bash
+        run: |
+          history=$(echo "${{ matrix.history }}" | tr '[:upper:]' '[:lower:]')
+          run_id="phase0-${history}-seed17"
+          chronotrace features --run-dir "runs/${run_id}"
+          python - <<PY
+          import json
+          from pathlib import Path
+          path = Path("runs/${run_id}")
+          manifest = json.loads((path / "manifest.json").read_text())
+          metrics = json.loads((path / "training_metrics.json").read_text())
+          features = json.loads((path / "features.json").read_text())
+          assert manifest["environment"]["model_dtype"] == "torch.float32"
+          for stage in "${{ matrix.history }}":
+              assert metrics[stage]["mean_loss"] == metrics[stage]["mean_loss"]
+              assert metrics[stage]["final_loss"] == metrics[stage]["final_loss"]
+          assert all(value == value for value in features["features"].values())
+          print(json.dumps({
+              "history": manifest["history"],
+              "model_dtype": manifest["environment"]["model_dtype"],
+              "training_metrics": metrics,
+              "directional_asymmetry": features["features"]["binding.directional_asymmetry"],
+          }, indent=2))
+          PY
