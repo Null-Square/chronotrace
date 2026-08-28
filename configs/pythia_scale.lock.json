@@ -39,7 +39,10 @@
   },
   "reproducibility_gate": {
     "reason": "adjudicate contradictory 14M bridge runs 33217708707 and 33217974506",
+    "workflow_run_id": 33218688360,
+    "result": "failed",
     "replicas": 3,
+    "observed_correct": [3, 3, 6],
     "independent_hosted_runners": true,
     "exact_tensor_hash_agreement_required": true,
     "chronology_hyperparameters_unchanged": true,
@@ -56,5 +59,19 @@
     "omp_num_threads": "1",
     "mkl_num_threads": "1",
     "openblas_num_threads": "1"
+  },
+  "portable_kernel_gate": {
+    "reason": "remove host-dependent CPU ISA and math-backend dispatch after exact pre-training fingerprints still produced divergent learned stage operators",
+    "scientific_hyperparameters_unchanged": true,
+    "selected_without_chronology_performance_optimization": true,
+    "replicas": 3,
+    "exact_tensor_hash_agreement_required": true,
+    "aten_cpu_capability": "default",
+    "mkldnn_enabled": false,
+    "mkl_cbwr": "COMPATIBLE",
+    "mkl_dynamic": "FALSE",
+    "omp_dynamic": "FALSE",
+    "intraop_threads": 1,
+    "interop_threads": 1
   }
 }
