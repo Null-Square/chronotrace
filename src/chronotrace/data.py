@@ -10,7 +10,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-
 _NONCE_ALPHABET = "bcdfghjklmnpqrstvwxyz"
 
 _A_PROMPTS = (
