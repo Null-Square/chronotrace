@@ -59,7 +59,8 @@ def test_token_codebook_is_deterministic_disjoint_and_context_stable() -> None:
     assert left.sha256 == right.sha256
     validate_token_codebook(tokenizer, left)
 
-    ids = [token_id for kind in (left.alias, left.entity, left.signal, left.zone) for code in kind for token_id in code.token_ids]
+    pools = (left.alias, left.entity, left.signal, left.zone)
+    ids = [token_id for pool in pools for code in pool for token_id in code.token_ids]
     assert len(ids) == len(set(ids)) == 64
 
 
