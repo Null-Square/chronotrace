@@ -23,6 +23,26 @@ jobs:
         run: python -m pip install -e ".[mvp]"
       - name: Generate frozen data
         run: chronotrace generate
+      - name: Inspect base checkpoint dtype
+        run: |
+          python - <<'PY'
+          import json
+          import torch
+          from transformers import AutoModelForCausalLM
+          from chronotrace.config import load_config
+
+          config = load_config('configs/mvp.yaml')
+          model = AutoModelForCausalLM.from_pretrained(
+              config.model['checkpoint'], revision=config.model['revision']
+          )
+          counts = {}
+          finite = True
+          for parameter in model.parameters():
+              key = str(parameter.dtype)
+              counts[key] = counts.get(key, 0) + parameter.numel()
+              finite = finite and bool(torch.isfinite(parameter.detach()).all())
+          print(json.dumps({'parameter_dtypes': counts, 'all_parameters_finite': finite}, indent=2))
+          PY
       - name: Train deterministic BA seed 17
         run: chronotrace train --history BA --seed 17
       - name: Diagnose training and scoring
