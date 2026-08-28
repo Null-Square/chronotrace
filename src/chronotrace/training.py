@@ -7,8 +7,9 @@ import os
 import platform
 import random
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from chronotrace.config import ExperimentConfig
 from chronotrace.data import file_sha256, read_jsonl
