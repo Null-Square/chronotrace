@@ -1,4 +1,4 @@
-"""Orchestration for the frozen Phase-0 discovery and confirmation workflow."""
+"""Orchestration for frozen ChronoTrace discovery and confirmation workflows."""
 
 from __future__ import annotations
 
@@ -9,6 +9,12 @@ from typing import Any
 from chronotrace.config import ExperimentConfig
 from chronotrace.data import generate_dataset
 from chronotrace.protocol import file_set_fingerprint, verify_protocol_lock
+
+
+def _requires_stage_c(config: ExperimentConfig) -> bool:
+    """Return whether the declared history pair requires the common terminal stage C."""
+
+    return any("C" in history for history in config.histories)
 
 
 def ensure_frozen_dataset(
@@ -26,6 +32,7 @@ def ensure_frozen_dataset(
             seed=int(config.data["seed"]),
             worlds=int(config.data["worlds"]),
             decoys_per_probe=int(config.data.get("decoys_per_probe", 3)),
+            include_balanced_stage_c=_requires_stage_c(config),
         )
     lock = verify_protocol_lock(config, lock_path=lock_path, data_root=data_root)
     return lock
@@ -87,8 +94,9 @@ def _require_discovery_capability_gate(
         threshold = matching.get("threshold_max_mean_margin_gap")
         raise PermissionError(
             "Confirmation remains locked because discovery failed capability matching: "
-            f"max observed AB/BA control-margin gap {observed} exceeds threshold {threshold}. "
-            "Treat this as a recency/forgetting confound and redesign on discovery seeds only."
+            f"max observed paired-history control-margin gap {observed} exceeds threshold "
+            f"{threshold}. Treat this as a capability confound and redesign on discovery "
+            "seeds only."
         )
 
 
