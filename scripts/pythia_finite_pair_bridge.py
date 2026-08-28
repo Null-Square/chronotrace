@@ -41,7 +41,9 @@ def _load_json(path: str | Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def _symmetric_interactions(interactions: dict[tuple[str, str], Any]) -> dict[tuple[str, str], Any]:
+def _symmetric_interactions(
+    interactions: dict[tuple[str, str], Any],
+) -> dict[tuple[str, str], Any]:
     """Erase pair orientation while preserving the average finite pair effect."""
 
     result: dict[tuple[str, str], Any] = {}
@@ -255,7 +257,9 @@ def main() -> None:
     }
 
     if correct != int(bridge["required_correct"]):
-        raise RuntimeError(f"14M chronology gate recovered only {correct}/{len(histories)} histories")
+        raise RuntimeError(
+            f"14M chronology gate recovered only {correct}/{len(histories)} histories"
+        )
     if minimum_margin <= 0:
         raise RuntimeError("14M chronology gate has a non-positive decode margin")
     if not identifiability.identifiable:
