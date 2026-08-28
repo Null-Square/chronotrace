@@ -68,6 +68,37 @@ def _batch_stream(loader: Any) -> Iterator[dict[str, Any]]:
         yield from loader
 
 
+def _validate_phase0_inputs(config: ExperimentConfig, data_root: Path) -> dict[str, Any]:
+    """Reject config drift or corrupted generated artifacts before a model is loaded."""
+
+    if config.training.get("reset_optimizer_each_stage") is not True:
+        raise ValueError("Phase-0 requires reset_optimizer_each_stage: true")
+    if config.training.get("precision") != "fp32":
+        raise ValueError("Phase-0 runner currently supports precision: fp32 only")
+
+    metadata_path = data_root / "metadata.json"
+    if not metadata_path.exists():
+        raise FileNotFoundError(
+            f"Missing {metadata_path}. Run `chronotrace --config configs/mvp.yaml generate`."
+        )
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    artifact_paths = {
+        "stage_a": data_root / "stage_a.jsonl",
+        "stage_b": data_root / "stage_b.jsonl",
+        "probes": data_root / "probes.jsonl",
+    }
+    for name, path in artifact_paths.items():
+        if not path.exists():
+            raise FileNotFoundError(f"Missing generated artifact: {path}")
+        expected = metadata["sha256"][name]
+        actual = file_sha256(path)
+        if actual != expected:
+            raise ValueError(
+                f"Generated artifact integrity check failed for {path}: {actual} != {expected}"
+            )
+    return metadata
+
+
 def train_endpoint(
     config: ExperimentConfig,
     *,
@@ -77,17 +108,13 @@ def train_endpoint(
 ) -> Path:
     """Train one AB or BA endpoint from the same base checkpoint.
 
-    The optimizer is reset at each macro stage by default. This avoids making the first
-    experiment depend on Adam moment carry-over. A/B data shuffling also uses a
-    stage-specific seed that does not depend on whether the stage came first or second.
+    The optimizer is reset at each macro stage. This avoids making the first experiment
+    depend on Adam moment carry-over. A/B data shuffling also uses a stage-specific seed
+    that does not depend on whether the stage came first or second.
     """
 
     if history not in {"AB", "BA"}:
         raise ValueError("history must be AB or BA")
-
-    torch, AdamW, loader_types, hf_types = _require_mvp_stack()
-    DataLoader, Dataset = loader_types
-    AutoModelForCausalLM, AutoTokenizer = hf_types
 
     model_cfg = config.model
     training_cfg = config.training
@@ -95,13 +122,21 @@ def train_endpoint(
     base_model = str(model_cfg["checkpoint"])
     revision = model_cfg.get("revision")
     data_root = Path(data_cfg["root"])
-    metadata = json.loads((data_root / "metadata.json").read_text(encoding="utf-8"))
+    metadata = _validate_phase0_inputs(config, data_root)
 
     run_root = Path(output_root or config.artifacts["root"])
     run_id = f"phase0-{history.lower()}-seed{training_seed}"
     run_dir = run_root / run_id
+    if (run_dir / "manifest.json").exists():
+        raise FileExistsError(
+            f"Run {run_id} already exists at {run_dir}. Remove it explicitly before rerunning."
+        )
     endpoint_dir = run_dir / "endpoint"
-    endpoint_dir.mkdir(parents=True, exist_ok=True)
+    endpoint_dir.mkdir(parents=True, exist_ok=False)
+
+    torch, AdamW, loader_types, hf_types = _require_mvp_stack()
+    DataLoader, Dataset = loader_types
+    AutoModelForCausalLM, AutoTokenizer = hf_types
 
     device = _device(torch, str(training_cfg.get("device", "auto")))
     _seed_everything(torch, training_seed)
