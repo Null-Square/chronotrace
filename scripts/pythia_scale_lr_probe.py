@@ -41,8 +41,8 @@ def main() -> None:
         raise ValueError("model is not declared in the frozen scale ladder")
 
     # Tokenizer/codebook verification intentionally happens before model weights are loaded.
-    from transformers import AutoModelForCausalLM, AutoTokenizer
     import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
     revision = str(config["revision"])
     tokenizer = AutoTokenizer.from_pretrained(args.model_id, revision=revision)
