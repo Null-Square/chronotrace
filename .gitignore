@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Secrets and local settings
+.env
+.env.*
+!.env.example
+
+# Research outputs
+artifacts/
+runs/
+checkpoints/
+outputs/
+wandb/
+mlruns/
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+
+# Generated paper files
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.pdf

@@ -1,0 +1,51 @@
+experiment:
+  name: phase0_ab_ba
+  protocol_version: 1
+  status: scaffold
+
+model:
+  family: null
+  checkpoint: null
+  revision: null
+
+training:
+  stage_a: null
+  stage_b: null
+  stage_steps: null
+  learning_rate: null
+  batch_size: null
+  optimizer: null
+  precision: null
+
+histories:
+  - AB
+  - BA
+
+seeds:
+  discovery: []
+  confirmation: []
+
+controls:
+  same_example_multiset: true
+  same_tokens_per_stage: true
+  same_optimizer: true
+  same_hyperparameters: true
+  require_capability_matching: true
+
+forensics:
+  feature_family: null
+  detector: null
+
+metrics:
+  primary: seed_held_out_balanced_accuracy
+  secondary:
+    - auroc
+    - bootstrap_confidence_interval
+    - capability_gap
+    - cross_seed_stability
+
+artifacts:
+  root: runs
+  save_checkpoints: true
+  save_logits: false
+  save_activations: false

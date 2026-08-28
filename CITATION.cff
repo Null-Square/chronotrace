@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+title: ChronoTrace
+type: software
+message: "If you use ChronoTrace, cite this repository and the associated paper when available."
+authors:
+  - name: NullSquare
+repository-code: "https://github.com/Null-Square/chronotrace"
+version: 0.1.0
+date-released: 2026-08-28
