@@ -35,6 +35,22 @@ def test_capability_matching_uses_frozen_pairwise_margin_threshold() -> None:
     assert report["per_seed"]["13"]["max_mean_margin_gap"] == pytest.approx(0.9)
 
 
+def test_capability_matching_preserves_same_gate_for_abc_bac() -> None:
+    config = load_config("configs/mvp.yaml")
+    samples = [
+        _sample(11, "ABC", 3.0, 4.0),
+        _sample(11, "BAC", 3.5, 3.2),
+        _sample(13, "ABC", 2.0, 5.0),
+        _sample(13, "BAC", 2.8, 4.1),
+    ]
+
+    report = capability_matching_report(config, samples)
+
+    assert report["passed"] is True
+    assert report["per_seed"]["11"]["a_first_history"] == "ABC"
+    assert report["per_seed"]["11"]["b_first_history"] == "BAC"
+
+
 def test_capability_matching_fails_when_one_matched_pair_exceeds_threshold() -> None:
     config = load_config("configs/mvp.yaml")
     samples = [
