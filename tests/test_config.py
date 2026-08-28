@@ -17,6 +17,19 @@ def test_mvp_config_loads() -> None:
     assert not set(config.seeds["discovery"]) & set(config.seeds["confirmation"])
 
 
+def test_phase0c_config_loads_balanced_joint_terminal_sampling() -> None:
+    config = load_config(ROOT / "configs" / "phase0c_design.yaml")
+    assert config.histories == ("ABC", "BAC")
+    assert config.seeds["discovery"] == (13, 23, 29)
+    assert config.seeds["confirmation"] == (101, 103, 107, 109)
+    assert config.training["stage_sampling_by_stage"] == {
+        "A": "shuffled",
+        "B": "shuffled",
+        "C": "balanced_joint",
+    }
+    assert config.controls["capability_matching_max_mean_margin_gap"] == 1.0
+
+
 def _minimal_mapping() -> dict:
     return {
         "experiment": {},
