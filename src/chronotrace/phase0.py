@@ -127,7 +127,9 @@ def freeze_confirmation(
     if destination.exists():
         existing = json.loads(destination.read_text(encoding="utf-8"))
         if existing != seal:
-            raise ValueError("Existing confirmation seal does not match current discovery artifacts")
+            raise ValueError(
+                "Existing confirmation seal does not match current discovery artifacts"
+            )
         return destination
     destination.write_text(json.dumps(seal, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return destination
