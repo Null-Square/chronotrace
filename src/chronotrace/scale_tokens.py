@@ -77,7 +77,10 @@ def tokenizer_fingerprint(tokenizer: Any) -> str:
     """Hash the complete token-to-ID vocabulary to detect tokenizer drift."""
 
     vocab = tokenizer.get_vocab()
-    ordered = sorted(((str(token), int(index)) for token, index in vocab.items()), key=lambda x: x[1])
+    ordered = sorted(
+        ((str(token), int(index)) for token, index in vocab.items()),
+        key=lambda item: item[1],
+    )
     payload = json.dumps(ordered, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
