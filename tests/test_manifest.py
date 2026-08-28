@@ -20,8 +20,19 @@ def test_manifest_round_trip(tmp_path) -> None:
     assert data["training_seed"] == 1
 
 
+@pytest.mark.parametrize("history", ["ABC", "BAC"])
+def test_manifest_accepts_phase0b_histories(history: str) -> None:
+    manifest = RunManifest(
+        run_id=f"seed-001-{history.lower()}",
+        history=history,
+        training_seed=1,
+        git_commit="abc123",
+    )
+    assert manifest.history == history
+
+
 def test_manifest_rejects_unknown_history() -> None:
-    with pytest.raises(ValueError, match="AB or BA"):
+    with pytest.raises(ValueError, match="Unsupported ChronoTrace history"):
         RunManifest(
             run_id="bad",
             history="AC",
