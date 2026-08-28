@@ -1,4 +1,4 @@
-"""Deterministic synthetic data for the Phase-0 AB/BA experiment."""
+"""Deterministic synthetic data for ChronoTrace Phase-0 experiments."""
 
 from __future__ import annotations
 
@@ -115,6 +115,22 @@ def build_stage_examples(worlds: Iterable[WorldFact], relation: str) -> list[Tra
                 )
             )
     return examples
+
+
+def build_balanced_stage_c(
+    stage_a: list[TrainingExample],
+    stage_b: list[TrainingExample],
+) -> list[TrainingExample]:
+    """Build the identical balanced terminal rehearsal corpus used by Phase-0b.
+
+    Stage C contains exactly one copy of every A and every B example. The training loader
+    applies a deterministic C-specific shuffle, so both historical conditions receive the
+    same terminal distribution and the same shuffle seed for a given training seed.
+    """
+
+    if len(stage_a) != len(stage_b):
+        raise ValueError("balanced stage C requires equally sized A and B corpora")
+    return [*stage_a, *stage_b]
 
 
 def _decoy_indices(index: int, count: int, n_decoys: int) -> list[int]:
@@ -247,8 +263,13 @@ def generate_dataset(
     seed: int,
     worlds: int,
     decoys_per_probe: int = 3,
+    include_balanced_stage_c: bool = False,
 ) -> dict[str, Any]:
-    """Generate immutable Phase-0 stage and probe artifacts."""
+    """Generate immutable stage and probe artifacts.
+
+    `include_balanced_stage_c=False` preserves the original Phase-0 v1 artifact set.
+    Phase-0b opts in explicitly and receives an additional `stage_c.jsonl` artifact.
+    """
 
     output_root = Path(root)
     facts = build_worlds(seed, worlds)
@@ -262,7 +283,14 @@ def generate_dataset(
         "stage_b": _write_jsonl(output_root / "stage_b.jsonl", (asdict(x) for x in stage_b)),
         "probes": _write_jsonl(output_root / "probes.jsonl", (asdict(x) for x in probes)),
     }
-    metadata = {
+    stage_c: list[TrainingExample] | None = None
+    if include_balanced_stage_c:
+        stage_c = build_balanced_stage_c(stage_a, stage_b)
+        hashes["stage_c"] = _write_jsonl(
+            output_root / "stage_c.jsonl", (asdict(x) for x in stage_c)
+        )
+
+    metadata: dict[str, Any] = {
         "schema_version": 1,
         "seed": seed,
         "world_count": worlds,
@@ -272,6 +300,9 @@ def generate_dataset(
         "decoys_per_probe": decoys_per_probe,
         "sha256": hashes,
     }
+    if stage_c is not None:
+        metadata["stage_c_examples"] = len(stage_c)
+
     metadata_path = output_root / "metadata.json"
     metadata_payload = json.dumps(metadata, indent=2, sort_keys=True) + "\n"
     metadata_path.write_text(metadata_payload, encoding="utf-8")
