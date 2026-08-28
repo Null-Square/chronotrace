@@ -108,4 +108,8 @@ The result does **not** yet show that ChronoTrace works on realistic LLM trainin
 - only three candidate stages;
 - and a small model.
 
-The next experiment must isolate model scale before adding optimizer-state persistence or stochastic training. No old Phase-0 confirmation seeds were used by this gate.
+No old Phase-0 confirmation seeds were used by this gate.
+
+## Next gate
+
+Before paying for Pythia-scale operator experiments, remove the remaining perturbation-scale choice from the finite-difference method. The next controlled decoder uses exact singleton and ordered-pair stage executions to construct **finite pair interactions** and finite pair commutators. This keeps stage-probe complexity quadratic while moving approximation error into explicit triple-and-higher stage interactions rather than a local epsilon derivative. Only after that fixed comparison succeeds should the preferred operator decoder be scaled to Pythia.
