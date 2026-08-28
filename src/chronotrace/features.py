@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 import json
 import math
-from collections import defaultdict
 from pathlib import Path
 from statistics import mean, pstdev
 from typing import Any
@@ -72,7 +72,9 @@ def _score_sequences(
         prompt_ids = tokenizer(prompt, add_special_tokens=False)["input_ids"]
         completion_ids = tokenizer(completion, add_special_tokens=False)["input_ids"]
         if not prompt_ids or not completion_ids:
-            raise ValueError("probe prompt and completion must both tokenize to non-empty sequences")
+            raise ValueError(
+                "probe prompt and completion must both tokenize to non-empty sequences"
+            )
         prepared.append((prompt_ids, completion_ids))
 
     scores: list[float] = []
@@ -225,5 +227,7 @@ def extract_run_features(
         "probe_rows": rows,
     }
     destination = Path(output_path) if output_path else run_path / "features.json"
-    destination.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    destination.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return destination
