@@ -49,11 +49,14 @@ jobs:
           pytest tests/test_feature_masking.py
           tests/test_commutator_geometry.py
           tests/test_operator_geometry.py
+          tests/test_secant_geometry.py
       - name: Inverse commutator theorem smoke
         run: python scripts/commutator_smoke.py
       - name: Tiny transformer commutator smoke
         run: python scripts/transformer_commutator_smoke.py
       - name: Multi-update macro-operator smoke
         run: python scripts/operator_commutator_smoke.py
+      - name: Finite-pair chronology stress test
+        run: python scripts/finite_pair_commutator_smoke.py
       - name: End-to-end CPU smoke
         run: python scripts/smoke_mvp.py
