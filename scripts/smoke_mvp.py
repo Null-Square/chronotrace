@@ -1,7 +1,7 @@
 """End-to-end CPU smoke tests using a locally created tiny GPT-NeoX model.
 
 This validates orchestration, training, feature extraction, discovery evaluation, sealing,
-confirmation, and the Phase-0b ABC/BAC endpoint path without downloading a model or
+confirmation, and both shuffled and balanced-joint ABC/BAC endpoint paths without
 consuming scientific confirmation seeds.
 """
 
@@ -124,13 +124,19 @@ def _run_phase0_smoke(root: Path) -> dict[str, float]:
     }
 
 
-def _run_phase0b_endpoint_smoke(root: Path) -> None:
+def _run_three_stage_endpoint_smoke(
+    root: Path,
+    *,
+    config_filename: str,
+    prefix: str,
+    expected_c_sampling: str,
+) -> None:
     raw = yaml.safe_load(
-        (ROOT / "configs" / "phase0b_design.yaml").read_text(encoding="utf-8")
+        (ROOT / "configs" / config_filename).read_text(encoding="utf-8")
     )
-    data_root = root / "phase0b-data"
-    runs_root = root / "phase0b-runs"
-    base_dir = root / "phase0b-tiny-base"
+    data_root = root / f"{prefix}-data"
+    runs_root = root / f"{prefix}-runs"
+    base_dir = root / f"{prefix}-tiny-base"
 
     raw["model"] = {
         "family": "gpt_neox_smoke",
@@ -177,10 +183,14 @@ def _run_phase0b_endpoint_smoke(root: Path) -> None:
         )
         features_path = extract_run_features(config, run_dir=run_dir)
         manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+        metrics = json.loads(
+            (run_dir / "training_metrics.json").read_text(encoding="utf-8")
+        )
         features = json.loads(features_path.read_text(encoding="utf-8"))
         assert manifest["history"] == history
         assert manifest["environment"]["model_dtype"] == "torch.float32"
         assert set(manifest["stage_artifacts"]) == expected_stage_artifacts
+        assert metrics["C"]["sampling_strategy"] == expected_c_sampling
         assert features["history"] == history
 
 
@@ -188,8 +198,29 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="chronotrace-smoke-") as temporary:
         root = Path(temporary)
         phase0 = _run_phase0_smoke(root)
-        _run_phase0b_endpoint_smoke(root)
-        print(json.dumps({"status": "ok", "phase0": phase0, "phase0b": "ok"}, sort_keys=True))
+        _run_three_stage_endpoint_smoke(
+            root,
+            config_filename="phase0b_design.yaml",
+            prefix="phase0b",
+            expected_c_sampling="shuffled",
+        )
+        _run_three_stage_endpoint_smoke(
+            root,
+            config_filename="phase0c_design.yaml",
+            prefix="phase0c",
+            expected_c_sampling="balanced_joint",
+        )
+        print(
+            json.dumps(
+                {
+                    "status": "ok",
+                    "phase0": phase0,
+                    "phase0b": "ok",
+                    "phase0c": "ok",
+                },
+                sort_keys=True,
+            )
+        )
     return 0
 
 
