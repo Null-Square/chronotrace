@@ -1,4 +1,5 @@
 import json
+import shutil
 from copy import deepcopy
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import yaml
 
 from chronotrace.config import ExperimentConfig, load_config
 from chronotrace.data import generate_dataset
-from chronotrace.phase0 import freeze_confirmation, verify_confirmation_seal
+from chronotrace.phase0 import ensure_frozen_dataset, freeze_confirmation, verify_confirmation_seal
 from chronotrace.protocol import verify_protocol_lock, write_protocol_lock
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,14 +32,18 @@ def test_generated_corpus_hashes_are_locked(tmp_path: Path) -> None:
     assert metadata["sha256"] == lock["expected_generated_sha256"]
 
 
-def test_phase0b_stage_c_is_hash_locked(tmp_path: Path) -> None:
+def _phase0b_test_config(tmp_path: Path) -> ExperimentConfig:
     raw = yaml.safe_load(
         (ROOT / "configs" / "phase0b_design.yaml").read_text(encoding="utf-8")
     )
     raw["data"]["root"] = str(tmp_path / "phase0b-data")
     raw["data"]["worlds"] = 8
     raw["artifacts"]["root"] = str(tmp_path / "phase0b-runs")
-    config = ExperimentConfig.from_mapping(raw)
+    return ExperimentConfig.from_mapping(raw)
+
+
+def test_phase0b_stage_c_is_hash_locked(tmp_path: Path) -> None:
+    config = _phase0b_test_config(tmp_path)
     metadata = generate_dataset(
         config.data["root"],
         seed=int(config.data["seed"]),
@@ -54,6 +59,26 @@ def test_phase0b_stage_c_is_hash_locked(tmp_path: Path) -> None:
     stage_c.write_text(stage_c.read_text(encoding="utf-8") + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="stage_c.jsonl"):
         verify_protocol_lock(config, lock_path=lock_path, data_root=config.data["root"])
+
+
+def test_phase0b_frozen_dataset_regenerates_stage_c(tmp_path: Path) -> None:
+    config = _phase0b_test_config(tmp_path)
+    metadata = generate_dataset(
+        config.data["root"],
+        seed=int(config.data["seed"]),
+        worlds=int(config.data["worlds"]),
+        decoys_per_probe=int(config.data["decoys_per_probe"]),
+        include_balanced_stage_c=True,
+    )
+    lock_path = tmp_path / "phase0b-regeneration.lock.json"
+    write_protocol_lock(config, metadata["sha256"], lock_path)
+
+    shutil.rmtree(config.data["root"])
+    ensure_frozen_dataset(config, lock_path=lock_path)
+
+    regenerated_root = Path(config.data["root"])
+    assert (regenerated_root / "stage_c.jsonl").exists()
+    verify_protocol_lock(config, lock_path=lock_path, data_root=regenerated_root)
 
 
 def test_config_drift_is_rejected() -> None:
