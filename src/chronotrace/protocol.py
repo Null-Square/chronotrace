@@ -123,7 +123,9 @@ def verify_protocol_lock(
         }
         unknown = set(expected) - set(known_artifacts)
         if unknown:
-            raise ValueError(f"Protocol lock contains unknown generated artifacts: {sorted(unknown)}")
+            raise ValueError(
+                f"Protocol lock contains unknown generated artifacts: {sorted(unknown)}"
+            )
         for name in sorted(expected):
             path = root / known_artifacts[name]
             if not path.exists():
