@@ -5,9 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import random
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 
 _NONCE_ALPHABET = "bcdfghjklmnpqrstvwxyz"
@@ -273,7 +274,8 @@ def generate_dataset(
         "sha256": hashes,
     }
     metadata_path = output_root / "metadata.json"
-    metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    metadata_payload = json.dumps(metadata, indent=2, sort_keys=True) + "\n"
+    metadata_path.write_text(metadata_payload, encoding="utf-8")
     return metadata
 
 
