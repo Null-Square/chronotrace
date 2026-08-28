@@ -53,3 +53,19 @@ Use this file for decisions that can affect interpretation of results. Add entri
 **Reason:** These eight seeds are disjoint from the v1 discovery set, the Phase-0b design seeds, and confirmation. Fixing them before reading the valid washout-pilot result prevents favorable-seed selection after observing the design outcome.
 
 **Consequence:** The only design-pilot quantity permitted to enter the fresh protocol is the C-step length selected by the capability-only rule in D006. The fresh discovery seeds cannot be replaced based on pilot or discovery performance.
+
+## 2026-08-28 — D008 — Reject shuffled-union Phase-0b as an endpoint-equivalence mechanism
+
+**Decision:** Do not freeze any of the tested shuffled-union terminal-stage lengths `C in {50, 150, 300}`.
+
+**Reason:** None satisfied the predeclared `<= 1.0` paired capability-gap gate. The maximum observed gap was `12.8486` at C=50, `5.4859` at C=150, and `9.4641` at C=300. The capability-only LOSO balanced accuracy remained `1.000`, `0.833`, and `0.833`, respectively. The Order-Witness detector fell from `1.000` at C=50 to `0.833` at C=150 and `0.500` at C=300. Thus longer shuffled common rehearsal can erase the interaction witness before it reliably equalizes ordinary endpoint capability, and capability matching is not monotonic under this operator.
+
+**Consequence:** Fresh discovery seeds `41, 43, 47, 53, 59, 61, 67, 71` and confirmation seeds `101, 103, 107, 109` remain untouched. Phase-0b is a completed design-only negative result, not a positive chronology result.
+
+## 2026-08-28 — D009 — Test Balanced Joint Washout before increasing terminal duration
+
+**Decision:** Phase-0c will replace shuffled-union C sampling with **Balanced Joint Washout (BJW)**. Every C optimizer step must contain an equal number of matched A and B examples, paired by synthetic world and template, in the same minibatch. The terminal corpus remains exactly the A+B multiset and the batch schedule is identical for matched `ABC` and `BAC` histories.
+
+**Reason:** The Phase-0b operator still introduced stochastic local imbalance inside C even though its aggregate corpus was balanced. Increasing C alone would not directly remove that mechanism. BJW makes each terminal gradient estimate approximately symmetric, `g_C ~= 0.5 g_A + 0.5 g_B`, and therefore provides a stronger test of path identifiability under endpoint equivalence.
+
+**Consequence:** The Phase-0c design pilot will reuse only consumed design seeds `13, 23, 29`, keep C-step candidates `50, 150, 300` for direct operator comparison, and use the same capability-only selection rule as D006. Forensic performance cannot select the BJW duration. Fresh discovery and confirmation remain locked until a BJW candidate passes the capability gate.
