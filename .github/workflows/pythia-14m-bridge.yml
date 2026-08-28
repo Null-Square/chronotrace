@@ -1,0 +1,37 @@
+name: Pythia 14M finite-pair bridge
+
+on:
+  push:
+    branches: [experiment/pythia-finite-pair-scale]
+    paths:
+      - .github/workflows/pythia-14m-bridge.yml
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch
+        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
+      - name: Install scale stack
+        run: python -m pip install -e ".[mvp]"
+      - name: Run frozen 14M chronology bridge
+        run: >-
+          python scripts/pythia_finite_pair_bridge.py
+          --lock configs/pythia_scale.lock.json
+          --output pythia-14m-bridge.json
+          --threads 2
+      - name: Upload chronology result
+        uses: actions/upload-artifact@v4
+        with:
+          name: pythia-14m-finite-pair-bridge
+          path: pythia-14m-bridge.json
+          if-no-files-found: error
