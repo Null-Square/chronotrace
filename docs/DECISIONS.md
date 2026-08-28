@@ -97,3 +97,13 @@ Forward work on sequential-learning geometry uses the same Lie-bracket mechanism
 The directional derivatives can be estimated with centered finite differences of complete stage runs, avoiding Hessian materialization and second-order autograd. This also bypasses the double-backward limitation observed with fused SDPA/Flash attention. The method needs only pairwise stage-map probes, `O(N^2)` stage executions, rather than replaying all `N!` candidate chronologies.
 
 **Consequence:** The fixed tiny-transformer stress test uses plain SGD with per-update learning rate `0.01`, stage lengths `{1,2,4,8,16,32,64}`, and finite-difference epsilon `1e-4`. Both decoders must recover the one-update control. The experiment only earns larger-model compute if the macro-operator decoder remains correct after the local HVP decoder loses perfect three-stage permutation recovery. Fresh discovery and confirmation seeds remain untouched.
+
+## 2026-08-28 — D012 — Accept the macro-operator gate and isolate model scale next
+
+**Decision:** Treat the controlled commutator/macro-operator work as the first positive ChronoTrace mechanism milestone. The next experiment may scale the same white-box operator decoder to Pythia-70M, but must keep optimizer and stage determinism simple rather than adding Adam-state persistence or stochasticity at the same time.
+
+**Reason:** On the fixed 1,032-parameter causal transformer, the local HVP decoder recovered 6/6 permutations at one update but lost perfect recovery at two updates and fell as low as 2/6 in the predeclared sweep. The finite macro-operator decoder recovered 6/6 permutations at every stage length from 1 through 64 updates. At 64 updates the maximum individual stage displacement norm was `0.6117`, while macro AB/BA scores retained the correct signs (`+1.0450` and `-0.9083`). This demonstrates that the finite stage-map formulation extends the chronology-identifiable regime beyond the one-step approximation on the same model and data.
+
+The result is documented in `docs/results/commutator_macro_gate.md`. It remains a controlled mechanism result: the base checkpoint, candidate stage procedures, optimizer, data, and full endpoint weights are all known.
+
+**Consequence:** The next large-model gate should isolate **scale** first. Use a fixed Pythia checkpoint, deterministic synthetic stage data, full-weight endpoints, plain SGD without momentum, and a small predeclared stage-length sweep. Do not reuse the old classifier-based confirmation protocol as evidence for this new mechanism. Adam/AdamW state, stochastic data order, approximate candidate stages, and black-box inference remain later independent stressors.
