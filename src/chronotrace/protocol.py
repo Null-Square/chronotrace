@@ -100,7 +100,7 @@ def verify_protocol_lock(
     actual_config = config_snapshot(config)
     if actual_config != lock["config"]:
         raise ValueError(
-            "Experiment protocol drift detected: configs/mvp.yaml no longer matches the lock. "
+            "Experiment protocol drift detected: current config no longer matches the lock. "
             "Do not update the lock unless this is an intentional new protocol version."
         )
 
@@ -113,14 +113,21 @@ def verify_protocol_lock(
         expected = lock["expected_generated_sha256"]
         if metadata.get("sha256") != expected:
             raise ValueError("Generated-data metadata drift detected against the protocol lock")
-        artifact_names = {
+
+        known_artifacts = {
             "worlds": "worlds.jsonl",
             "stage_a": "stage_a.jsonl",
             "stage_b": "stage_b.jsonl",
+            "stage_c": "stage_c.jsonl",
             "probes": "probes.jsonl",
         }
-        for name, filename in artifact_names.items():
-            path = root / filename
+        unknown = set(expected) - set(known_artifacts)
+        if unknown:
+            raise ValueError(f"Protocol lock contains unknown generated artifacts: {sorted(unknown)}")
+        for name in sorted(expected):
+            path = root / known_artifacts[name]
+            if not path.exists():
+                raise FileNotFoundError(f"Missing generated artifact: {path}")
             actual = file_sha256(path)
             if actual != expected[name]:
                 raise ValueError(f"Generated artifact drift detected for {path}")
