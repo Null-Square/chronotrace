@@ -12,6 +12,11 @@ on:
       - "src/chronotrace/training.py"
       - "src/chronotrace/features.py"
       - "src/chronotrace/detector.py"
+      - "src/chronotrace/manifest.py"
+
+concurrency:
+  group: phase0b-design-pilot-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
