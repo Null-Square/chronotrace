@@ -69,6 +69,31 @@ class TokenCodebook:
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def token_codebook_from_dict(payload: dict[str, Any]) -> TokenCodebook:
+    """Load a frozen codebook while preserving tuple-valued token IDs."""
+
+    def pool(name: str) -> tuple[TokenCode, ...]:
+        rows = payload.get(name)
+        if not isinstance(rows, list):
+            raise ValueError(f"frozen codebook is missing {name!r} pool")
+        result: list[TokenCode] = []
+        for row in rows:
+            ids = tuple(int(value) for value in row["token_ids"])
+            if len(ids) != 2:
+                raise ValueError("every frozen scale code must contain exactly two token IDs")
+            result.append(TokenCode(text=str(row["text"]), token_ids=(ids[0], ids[1])))
+        return tuple(result)
+
+    return TokenCodebook(
+        tokenizer_fingerprint=str(payload["tokenizer_fingerprint"]),
+        seed=int(payload["seed"]),
+        alias=pool("alias"),
+        entity=pool("entity"),
+        signal=pool("signal"),
+        zone=pool("zone"),
+    )
+
+
 def _encode(tokenizer: Any, text: str) -> list[int]:
     return list(tokenizer.encode(text, add_special_tokens=False))
 
