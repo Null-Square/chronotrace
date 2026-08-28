@@ -61,6 +61,37 @@ def _ensure_endpoint_features(
     return extract_run_features(config, run_dir=run_dir)
 
 
+def _require_discovery_capability_gate(
+    config: ExperimentConfig,
+    report: dict[str, Any],
+    *,
+    protocol_fingerprint: str,
+) -> None:
+    """Fail closed before confirmation if discovery violates the frozen control gate."""
+
+    if report.get("protocol_fingerprint") != protocol_fingerprint:
+        raise ValueError("Discovery report does not belong to the currently locked protocol")
+
+    if not bool(config.controls.get("require_capability_matching", False)):
+        return
+
+    matching = report.get("capability_matching")
+    if not isinstance(matching, dict):
+        raise ValueError(
+            "Discovery report is missing the required capability-matching analysis; rerun discovery"
+        )
+    if matching.get("required") is not True:
+        raise ValueError("Discovery report did not evaluate the frozen required capability gate")
+    if matching.get("passed") is not True:
+        observed = matching.get("max_observed_mean_margin_gap")
+        threshold = matching.get("threshold_max_mean_margin_gap")
+        raise PermissionError(
+            "Confirmation remains locked because discovery failed capability matching: "
+            f"max observed AB/BA control-margin gap {observed} exceeds threshold {threshold}. "
+            "Treat this as a recency/forgetting confound and redesign on discovery seeds only."
+        )
+
+
 def run_discovery(
     config: ExperimentConfig,
     *,
@@ -104,6 +135,12 @@ def freeze_confirmation(
     report_path = root / "discovery_report.json"
     if not report_path.exists():
         raise FileNotFoundError("Run the discovery split before sealing confirmation")
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    _require_discovery_capability_gate(
+        config,
+        report,
+        protocol_fingerprint=lock["fingerprint"],
+    )
 
     feature_paths: list[Path] = []
     for seed in config.seeds["discovery"]:

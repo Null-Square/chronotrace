@@ -62,7 +62,24 @@ def _temporary_protocol(tmp_path: Path) -> tuple[ExperimentConfig, Path, Path]:
 
 def test_confirmation_seal_detects_post_freeze_feature_drift(tmp_path: Path) -> None:
     config, lock_path, runs_root = _temporary_protocol(tmp_path)
-    (runs_root / "discovery_report.json").write_text("{}\n", encoding="utf-8")
+    lock = verify_protocol_lock(
+        config,
+        lock_path=lock_path,
+        data_root=config.data["root"],
+    )
+    discovery_report = {
+        "protocol_fingerprint": lock["fingerprint"],
+        "capability_matching": {
+            "required": True,
+            "passed": True,
+            "threshold_max_mean_margin_gap": 1.0,
+            "max_observed_mean_margin_gap": 0.5,
+        },
+    }
+    (runs_root / "discovery_report.json").write_text(
+        json.dumps(discovery_report) + "\n",
+        encoding="utf-8",
+    )
     feature_paths = []
     for seed in config.seeds["discovery"]:
         for history in config.histories:

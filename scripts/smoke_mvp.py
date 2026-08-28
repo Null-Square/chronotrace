@@ -85,6 +85,9 @@ def main() -> int:
         raw["seeds"] = {"discovery": [1, 2], "confirmation": [3]}
         raw["artifacts"]["root"] = str(runs_root)
         raw["forensics"]["score_batch_size"] = 32
+        # This job validates orchestration, not Phase-0 scientific eligibility. The tiny
+        # two-step model is not designed to satisfy the paper's frozen capability gate.
+        raw["controls"]["require_capability_matching"] = False
         config = ExperimentConfig.from_mapping(raw)
 
         metadata = generate_dataset(
@@ -105,6 +108,7 @@ def main() -> int:
         final = json.loads(final_path.read_text(encoding="utf-8"))
         assert discovery["split"] == "discovery"
         assert "balanced_accuracy" in discovery["forensic"]["leave_one_seed_out"]["metrics"]
+        assert discovery["capability_matching"]["required"] is False
         assert seal_path.exists()
         assert "confirmation" in final["forensic"]
         assert len(list(runs_root.glob("phase0-*/features.json"))) == 6
