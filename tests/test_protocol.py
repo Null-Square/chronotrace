@@ -31,6 +31,31 @@ def test_generated_corpus_hashes_are_locked(tmp_path: Path) -> None:
     assert metadata["sha256"] == lock["expected_generated_sha256"]
 
 
+def test_phase0b_stage_c_is_hash_locked(tmp_path: Path) -> None:
+    raw = yaml.safe_load(
+        (ROOT / "configs" / "phase0b_design.yaml").read_text(encoding="utf-8")
+    )
+    raw["data"]["root"] = str(tmp_path / "phase0b-data")
+    raw["data"]["worlds"] = 8
+    raw["artifacts"]["root"] = str(tmp_path / "phase0b-runs")
+    config = ExperimentConfig.from_mapping(raw)
+    metadata = generate_dataset(
+        config.data["root"],
+        seed=int(config.data["seed"]),
+        worlds=int(config.data["worlds"]),
+        decoys_per_probe=int(config.data["decoys_per_probe"]),
+        include_balanced_stage_c=True,
+    )
+    lock_path = tmp_path / "phase0b.lock.json"
+    write_protocol_lock(config, metadata["sha256"], lock_path)
+    verify_protocol_lock(config, lock_path=lock_path, data_root=config.data["root"])
+
+    stage_c = Path(config.data["root"]) / "stage_c.jsonl"
+    stage_c.write_text(stage_c.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="stage_c.jsonl"):
+        verify_protocol_lock(config, lock_path=lock_path, data_root=config.data["root"])
+
+
 def test_config_drift_is_rejected() -> None:
     raw = yaml.safe_load((ROOT / "configs" / "mvp.yaml").read_text(encoding="utf-8"))
     drifted = deepcopy(raw)
