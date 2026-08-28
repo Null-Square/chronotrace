@@ -1,0 +1,33 @@
+name: Phase-0 Stability Sweep
+
+on:
+  push:
+    branches: [diagnostic/phase0-stability-sweep]
+
+permissions:
+  contents: read
+
+jobs:
+  stability:
+    name: ${{ matrix.stage }} lr ${{ matrix.lr }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        stage: [A, B]
+        lr: [0.0002, 0.0001, 0.00005, 0.00002, 0.00001]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch
+        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
+      - name: Install MVP stack
+        run: python -m pip install -e ".[mvp]"
+      - name: Generate locked data
+        run: chronotrace generate
+      - name: Probe numerical stability
+        run: python scripts/stability_probe.py --stage "${{ matrix.stage }}" --lr "${{ matrix.lr }}" --steps 40 --seed 17
