@@ -1,6 +1,6 @@
 # Commutator Decoder
 
-This document specifies the next ChronoTrace research gate after the negative Phase-0 and Phase-0b results.
+This document specifies the ChronoTrace inverse-geometry research direction that replaced the old classifier/washout approach.
 
 ## Research question
 
@@ -12,7 +12,7 @@ Given:
 
 can we infer the **order in which the candidate stages were applied** from the endpoint geometry, without observing the original training transcript?
 
-The first experiment is deliberately white-box and local. It exists to establish identifiability before we add optimizer state, long horizons, language-model scale, or black-box query search.
+The first experiments are deliberately white-box. They establish identifiability before optimizer-state persistence, stochastic training, approximate candidate stages, language-model scale, or black-box query search are introduced.
 
 ## Two-stage local expansion
 
@@ -92,52 +92,71 @@ The residual becomes
 
 where `s_pi(i,j)=+1` when `i` precedes `j` and `-1` otherwise.
 
-Thus a chronology is represented by a signed combination of pairwise bracket vectors. The first implementation exhaustively scores all permutations for `N<=5`. If the concept survives, later work can estimate pairwise orientations in the bracket basis and project them onto the nearest transitive ranking.
+Thus a chronology is represented by a signed combination of pairwise bracket vectors. The first implementation exhaustively scores all permutations for small `N`. A scalable decoder will need to estimate pairwise orientations and project them onto the nearest transitive ranking rather than enumerate `N!` candidates.
 
-## Required Phase-1 gates
+## Controlled positive results
 
-Before any new Pythia experiment, a float64 nonlinear toy system must satisfy all of the following across a fixed step-size sweep:
+The local mechanism gate and the causal-transformer gate both passed. On the 1,032-parameter causal transformer, the measured scaling exponents were approximately:
 
-1. `||(theta_AB-theta_BA) - eta^2 b_AB||` scales approximately as `eta^3`.
-2. A smooth held-out behavioral difference between AB and BA scales approximately as `eta^2`.
-3. Shared endpoint displacement from the base scales approximately as `eta`.
-4. Pairwise ChronoScore has the correct sign and approaches `+/-1` as `eta` shrinks.
-5. The three-stage decoder recovers all six permutations of A/B/C.
-6. The unknown-step-size estimator converges to the supplied local SGD step size.
+- commutator remainder: `3.0029`;
+- held-out behavior difference: `1.9897`;
+- shared displacement: `0.9988`.
 
-Failure of these gates blocks language-model compute. They are mechanism checks, not tunable benchmark targets.
+All six A/B/C permutations were recovered across the fixed local step-size sweep.
 
-## Next model gate
+The later finite macro-stage gate also passed. Treating a complete multi-update stage as an operator extended perfect three-stage recovery through 64 updates/stage even though the one-step HVP decoder lost perfect recovery at two updates. Exact recorded values are in `docs/results/commutator_macro_gate.md`.
 
-If the analytic smoke passes, the next experiment is a locally created tiny GPT-NeoX model with deterministic full-batch or fixed-batch **plain SGD** updates. AdamW is intentionally excluded from the theorem-validation stage because its momentum/variance state creates an augmented dynamical system. Optimizer-state chronology is a later extension, not something to hide inside the base claim.
+## Finite stage operators
 
-Only after the tiny transformer reproduces the predicted scaling do we move to Pythia-70M. For Pythia, Hessian-vector products may initially be restricted to a declared parameter subspace (for example the final transformer block or output projection) to keep the white-box calculation tractable. Any projection must be fixed before endpoint results are read.
+A realistic stage is a training map
+
+`F_D(theta) = theta + Delta_D(theta)`.
+
+For near-identity finite stages,
+
+`F_B(F_A(theta_0)) - F_A(F_B(theta_0))`
+
+is governed at leading interaction order by
+
+`J Delta_B Delta_A - J Delta_A Delta_B`.
+
+The repository estimates those terms with centered finite differences of ordinary stage runs. This avoids Hessian materialization and double-backward requirements. The full formulation and fixed stress test live in `docs/MACRO_OPERATOR_DECODER.md`.
+
+## Replay complexity
+
+If the base checkpoint and exact stage procedures are known, a trivial forensic baseline is exhaustive replay of every candidate chronology. ChronoTrace is only interesting if it avoids that factorial cost.
+
+The pairwise geometry needs `O(N^2)` stage probes to characterize candidate interactions. Exact small-N enumeration is currently used only to validate the geometry against ground truth. A later scalable ranking decoder is required before claiming end-to-end polynomial-time chronology reconstruction.
 
 ## Relation to earlier ChronoTrace phases
 
 - **Phase-0 v1:** AB/BA was perfectly classifiable, but capability-only classification was also perfect. Rejected as recency/forgetting.
 - **Phase-0b:** common shuffled A+B terminal training failed to achieve the capability-equivalence gate; at the longest tested washout the contextual Order-Witness reached chance before capability differences disappeared.
 - **Phase-0c/BJW:** implemented and smoke-tested as a stronger equalization operator, but archived before Pythia compute because post-hoc equalization may erase the very second-order history residual of interest.
-- **Commutator Decoder:** constructs first-order-equivalent histories by design and tries to recover chronology from the predicted second-order residual itself.
+- **Commutator Decoder:** constructs first-order-equivalent histories by design and recovers chronology from the predicted antisymmetric residual.
+- **Macro-Operator Decoder:** lifts the same idea from one gradient update to complete deterministic multi-update training stages.
 
 ## Novelty boundary
 
-The mechanism is not claimed as new: contemporary sequential-learning work already derives and uses Lie-bracket/noncommutative terms to predict forward order effects. Other work studies known example-order fingerprints, data provenance, and model lineage.
+The mechanism is not claimed as new. Existing optimization work uses noncommutativity/Lie-bracket corrections to understand, reverse, or choose training order. Other work studies known example-order fingerprints, data provenance, membership, and model lineage.
 
 The provisional ChronoTrace contribution is the **inverse endpoint problem**:
 
-> infer an unknown candidate macro-stage chronology from a finished model by decoding the signed commutator residual after removing the permutation-independent endpoint terms.
+> infer an unknown candidate macro-stage chronology from a finished model using pairwise noncommutative stage interactions, without exhaustively replaying every candidate full history.
 
 Before publication, this claim must be re-audited against new and existing literature. Do not write "first ever." Prefer: "After targeted literature search, we found close forward-order and provenance work but no direct method centered on this inverse endpoint reconstruction task."
 
-## Longer-term questions
+## Next gates
 
-If local chronology is identifiable, the important hard problems become:
+The next work should isolate one unresolved dimension at a time. Before adding optimizer-state persistence or stochasticity, the candidate method should be made more practical by replacing epsilon-based differential interaction estimates with exact finite pairwise stage interactions where possible. Then the first large-model experiment should isolate **model scale** using deterministic stages and a simple optimizer.
 
-- how the bracket decoder degrades with multiple updates per stage;
-- how to reconstruct chronology with unknown stage intensity and learning-rate schedules;
-- how to lift the state to optimizers such as Adam `(theta, m, v)`;
-- whether projected parameter subspaces preserve enough chronology information;
-- whether distillation, merging, quantization, unlearning, or later common training erase the geometric trace;
-- how to synthesize black-box **Order Witnesses** whose output gradients align with the relevant history bracket;
-- and what partial-order information remains identifiable when exact permutation recovery is impossible.
+Longer-term hard problems include:
+
+- stage procedures that are only approximately known;
+- stochastic data ordering and dropout;
+- persistent Adam/AdamW state across macro stages;
+- unknown stage intensity and schedules;
+- low-dimensional parameter projections;
+- distillation, merging, quantization, unlearning, or later common training;
+- black-box Order Witnesses aligned with the relevant history interactions;
+- and partial-order recovery when exact permutation signatures are not identifiable.
