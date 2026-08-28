@@ -61,7 +61,7 @@ def test_centered_finite_difference_recovers_displacement_jvp(stage_system) -> N
         direction,
         epsilon=1e-5,
     )
-    assert observed == pytest.approx(expected.detach(), rel=1e-7, abs=1e-9)
+    torch.testing.assert_close(observed, expected.detach(), rtol=1e-7, atol=1e-9)
 
 
 def test_operator_pair_score_recovers_both_orders(stage_system) -> None:
