@@ -127,3 +127,13 @@ A candidate multi-stage chronology is approximated by the singleton stage effect
 Targeted web searches for pairwise stage-interaction, operator-ANOVA/Möbius, secant-commutator, and endpoint chronology methods did not surface a direct neural-training precedent. This is not proof of novelty and must be re-audited before publication.
 
 **Consequence:** Add a fixed controlled comparison of micro HVP, finite-difference macro, and finite-pair decoders on the same tiny causal transformer. The finite-pair method must recover all six A/B/C histories beyond the finite-difference decoder's useful locality range before it becomes the preferred Pythia method. Pythia remains unspent until this gate is resolved.
+
+## 2026-08-29 — D014 — Accept finite pair interactions as the scale-gate decoder
+
+**Decision:** Use the **Finite Pair Interaction Decoder** as the preferred white-box method for the first Pythia scale experiment.
+
+**Reason:** On the fixed 1,032-parameter causal transformer, the finite-pair decoder recovered all `6/6` A/B/C chronologies for every stage length from 1 through 256 updates. The one-step HVP decoder first failed at 2 updates. The differential macro-stage decoder remained perfect through 64 updates but fell to `4/6` at 128 and `3/6` at 256. At 256 updates, the maximum singleton stage displacement norm was `2.0818`, while the epsilon-free finite-pair method still recovered every chronology. Exact values are recorded in `docs/results/finite_pair_gate.md`.
+
+The simple sufficient certificate `2 ||r_high|| / delta_min < 1` holds through 32 updates/stage. It becomes inconclusive from 64 onward even though empirical decoding remains perfect. Therefore later points are successful empirical reconstruction results, not formally certified by that worst-case norm bound.
+
+**Consequence:** The next experiment isolates **model scale**. Use Pythia checkpoints with deterministic stage execution, plain SGD without momentum or weight decay, full-weight endpoints, exact singleton/pair probes, and a predeclared small stage-length sweep. A stability-only learning-rate selection step may use finite loss/gradient/displacement criteria but is forbidden from using chronology-decoding accuracy. Do not introduce Adam state, stochastic data ordering, low-dimensional projection, or black-box access in the same gate.
