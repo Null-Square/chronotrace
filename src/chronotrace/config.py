@@ -11,15 +11,11 @@ import yaml
 
 @dataclass(frozen=True)
 class ExperimentConfig:
-    """Resolved top-level experiment configuration.
-
-    The scaffold intentionally keeps model-specific fields as raw mappings. The MVP
-    implementation will replace these with stricter typed contracts after the training
-    stack and stage construction are selected.
-    """
+    """Resolved top-level experiment configuration."""
 
     experiment: dict[str, Any]
     model: dict[str, Any]
+    data: dict[str, Any]
     training: dict[str, Any]
     histories: tuple[str, ...]
     seeds: dict[str, Any]
@@ -33,6 +29,7 @@ class ExperimentConfig:
         required = {
             "experiment",
             "model",
+            "data",
             "training",
             "histories",
             "seeds",
@@ -46,15 +43,22 @@ class ExperimentConfig:
             raise ValueError(f"Missing required configuration sections: {sorted(missing)}")
 
         histories = tuple(data["histories"])
-        if set(histories) != {"AB", "BA"}:
+        if set(histories) != {"AB", "BA"} or len(histories) != 2:
             raise ValueError("Phase-0 configuration must define exactly AB and BA histories")
+
+        discovery = tuple(int(value) for value in data["seeds"].get("discovery", []))
+        confirmation = tuple(int(value) for value in data["seeds"].get("confirmation", []))
+        overlap = set(discovery) & set(confirmation)
+        if overlap:
+            raise ValueError(f"Discovery and confirmation seeds overlap: {sorted(overlap)}")
 
         return cls(
             experiment=dict(data["experiment"]),
             model=dict(data["model"]),
+            data=dict(data["data"]),
             training=dict(data["training"]),
             histories=histories,
-            seeds=dict(data["seeds"]),
+            seeds={**dict(data["seeds"]), "discovery": discovery, "confirmation": confirmation},
             controls=dict(data["controls"]),
             forensics=dict(data["forensics"]),
             metrics=dict(data["metrics"]),
