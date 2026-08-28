@@ -39,6 +39,7 @@ def main() -> None:
     if records:
         exact_fields = [
             "scientific_fingerprint_sha256",
+            "numerical_execution_fingerprint_sha256",
             "base_parameter_sha256",
             "stage_batch_sha256",
             "finite_pair_basis_sha256",
@@ -50,7 +51,7 @@ def main() -> None:
             if not _same(values):
                 mismatches.append(f"exact fingerprint mismatch: {field}")
 
-        software_fields = [
+        runtime_fields = [
             "python_version",
             "torch_version",
             "transformers_version",
@@ -59,11 +60,22 @@ def main() -> None:
             "safetensors_version",
             "torch_num_threads",
             "torch_num_interop_threads",
+            "torch_deterministic_algorithms",
+            "mkldnn_enabled",
+            "aten_cpu_capability",
+            "mkl_cbwr",
+            "mkl_dynamic",
+            "omp_dynamic",
+            "omp_num_threads",
+            "mkl_num_threads",
+            "openblas_num_threads",
+            "pythonhashseed",
+            "torch_config_sha256",
         ]
-        for field in software_fields:
+        for field in runtime_fields:
             values = [record.get("runtime", {}).get(field) for record in records]
             if not _same(values):
-                mismatches.append(f"runtime software mismatch: {field}")
+                mismatches.append(f"runtime numerical mismatch: {field}")
 
         statuses = [record.get("status") for record in records]
         if any(status != "pass" for status in statuses):
@@ -94,6 +106,9 @@ def main() -> None:
                 "scientific_fingerprint_sha256": record.get("reproducibility", {}).get(
                     "scientific_fingerprint_sha256"
                 ),
+                "numerical_execution_fingerprint_sha256": record.get(
+                    "reproducibility", {}
+                ).get("numerical_execution_fingerprint_sha256"),
                 "base_parameter_sha256": record.get("reproducibility", {}).get(
                     "base_parameter_sha256"
                 ),
