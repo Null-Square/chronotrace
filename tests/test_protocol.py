@@ -69,7 +69,10 @@ def test_confirmation_seal_detects_post_freeze_feature_drift(tmp_path: Path) -> 
             run_dir = runs_root / f"phase0-{history.lower()}-seed{seed}"
             run_dir.mkdir(parents=True)
             feature_path = run_dir / "features.json"
-            feature_path.write_text(f'{{"seed": {seed}, "history": "{history}"}}\n', encoding="utf-8")
+            feature_path.write_text(
+                f'{{"seed": {seed}, "history": "{history}"}}\n',
+                encoding="utf-8",
+            )
             feature_paths.append(feature_path)
 
     freeze_confirmation(config, lock_path=lock_path, runs_root=runs_root)
