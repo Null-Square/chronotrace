@@ -7,6 +7,7 @@ on:
       - ".github/workflows/phase0b-design-pilot.yml"
       - "configs/phase0b_design.yaml"
       - "scripts/phase0b_pilot_endpoint.py"
+      - "src/chronotrace/config.py"
       - "src/chronotrace/data.py"
       - "src/chronotrace/training.py"
       - "src/chronotrace/features.py"
