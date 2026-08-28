@@ -1,0 +1,85 @@
+name: Phase-0 Nonfinite Diagnostic
+
+on:
+  push:
+    branches: [diagnostic/phase0-nonfinite]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch
+        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
+      - name: Install MVP stack
+        run: python -m pip install -e ".[mvp]"
+      - name: Generate frozen data
+        run: chronotrace generate
+      - name: Train deterministic BA seed 17
+        run: chronotrace train --history BA --seed 17
+      - name: Diagnose training and scoring
+        shell: bash
+        run: |
+          cat runs/phase0-ba-seed17/training_metrics.json
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+          import torch
+          from transformers import AutoModelForCausalLM, AutoTokenizer
+          from chronotrace.config import load_config
+          from chronotrace.data import read_jsonl
+          from chronotrace.features import _score_sequences
+
+          config = load_config('configs/mvp.yaml')
+          endpoint = Path('runs/phase0-ba-seed17/endpoint')
+          model = AutoModelForCausalLM.from_pretrained(endpoint)
+          tokenizer = AutoTokenizer.from_pretrained(endpoint)
+          if tokenizer.pad_token_id is None:
+              tokenizer.pad_token = tokenizer.eos_token
+
+          parameter_total = 0
+          nonfinite_parameters = 0
+          max_abs = 0.0
+          for parameter in model.parameters():
+              values = parameter.detach()
+              parameter_total += values.numel()
+              nonfinite_parameters += (~torch.isfinite(values)).sum().item()
+              if torch.isfinite(values).any():
+                  max_abs = max(max_abs, float(values[torch.isfinite(values)].abs().max()))
+          print(json.dumps({
+              'parameter_total': parameter_total,
+              'nonfinite_parameters': nonfinite_parameters,
+              'max_abs_finite_parameter': max_abs,
+          }))
+
+          probes = read_jsonl(Path(config.data['root']) / 'probes.jsonl')
+          sequences = []
+          labels = []
+          for probe in probes:
+              for role, completion in [('answer', probe['answer']), *[('decoy', d) for d in probe['decoys']]]:
+                  sequences.append((probe['prompt'], completion))
+                  labels.append((probe['probe_id'], probe['family'], role))
+          scores = _score_sequences(model, tokenizer, torch, sequences, batch_size=16, device=torch.device('cpu'))
+          bad = [
+              {'probe_id': p, 'family': f, 'role': r, 'score': str(score)}
+              for (p, f, r), score in zip(labels, scores, strict=True)
+              if not math.isfinite(score)
+          ]
+          finite = [s for s in scores if math.isfinite(s)]
+          print(json.dumps({
+              'score_count': len(scores),
+              'nonfinite_score_count': len(bad),
+              'finite_min': min(finite) if finite else None,
+              'finite_max': max(finite) if finite else None,
+              'first_bad': bad[:20],
+          }, indent=2))
+          PY
