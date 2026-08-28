@@ -46,6 +46,10 @@ def _quantile(values: list[float], q: float) -> float:
 
 
 def _summarize(values: list[float]) -> dict[str, float]:
+    if not values:
+        raise ValueError("cannot summarize an empty feature family")
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("non-finite forensic score detected in an unmasked completion")
     return {
         "mean": mean(values),
         "std": pstdev(values),
@@ -53,6 +57,26 @@ def _summarize(values: list[float]) -> dict[str, float]:
         "median": _quantile(values, 0.50),
         "q75": _quantile(values, 0.75),
     }
+
+
+def _masked_token_sum(torch: Any, token_log_probs: Any, prediction_mask: Any) -> Any:
+    """Sum selected token scores without allowing masked NaNs to contaminate totals.
+
+    Some decoder implementations emit NaN logits at fully masked right-padding query
+    positions. Multiplication is not a valid mask in that case because ``NaN * 0`` is
+    still NaN. ``where`` removes those positions before reduction while preserving a
+    hard failure if any *selected completion token* itself is non-finite.
+    """
+
+    selected = token_log_probs[prediction_mask]
+    if selected.numel() and not bool(torch.isfinite(selected).all()):
+        raise ValueError("non-finite log probability detected on a scored completion token")
+    masked = torch.where(
+        prediction_mask,
+        token_log_probs,
+        torch.zeros_like(token_log_probs),
+    )
+    return masked.sum(dim=1)
 
 
 def _score_sequences(
@@ -103,7 +127,7 @@ def _score_sequences(
             labels = ids_tensor[:, 1:]
             token_log_probs = log_probs.gather(-1, labels.unsqueeze(-1)).squeeze(-1)
             prediction_mask = mask_tensor[:, 1:]
-            batch_scores = (token_log_probs * prediction_mask).sum(dim=1)
+            batch_scores = _masked_token_sum(torch, token_log_probs, prediction_mask)
             scores.extend(float(value) for value in batch_scores.detach().cpu())
     return scores
 
