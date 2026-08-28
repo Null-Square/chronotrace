@@ -25,6 +25,11 @@ from chronotrace.geometry.commutator import (
     pairwise_chrono_score,
     pairwise_endpoint_geometry,
     parameter_vector,
+    permutation_signature,
+)
+from chronotrace.geometry.identifiability import (
+    chronology_identifiability,
+    normalized_remainder_ratio,
 )
 
 VOCAB_SIZE = 23
@@ -180,6 +185,9 @@ def main() -> int:
     parameters = tuple(base_model.parameters())
     theta0 = parameter_vector(parameters)
     gradients, cross = local_stage_derivatives(stage_loss_fns(base_model), parameters)
+    identifiability = chronology_identifiability(cross, stages=STAGES)
+    if not identifiability.locally_identifiable:
+        raise RuntimeError("tiny transformer's stage permutations are second-order degenerate")
 
     bracket_ab = cross[("B", "A")] - cross[("A", "B")]
     bracket_norm = float(torch.linalg.vector_norm(bracket_ab))
@@ -193,6 +201,7 @@ def main() -> int:
     pairwise_scores: dict[str, dict[str, float]] = {}
     permutation_accuracy: dict[str, float] = {}
     minimum_decode_margins: dict[str, float] = {}
+    guarantee_ratios: dict[str, float] = {}
 
     for eta in ETAS:
         endpoint_ab, model_ab = run_history(base_state, "AB", eta)
@@ -203,8 +212,8 @@ def main() -> int:
         )
         held_out_loss_gaps.append(
             abs(
-                float(model_ab.stage_loss(STAGE_BATCHES["C"]))
-                - float(model_ba.stage_loss(STAGE_BATCHES["C"]))
+                float(model_ab.stage_loss(STAGE_BATCHES["C"]).detach())
+                - float(model_ba.stage_loss(STAGE_BATCHES["C"]).detach())
             )
         )
         shared_displacements.append(float(torch.linalg.vector_norm(endpoint_ab - theta0)))
@@ -240,6 +249,7 @@ def main() -> int:
         candidates = list(permutations(STAGES))
         correct = 0
         margins: list[float] = []
+        approximation_errors: list[float] = []
         for candidate in candidates:
             endpoint, _ = run_history(base_state, candidate, eta)
             decoded = decode_permutation(
@@ -249,14 +259,34 @@ def main() -> int:
                 stages=STAGES,
                 step_size=eta,
             )
+            true_signature = permutation_signature(
+                candidate,
+                cross,
+                stages=STAGES,
+                step_size=eta,
+            )
+            approximation_errors.append(
+                float(torch.linalg.vector_norm((endpoint - reference) - true_signature))
+            )
             correct += int(decoded.permutation == candidate)
             margins.append(decoded.margin)
         permutation_accuracy[str(eta)] = correct / len(candidates)
         minimum_decode_margins[str(eta)] = min(margins)
+        guarantee_ratio = normalized_remainder_ratio(
+            max(approximation_errors),
+            step_size=eta,
+            minimum_signature_separation=identifiability.minimum_signature_separation,
+        )
+        guarantee_ratios[str(eta)] = guarantee_ratio
         if correct != len(candidates):
             raise RuntimeError(
                 f"tiny transformer decoded only {correct}/{len(candidates)} permutations "
                 f"at eta={eta}"
+            )
+        if guarantee_ratio >= 1.0:
+            raise RuntimeError(
+                f"second-order chronology separation is not certified at eta={eta}: "
+                f"ratio={guarantee_ratio:.4f}"
             )
 
     remainder_slope = loglog_slope(ETAS, bracket_errors)
@@ -294,6 +324,13 @@ def main() -> int:
         "pairwise_scores": pairwise_scores,
         "three_stage_permutation_accuracy": permutation_accuracy,
         "minimum_decode_margins": minimum_decode_margins,
+        "identifiability": {
+            "pair_count": identifiability.pair_count,
+            "bracket_rank": identifiability.bracket_rank,
+            "bracket_condition_number": identifiability.bracket_condition_number,
+            "minimum_signature_separation": identifiability.minimum_signature_separation,
+            "guarantee_ratios": guarantee_ratios,
+        },
         "attention_backend": "explicit_eager",
         "optimizer": "plain_sgd_no_momentum",
     }
