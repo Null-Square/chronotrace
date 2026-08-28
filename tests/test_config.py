@@ -4,7 +4,6 @@ import pytest
 
 from chronotrace.config import ExperimentConfig, load_config
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 

@@ -29,7 +29,7 @@ class ExperimentConfig:
     artifacts: dict[str, Any]
 
     @classmethod
-    def from_mapping(cls, data: dict[str, Any]) -> "ExperimentConfig":
+    def from_mapping(cls, data: dict[str, Any]) -> ExperimentConfig:
         required = {
             "experiment",
             "model",

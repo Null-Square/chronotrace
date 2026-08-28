@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from chronotrace import __version__, load_config
 
