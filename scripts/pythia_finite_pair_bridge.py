@@ -8,7 +8,6 @@ import hashlib
 import json
 import os
 import platform
-import sys
 from importlib.metadata import version as package_version
 from itertools import permutations
 from pathlib import Path
