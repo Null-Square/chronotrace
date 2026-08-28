@@ -1,0 +1,178 @@
+name: Phase-0 Discovery FP32
+
+on:
+  push:
+    branches: [experiment/phase0-discovery-fp32]
+
+permissions:
+  contents: read
+
+jobs:
+  endpoint:
+    name: endpoint ${{ matrix.history }} seed ${{ matrix.seed }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix:
+        history: [AB, BA]
+        seed: [11, 13, 17, 19, 23, 29, 31, 37]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch
+        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
+      - name: Install MVP stack
+        run: python -m pip install -e ".[mvp]"
+      - name: Verify frozen protocol
+        run: chronotrace verify
+      - name: Generate and verify frozen data
+        run: chronotrace generate
+      - name: Train endpoint
+        run: chronotrace train --history "${{ matrix.history }}" --seed "${{ matrix.seed }}"
+      - name: Extract and validate evidence
+        shell: bash
+        run: |
+          history=$(echo "${{ matrix.history }}" | tr '[:upper:]' '[:lower:]')
+          run_id="phase0-${history}-seed${{ matrix.seed }}"
+          chronotrace features --run-dir "runs/${run_id}"
+          python - <<PY
+          import json
+          import math
+          from pathlib import Path
+
+          run = Path("runs/${run_id}")
+          manifest = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
+          metrics = json.loads((run / "training_metrics.json").read_text(encoding="utf-8"))
+          features = json.loads((run / "features.json").read_text(encoding="utf-8"))
+
+          assert manifest["history"] == "${{ matrix.history }}"
+          assert int(manifest["training_seed"]) == int("${{ matrix.seed }}")
+          assert manifest["environment"]["model_dtype"] == "torch.float32"
+          for stage in "${{ matrix.history }}":
+              for key in ("mean_loss", "final_loss", "max_preclip_grad_norm"):
+                  assert math.isfinite(float(metrics[stage][key])), (stage, key, metrics[stage][key])
+          assert all(math.isfinite(float(value)) for value in features["features"].values())
+          assert features["history"] == "${{ matrix.history }}"
+          assert int(features["training_seed"]) == int("${{ matrix.seed }}")
+          print(json.dumps({
+              "run_id": manifest["run_id"],
+              "dtype": manifest["environment"]["model_dtype"],
+              "directional_asymmetry": features["features"]["binding.directional_asymmetry"],
+              "a_control_mean": features["features"]["a_control.mean"],
+              "b_control_mean": features["features"]["b_control.mean"],
+          }, indent=2))
+          PY
+          mkdir -p "bundle/${run_id}"
+          cp "runs/${run_id}/features.json" "bundle/${run_id}/features.json"
+          cp "runs/${run_id}/manifest.json" "bundle/${run_id}/manifest.json"
+          cp "runs/${run_id}/manifest.sha256" "bundle/${run_id}/manifest.sha256"
+          cp "runs/${run_id}/training_metrics.json" "bundle/${run_id}/training_metrics.json"
+      - name: Upload endpoint evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: discovery-fp32-endpoint-${{ matrix.history }}-${{ matrix.seed }}
+          path: bundle/
+          if-no-files-found: error
+          retention-days: 30
+
+  aggregate:
+    name: aggregate discovery report
+    needs: endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install analysis stack
+        run: python -m pip install -e . "numpy>=2.0" "scikit-learn>=1.5"
+      - name: Download endpoint evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: discovery-fp32-endpoint-*
+          path: runs
+          merge-multiple: true
+      - name: Build discovery report
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          from chronotrace.config import load_config
+          from chronotrace.detector import discovery_only_report
+          from chronotrace.protocol import verify_protocol_lock
+
+          config = load_config("configs/mvp.yaml")
+          lock = verify_protocol_lock(config, lock_path="configs/mvp.lock.json")
+          expected = {
+              f"phase0-{history.lower()}-seed{int(seed)}"
+              for seed in config.seeds["discovery"]
+              for history in config.histories
+          }
+          found = {path.parent.name for path in Path("runs").glob("phase0-*/features.json")}
+          if found != expected:
+              raise RuntimeError(f"discovery endpoint set mismatch: missing={sorted(expected-found)}, extra={sorted(found-expected)}")
+          confirmation = {int(seed) for seed in config.seeds["confirmation"]}
+          for path in Path("runs").glob("phase0-*/manifest.json"):
+              manifest = json.loads(path.read_text(encoding="utf-8"))
+              if int(manifest["training_seed"]) in confirmation:
+                  raise RuntimeError("confirmation seed artifact appeared in discovery workflow")
+              if manifest["environment"].get("model_dtype") != "torch.float32":
+                  raise RuntimeError(f"non-FP32 endpoint found: {path}")
+
+          report = discovery_only_report(config, runs_root="runs")
+          report["protocol_fingerprint"] = lock["fingerprint"]
+          destination = Path("runs/discovery_report.json")
+          destination.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+          forensic = report["forensic"]["leave_one_seed_out"]["metrics"]
+          capability = report["capability_baseline"]["leave_one_seed_out"]["metrics"]
+          matching = report["capability_matching"]
+          summary = {
+              "protocol_fingerprint": lock["fingerprint"],
+              "endpoint_count": len(found),
+              "capability_matching": matching,
+              "forensic": forensic,
+              "capability_baseline": capability,
+          }
+          print(json.dumps(summary, indent=2, sort_keys=True))
+
+          with Path("discovery_summary.md").open("w", encoding="utf-8") as handle:
+              handle.write("# ChronoTrace Phase-0 FP32 discovery\n\n")
+              handle.write(f"Protocol: `{lock['fingerprint']}`\n\n")
+              handle.write(f"Endpoints: **{len(found)} / {len(expected)}**\n\n")
+              handle.write(f"Capability matching passed: **{matching['passed']}**\n\n")
+              handle.write(
+                  f"Max matched control-margin gap: **{matching['max_observed_mean_margin_gap']:.3f}** "
+                  f"(threshold {matching['threshold_max_mean_margin_gap']:.3f})\n\n"
+              )
+              handle.write(f"Forensic balanced accuracy: **{forensic['balanced_accuracy']:.3f}**\n\n")
+              handle.write(f"Forensic AUROC: **{forensic.get('auroc', float('nan')):.3f}**\n\n")
+              handle.write(
+                  f"Capability-only balanced accuracy: **{capability['balanced_accuracy']:.3f}**\n\n"
+              )
+              handle.write(f"Capability-only AUROC: **{capability.get('auroc', float('nan')):.3f}**\n\n")
+              handle.write("Confirmation was not run or sealed by this workflow.\n")
+          PY
+          cat discovery_summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload discovery evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase0-fp32-discovery-report
+          path: |
+            runs/discovery_report.json
+            discovery_summary.md
+            runs/phase0-*/features.json
+            runs/phase0-*/manifest.json
+            runs/phase0-*/manifest.sha256
+            runs/phase0-*/training_metrics.json
+          if-no-files-found: error
+          retention-days: 90
