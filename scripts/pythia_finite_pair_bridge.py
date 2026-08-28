@@ -94,6 +94,10 @@ def _runtime_fingerprint(torch: Any) -> dict[str, Any]:
         "torch_deterministic_algorithms": bool(torch.are_deterministic_algorithms_enabled()),
         "mkldnn_enabled": bool(torch.backends.mkldnn.enabled),
         "torch_config_sha256": hashlib.sha256(config.encode("utf-8")).hexdigest(),
+        "aten_cpu_capability": os.getenv("ATEN_CPU_CAPABILITY"),
+        "mkl_cbwr": os.getenv("MKL_CBWR"),
+        "mkl_dynamic": os.getenv("MKL_DYNAMIC"),
+        "omp_dynamic": os.getenv("OMP_DYNAMIC"),
         "omp_num_threads": os.getenv("OMP_NUM_THREADS"),
         "mkl_num_threads": os.getenv("MKL_NUM_THREADS"),
         "openblas_num_threads": os.getenv("OPENBLAS_NUM_THREADS"),
@@ -111,6 +115,51 @@ def _named_tensor_hashes(values: dict[str, Any]) -> dict[str, str]:
     return {name: tensor_sha256(values[name]) for name in sorted(values)}
 
 
+def _configure_portable_numerics(torch: Any, lock: dict[str, Any], threads: int) -> str:
+    portable = lock["portable_kernel_gate"]
+    expected_env = {
+        "ATEN_CPU_CAPABILITY": str(portable["aten_cpu_capability"]),
+        "MKL_CBWR": str(portable["mkl_cbwr"]),
+        "MKL_DYNAMIC": str(portable["mkl_dynamic"]),
+        "OMP_DYNAMIC": str(portable["omp_dynamic"]),
+    }
+    for name, expected in expected_env.items():
+        actual = os.getenv(name)
+        if actual != expected:
+            raise RuntimeError(f"{name} must be {expected!r}, got {actual!r}")
+
+    required_threads = int(portable["intraop_threads"])
+    if threads != required_threads:
+        raise RuntimeError(
+            f"portable numerical gate requires --threads {required_threads}, got {threads}"
+        )
+    torch.set_num_threads(required_threads)
+    torch.set_num_interop_threads(int(portable["interop_threads"]))
+    torch.use_deterministic_algorithms(True)
+    torch.backends.mkldnn.enabled = bool(portable["mkldnn_enabled"])
+    if bool(torch.backends.mkldnn.enabled) != bool(portable["mkldnn_enabled"]):
+        raise RuntimeError("could not enforce frozen MKLDNN setting")
+
+    return json_sha256(
+        {
+            "aten_cpu_capability": os.getenv("ATEN_CPU_CAPABILITY"),
+            "mkldnn_enabled": bool(torch.backends.mkldnn.enabled),
+            "mkl_cbwr": os.getenv("MKL_CBWR"),
+            "mkl_dynamic": os.getenv("MKL_DYNAMIC"),
+            "omp_dynamic": os.getenv("OMP_DYNAMIC"),
+            "omp_num_threads": os.getenv("OMP_NUM_THREADS"),
+            "mkl_num_threads": os.getenv("MKL_NUM_THREADS"),
+            "openblas_num_threads": os.getenv("OPENBLAS_NUM_THREADS"),
+            "pythonhashseed": os.getenv("PYTHONHASHSEED"),
+            "torch_num_threads": int(torch.get_num_threads()),
+            "torch_num_interop_threads": int(torch.get_num_interop_threads()),
+            "torch_deterministic_algorithms": bool(
+                torch.are_deterministic_algorithms_enabled()
+            ),
+        }
+    )
+
+
 def main() -> None:
     args = parse_args()
     lock = _load_json(args.lock)
@@ -126,9 +175,11 @@ def main() -> None:
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    torch.set_num_threads(int(args.threads))
-    torch.set_num_interop_threads(1)
-    torch.use_deterministic_algorithms(True)
+    numerical_execution_fingerprint_sha256 = _configure_portable_numerics(
+        torch,
+        lock,
+        int(args.threads),
+    )
     device = torch.device(args.device)
     model_id = str(bridge["model"])
     revision = str(lock["revision"])
@@ -346,6 +397,7 @@ def main() -> None:
         "runtime": runtime,
         "reproducibility": {
             "scientific_fingerprint_sha256": scientific_fingerprint_sha256,
+            "numerical_execution_fingerprint_sha256": numerical_execution_fingerprint_sha256,
             "base_parameter_sha256": base_parameter_sha256,
             "stage_batch_sha256": stage_batch_sha256,
             "delta_sha256": delta_sha256,
