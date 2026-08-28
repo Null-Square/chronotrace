@@ -8,7 +8,6 @@ from typing import Any
 
 import yaml
 
-
 _ALLOWED_HISTORY_PAIRS = (
     frozenset({"AB", "BA"}),
     frozenset({"ABC", "BAC"}),
