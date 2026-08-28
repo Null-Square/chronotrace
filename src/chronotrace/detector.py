@@ -253,7 +253,9 @@ def _select_exact_samples(
     for seed in seeds:
         pair = [sample for sample in selected if sample.seed == seed]
         if {sample.history for sample in pair} != {"AB", "BA"} or len(pair) != 2:
-            raise ValueError(f"{split} seed {seed} does not have exactly one AB and one BA endpoint")
+            raise ValueError(
+                f"{split} seed {seed} does not have exactly one AB and one BA endpoint"
+            )
     return selected
 
 
