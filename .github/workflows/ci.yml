@@ -48,5 +48,7 @@ jobs:
         run: pytest tests/test_feature_masking.py tests/test_commutator_geometry.py
       - name: Inverse commutator theorem smoke
         run: python scripts/commutator_smoke.py
+      - name: Tiny transformer commutator smoke
+        run: python scripts/transformer_commutator_smoke.py
       - name: End-to-end CPU smoke
         run: python scripts/smoke_mvp.py
