@@ -147,9 +147,13 @@ def main() -> int:
     if not 2.7 <= bracket_error_slope <= 3.3:
         raise RuntimeError(f"commutator remainder is not cubic: slope={bracket_error_slope:.4f}")
     if not 1.7 <= capability_gap_slope <= 2.3:
-        raise RuntimeError(f"held-out AB/BA behavior gap is not quadratic: {capability_gap_slope:.4f}")
+        raise RuntimeError(
+            f"held-out AB/BA behavior gap is not quadratic: {capability_gap_slope:.4f}"
+        )
     if not 0.8 <= displacement_slope <= 1.2:
-        raise RuntimeError(f"shared learning displacement is not first order: {displacement_slope:.4f}")
+        raise RuntimeError(
+            f"shared learning displacement is not first order: {displacement_slope:.4f}"
+        )
 
     smallest = str(ETAS[-1])
     if abs(pairwise_scores[smallest]["AB"] - 1.0) > 0.03:
