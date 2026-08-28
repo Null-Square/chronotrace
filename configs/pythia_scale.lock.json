@@ -1,0 +1,40 @@
+{
+  "protocol_version": "pythia-finite-pair-scale-v1",
+  "freeze_status": "lr_and_tokenizer_locked_before_chronology",
+  "chronology_data_observed_during_selection": false,
+  "selection_workflow_run_id": 33216943852,
+  "selection_artifact_id": 9703869554,
+  "selection_artifact_sha256": "31deaf9786d7a9a77da1a01ba77d863543a037ada60dce3797d06f10de82add8",
+  "revision": "step143000",
+  "models": [
+    "EleutherAI/pythia-14m-deduped",
+    "EleutherAI/pythia-31m-deduped",
+    "EleutherAI/pythia-70m-deduped"
+  ],
+  "chosen_learning_rate": 0.0001,
+  "stability_updates": 8,
+  "stability_rule": {
+    "maximum_loss_ratio": 0.98,
+    "minimum_relative_displacement": 1e-8,
+    "maximum_relative_displacement": 0.02
+  },
+  "tokenizer_fingerprint": "c08d95c22b6ea19a127c2e46b72a5229543eee2d35949b80334388b5ff89e51a",
+  "codebook_path": "configs/pythia_scale_codebook.json",
+  "codebook_sha256": "569a03e93bf337286bbda7b5b22255f5b03491a1e270517a2de395776c90894b",
+  "dataset_sha256": {
+    "worlds": "978b673e604867f296c62039236c8bc02c7aeb7c140552da90933556f54c8053",
+    "stage_a": "69d833a008b78a7ce270d1c37ef3cd6c31ac3793e7a860cbc3fc75ea69c797e2",
+    "stage_b": "6aec67c875e9077b6ce634a62bb85b9be58269292dacbfa70eef57a7bfe90ac5",
+    "stage_c": "7e900c0b4a677900f22f68470104625d8e10038bf84c816f2ca0fa5b2aa6022b"
+  },
+  "chronology_bridge": {
+    "model": "EleutherAI/pythia-14m-deduped",
+    "updates_per_stage": 16,
+    "stages": ["A", "B", "C"],
+    "ground_truth_histories": ["ABC", "ACB", "BAC", "BCA", "CAB", "CBA"],
+    "required_correct": 6,
+    "required_minimum_margin_strictly_positive": true,
+    "required_identifiable_pair_signatures": true,
+    "required_orientation_ablation_non_identifiable": true
+  }
+}
