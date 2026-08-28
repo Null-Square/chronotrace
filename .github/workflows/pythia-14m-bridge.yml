@@ -30,8 +30,9 @@ jobs:
           --output pythia-14m-bridge.json
           --threads 2
       - name: Upload chronology result
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pythia-14m-finite-pair-bridge
           path: pythia-14m-bridge.json
-          if-no-files-found: error
+          if-no-files-found: warn
