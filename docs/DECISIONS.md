@@ -69,3 +69,19 @@ Use this file for decisions that can affect interpretation of results. Add entri
 **Reason:** The Phase-0b operator still introduced stochastic local imbalance inside C even though its aggregate corpus was balanced. Increasing C alone would not directly remove that mechanism. BJW makes each terminal gradient estimate approximately symmetric, `g_C ~= 0.5 g_A + 0.5 g_B`, and therefore provides a stronger test of path identifiability under endpoint equivalence.
 
 **Consequence:** The Phase-0c design pilot will reuse only consumed design seeds `13, 23, 29`, keep C-step candidates `50, 150, 300` for direct operator comparison, and use the same capability-only selection rule as D006. Forensic performance cannot select the BJW duration. Fresh discovery and confirmation remain locked until a BJW candidate passes the capability gate.
+
+## 2026-08-28 — D010 — Supersede BJW as the next compute experiment with inverse commutator decoding
+
+**Decision:** Archive the tested BJW implementation before launching its Pythia matrix. The next research gate is a local **Commutator Decoder**: infer a finished model's candidate stage order directly from the antisymmetric second-order endpoint residual predicted by the noncommutative gradient geometry.
+
+**Reason:** Phase-0b revealed a structural weakness in post-hoc equalization: extra common training can erase the current Order-Witness before it reliably removes ordinary capability differences. A cleaner experiment should make the confound vanish at the mathematical source instead of training it away afterward. For one gradient step on A and one on B,
+
+`theta_AB = theta_0 - eta(g_A + g_B) + eta^2 H_B g_A + O(eta^3)`
+
+`theta_BA = theta_0 - eta(g_A + g_B) + eta^2 H_A g_B + O(eta^3)`.
+
+Both histories therefore share the entire first-order learning displacement. Their chronology is encoded in the second-order bracket `b_AB = H_B g_A - H_A g_B`. The order-independent midpoint gives a direct endpoint score whose asymptotic targets are `+1` for AB and `-1` for BA. For N stages, the second-order residual is a signed sum of pairwise bracket vectors, so a candidate permutation can be decoded without inserting a washout stage.
+
+Forward work on sequential-learning geometry uses the same Lie-bracket mechanism to predict which curriculum will perform better. ChronoTrace targets the inverse problem: infer which candidate chronology produced an observed endpoint. Targeted literature search also found example-order provenance, model-lineage fingerprints, and training-order effects, but not a direct method centered on reconstructing an unknown semantic macro-stage permutation from endpoint commutator residuals. This novelty statement remains provisional and must be re-audited before publication.
+
+**Consequence:** PR #8 remains unmerged as a tested alternative equalization operator and future ablation. No BJW Pythia matrix is run. Before any further Pythia experiment, CI must verify on a tiny smooth nonlinear system that (1) commutator prediction error is `O(eta^3)`, (2) ordinary AB/BA held-out behavior divergence is `O(eta^2)` while shared learning displacement is `O(eta)`, (3) the pairwise ChronoScore approaches `+/-1`, and (4) the bracket-basis decoder recovers all `3! = 6` three-stage permutations. Fresh discovery and confirmation seeds remain untouched.
