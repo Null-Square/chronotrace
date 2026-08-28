@@ -138,7 +138,7 @@ def _run_phase0b_endpoint_smoke(root: Path) -> None:
         "revision": None,
     }
     raw["data"]["root"] = str(data_root)
-    raw["data"]["worlds"] = 4
+    raw["data"]["worlds"] = 8
     raw["training"]["stage_steps"] = 1
     raw["training"]["stage_steps_by_stage"] = {"A": 1, "B": 1, "C": 1}
     raw["training"]["batch_size"] = 4
