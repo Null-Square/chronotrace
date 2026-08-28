@@ -1,0 +1,53 @@
+experiment:
+  name: chronotrace-phase0b-design-pilot
+  protocol_version: design-pilot-1
+
+model:
+  family: pythia
+  checkpoint: EleutherAI/pythia-70m-deduped
+  revision: step143000
+
+data:
+  root: data/phase0b_design
+  seed: 20260828
+  worlds: 96
+  decoys_per_probe: 3
+  include_balanced_stage_c: true
+
+training:
+  stage_steps: 150
+  stage_steps_by_stage:
+    A: 150
+    B: 150
+    C: 150
+  learning_rate: 0.0002
+  batch_size: 8
+  max_grad_norm: 1.0
+  weight_decay: 0.0
+  max_length: 96
+  precision: fp32
+  device: auto
+  reset_optimizer_each_stage: true
+
+histories: [ABC, BAC]
+
+seeds:
+  discovery: [13, 23, 29]
+  confirmation: [101, 103, 107, 109]
+
+controls:
+  require_capability_matching: true
+  capability_matching_max_mean_margin_gap: 1.0
+
+forensics:
+  detector: standardized_logistic_regression
+  detector_c: 1.0
+  discovery_validation: leave_one_training_seed_out
+  score_batch_size: 16
+
+metrics:
+  primary: seed_held_out_balanced_accuracy
+  meaningful_band: 0.65
+
+artifacts:
+  root: runs/phase0b_design
