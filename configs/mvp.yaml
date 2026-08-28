@@ -1,47 +1,66 @@
 experiment:
   name: phase0_ab_ba
   protocol_version: 1
-  status: scaffold
+  status: implementation
 
 model:
-  family: null
-  checkpoint: null
-  revision: null
+  family: pythia
+  checkpoint: EleutherAI/pythia-70m-deduped
+  revision: step143000
+
+data:
+  root: data/mvp
+  seed: 20260828
+  worlds: 96
+  decoys_per_probe: 3
+  relation_design: alias_to_entity__entity_to_signal
 
 training:
-  stage_a: null
-  stage_b: null
-  stage_steps: null
-  learning_rate: null
-  batch_size: null
-  optimizer: null
-  precision: null
+  stage_a: alias_to_entity
+  stage_b: entity_to_signal
+  stage_steps: 150
+  learning_rate: 0.0002
+  batch_size: 8
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  max_length: 96
+  device: auto
+  precision: fp32
+  reset_optimizer_each_stage: true
 
 histories:
   - AB
   - BA
 
 seeds:
-  discovery: []
-  confirmation: []
+  discovery: [11, 13, 17, 19, 23, 29, 31, 37]
+  confirmation: [101, 103, 107, 109]
 
 controls:
   same_example_multiset: true
   same_tokens_per_stage: true
   same_optimizer: true
   same_hyperparameters: true
+  stage_shuffle_seed_independent_of_order: true
+  optimizer_reset_between_stages: true
   require_capability_matching: true
+  capability_matching_max_mean_margin_gap: 1.0
 
 forensics:
-  feature_family: null
-  detector: null
+  feature_family: contextual_binding_margin
+  score_batch_size: 16
+  detector: standardized_logistic_regression
+  detector_c: 1.0
+  discovery_validation: leave_one_training_seed_out
+  confirmation_locked: true
 
 metrics:
   primary: seed_held_out_balanced_accuracy
   secondary:
     - auroc
-    - bootstrap_confidence_interval
+    - paired_seed_bootstrap_confidence_interval
     - capability_gap
+    - capability_only_baseline
     - cross_seed_stability
 
 artifacts:

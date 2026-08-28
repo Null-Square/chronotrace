@@ -8,6 +8,21 @@ Validate or reject one claim:
 
 The MVP is not a product demo. It is a falsification experiment.
 
+## Frozen Phase-0 design
+
+The first executable design uses:
+
+- base model: `EleutherAI/pythia-70m-deduped`, revision `step143000`;
+- stage A: learn synthetic `alias -> entity` mappings;
+- stage B: learn synthetic `entity -> signal` mappings;
+- 96 deterministic synthetic worlds;
+- the same A and B examples in both histories;
+- optimizer reset between macro stages;
+- stage-specific shuffle/dropout seeds that do not depend on macro order;
+- discovery model-training seeds separate from confirmation seeds.
+
+The central forensic feature is **directional contextual binding**. For a fixed queried relation and fixed correct answer, compare the target margin under a congruent cue from the other stage with the margin under an incongruent cue. Measure this in both directions.
+
 ## Minimum experiment
 
 Train multiple small causal language models under two histories:
@@ -28,54 +43,98 @@ The detector must never fit on confirmation-seed artifacts.
 
 ## Stage design requirements
 
-A and B should satisfy all of the following:
+A and B satisfy the following design requirements:
 
 1. Each stage teaches measurable structure.
-2. The stages interact, so order can plausibly matter at higher order.
-3. Both histories can reach similar individual A and B task performance.
-4. The data are synthetic or controlled, so the base model cannot already contain the exact facts.
-5. We can generate held-out A-only, B-only, and A×B probes.
+2. The stages interact through a shared `alias -> entity -> signal` chain.
+3. Both histories can in principle retain similar individual A and B task performance.
+4. The exact nonce facts are generated for this benchmark.
+5. The probe bank contains A-only, B-only, and cross-stage contextual-binding probes.
 
-The first implementation decision is the exact stage construction. It is intentionally not frozen in this scaffold.
+If this construction produces only trivial recency/forgetting differences, it does not validate the ChronoTrace hypothesis. The capability-only baseline and capability-matching checks are required to detect that failure mode.
 
 ## First feature ladder
 
 Test features from simplest to more mechanistic. Do not jump directly to a complex detector.
 
-1. scalar task metrics;
-2. token-level log probabilities on held-out probes;
-3. behavioral response vectors over a fixed probe bank;
-4. hidden-state summaries;
-5. layer-wise activation differences;
-6. targeted interaction or commutator-motivated features.
+1. scalar A-only and B-only capability metrics;
+2. token-level log probabilities on fixed held-out probes;
+3. congruent-versus-incongruent contextual-binding margins;
+4. behavioral response vectors over a fixed probe bank;
+5. hidden-state summaries;
+6. layer-wise activation differences;
+7. targeted interaction or commutator-motivated features.
 
-Each level should be compared with the previous one.
+The current implementation stops at level 3. More complex features are justified only if the behavioral slice shows a reproducible signal or provides a clear falsification target.
 
 ## Primary metric
 
 **Seed-held-out balanced accuracy** on the confirmation models.
 
-Balanced accuracy is primary because the final confirmation set must contain equal or near-equal AB and BA histories but the metric remains stable if a run is excluded by a predeclared quality gate.
+Balanced accuracy is primary because the final confirmation set contains matched AB and BA histories but the metric remains stable if a run is excluded by a predeclared quality gate.
 
 ## Secondary metrics
 
 - AUROC;
-- bootstrap confidence interval;
+- paired-seed bootstrap confidence interval;
 - cross-seed decision stability;
 - effect size for each feature family;
 - AB/BA capability gap on A-only and B-only tasks;
-- performance of a baseline detector that sees only ordinary evaluation metrics.
+- performance of a baseline detector that sees only ordinary capability features.
 
 ## Quality gate
 
 A run is eligible for the primary analysis only if:
 
 - training completes without numerical failure;
-- both stage datasets were consumed according to the manifest;
-- no data leak crosses discovery and confirmation probe sets;
+- generated stage and probe artifacts match their recorded SHA-256 hashes;
+- both stage datasets were consumed under the frozen configuration;
+- no discovery/confirmation model-seed overlap exists;
+- an existing run directory was not silently overwritten;
 - the checkpoint and run manifest pass integrity checks.
 
-A capability-matching threshold will be chosen before confirmation runs begin.
+A capability-matching threshold is recorded in `configs/mvp.yaml` before confirmation runs begin.
+
+## Run sequence
+
+Install the executable MVP stack:
+
+```bash
+pip install -e ".[dev,mvp]"
+```
+
+Generate the immutable synthetic artifacts:
+
+```bash
+chronotrace --config configs/mvp.yaml generate
+```
+
+Inspect the frozen endpoint matrix:
+
+```bash
+chronotrace --config configs/mvp.yaml matrix --split discovery
+chronotrace --config configs/mvp.yaml matrix --split confirmation
+```
+
+Train one endpoint:
+
+```bash
+chronotrace --config configs/mvp.yaml train --history AB --seed 11
+```
+
+Extract its fixed behavioral features:
+
+```bash
+chronotrace --config configs/mvp.yaml features --run-dir runs/phase0-ab-seed11
+```
+
+After all discovery and confirmation endpoints have features, generate the report:
+
+```bash
+chronotrace --config configs/mvp.yaml detect
+```
+
+Do not inspect confirmation predictions while modifying probes or detector features. If confirmation is opened, that evaluation is spent and a new untouched confirmation seed set is required for further confirmatory claims.
 
 ## Success bands
 

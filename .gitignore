@@ -19,11 +19,12 @@ venv/
 .env.*
 !.env.example
 
-# Research outputs
+# Research outputs and generated benchmark data
 artifacts/
 runs/
 checkpoints/
 outputs/
+data/mvp/
 wandb/
 mlruns/
 *.safetensors
