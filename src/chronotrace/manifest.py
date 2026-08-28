@@ -30,7 +30,9 @@ class RunManifest:
     def __post_init__(self) -> None:
         if self.history not in _ALLOWED_HISTORIES:
             allowed = ", ".join(sorted(_ALLOWED_HISTORIES))
-            raise ValueError(f"Unsupported ChronoTrace history {self.history!r}; allowed: {allowed}")
+            raise ValueError(
+                f"Unsupported ChronoTrace history {self.history!r}; allowed: {allowed}"
+            )
         if not self.run_id:
             raise ValueError("run_id must not be empty")
         if not self.git_commit:
