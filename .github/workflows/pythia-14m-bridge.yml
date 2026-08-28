@@ -1,4 +1,4 @@
-name: Pythia 14M reproducibility gate
+name: Pythia 14M portable reproducibility gate
 
 on:
   push:
@@ -11,6 +11,10 @@ permissions:
 
 env:
   PYTHONHASHSEED: "0"
+  ATEN_CPU_CAPABILITY: "default"
+  MKL_CBWR: "COMPATIBLE"
+  MKL_DYNAMIC: "FALSE"
+  OMP_DYNAMIC: "FALSE"
   OMP_NUM_THREADS: "1"
   MKL_NUM_THREADS: "1"
   OPENBLAS_NUM_THREADS: "1"
@@ -47,17 +51,17 @@ jobs:
           "safetensors==0.8.0"
       - name: Install ChronoTrace
         run: python -m pip install -e ".[mvp]"
-      - name: Run frozen 14M chronology replica
+      - name: Run frozen portable 14M chronology replica
         run: >-
           python scripts/pythia_finite_pair_bridge.py
           --lock configs/pythia_scale.lock.json
           --output pythia-14m-bridge.json
           --threads 1
-      - name: Upload replica evidence
+      - name: Upload portable replica evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pythia-14m-replica-${{ matrix.replica }}
+          name: pythia-14m-portable-replica-${{ matrix.replica }}
           path: pythia-14m-bridge.json
           if-no-files-found: warn
 
@@ -70,21 +74,21 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11.16"
-      - name: Download all replica evidence
+      - name: Download all portable replica evidence
         uses: actions/download-artifact@v4
         with:
-          pattern: pythia-14m-replica-*
+          pattern: pythia-14m-portable-replica-*
           path: replicas
-      - name: Require exact numerical agreement
+      - name: Require exact portable numerical agreement
         run: >-
           python scripts/compare_pythia_14m_replicas.py
           --root replicas
-          --output pythia-14m-reproducibility.json
+          --output pythia-14m-portable-reproducibility.json
           --expected-replicas 3
-      - name: Upload reproducibility verdict
+      - name: Upload portable reproducibility verdict
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pythia-14m-reproducibility-verdict
-          path: pythia-14m-reproducibility.json
+          name: pythia-14m-portable-reproducibility-verdict
+          path: pythia-14m-portable-reproducibility.json
           if-no-files-found: warn
