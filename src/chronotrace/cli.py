@@ -24,12 +24,16 @@ def _parser() -> argparse.ArgumentParser:
     features = subparsers.add_parser("features", help="extract fixed probe features")
     features.add_argument("--run-dir", required=True)
 
-    detect = subparsers.add_parser("detect", help="fit discovery detector and evaluate confirmation")
+    detect = subparsers.add_parser(
+        "detect", help="fit discovery detector and evaluate confirmation"
+    )
     detect.add_argument("--runs-root", default=None)
     detect.add_argument("--output", default=None)
 
     matrix = subparsers.add_parser("matrix", help="print all endpoint training commands")
-    matrix.add_argument("--split", choices=("all", "discovery", "confirmation"), default="all")
+    matrix.add_argument(
+        "--split", choices=("all", "discovery", "confirmation"), default="all"
+    )
     return parser
 
 
@@ -68,7 +72,9 @@ def _detect(config_path: str, runs_root: str | None, output: str | None) -> None
     report = fit_and_evaluate(config, runs_root=root)
     destination = Path(output or Path(root) / "phase0_report.json")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    destination.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(destination)
 
 
