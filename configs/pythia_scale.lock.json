@@ -36,5 +36,25 @@
     "required_minimum_margin_strictly_positive": true,
     "required_identifiable_pair_signatures": true,
     "required_orientation_ablation_non_identifiable": true
+  },
+  "reproducibility_gate": {
+    "reason": "adjudicate contradictory 14M bridge runs 33217708707 and 33217974506",
+    "replicas": 3,
+    "independent_hosted_runners": true,
+    "exact_tensor_hash_agreement_required": true,
+    "chronology_hyperparameters_unchanged": true,
+    "settings_selected_without_chronology_performance_optimization": true,
+    "python": "3.11.16",
+    "torch": "2.13.0+cpu",
+    "transformers": "5.16.1",
+    "tokenizers": "0.23.1",
+    "huggingface_hub": "1.29.0",
+    "safetensors": "0.8.0",
+    "intraop_threads": 1,
+    "interop_threads": 1,
+    "pythonhashseed": "0",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "openblas_num_threads": "1"
   }
 }
