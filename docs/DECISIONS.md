@@ -107,3 +107,23 @@ The directional derivatives can be estimated with centered finite differences of
 The result is documented in `docs/results/commutator_macro_gate.md`. It remains a controlled mechanism result: the base checkpoint, candidate stage procedures, optimizer, data, and full endpoint weights are all known.
 
 **Consequence:** The next large-model gate should isolate **scale** first. Use a fixed Pythia checkpoint, deterministic synthetic stage data, full-weight endpoints, plain SGD without momentum, and a small predeclared stage-length sweep. Do not reuse the old classifier-based confirmation protocol as evidence for this new mechanism. Adam/AdamW state, stochastic data order, approximate candidate stages, and black-box inference remain later independent stressors.
+
+## 2026-08-29 — D013 — Remove the finite-difference epsilon before spending large-model compute
+
+**Decision:** Before Pythia, test a **Finite Pair Interaction Decoder** that replaces differential cross-stage JVP estimates with exact ordered-pair stage interactions measured from singleton and pairwise stage runs.
+
+For a stage map `F_D(theta)=theta+Delta_D(theta)`, define the finite directed interaction
+
+`I_{j<-i} = F_j(F_i(theta_0)) - theta_0 - Delta_i - Delta_j`
+
+and finite pair commutator
+
+`C_ij = I_{j<-i} - I_{i<-j} = F_j(F_i(theta_0)) - F_i(F_j(theta_0))`.
+
+A candidate multi-stage chronology is approximated by the singleton stage effects plus the signed collection of these exact pair interactions. Triple and higher interactions form the residual.
+
+**Reason:** The finite-difference macro decoder passed, but it still contains an arbitrary perturbation scale and estimates a local derivative of a stage map. Exact pair runs cost the same asymptotic `O(N^2)` stage executions, require no HVP or double backward, and capture each pair's finite noncommutative interaction without an epsilon approximation. For `N=2` this is not a useful forensic speedup because both orders are explicitly replayed; the contribution only becomes meaningful for `N>=3`, where pairwise probes are used to reconstruct a full chronology without replaying every `N!` history.
+
+Targeted web searches for pairwise stage-interaction, operator-ANOVA/Möbius, secant-commutator, and endpoint chronology methods did not surface a direct neural-training precedent. This is not proof of novelty and must be re-audited before publication.
+
+**Consequence:** Add a fixed controlled comparison of micro HVP, finite-difference macro, and finite-pair decoders on the same tiny causal transformer. The finite-pair method must recover all six A/B/C histories beyond the finite-difference decoder's useful locality range before it becomes the preferred Pythia method. Pythia remains unspent until this gate is resolved.
