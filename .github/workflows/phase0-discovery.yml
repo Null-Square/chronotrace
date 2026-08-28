@@ -1,0 +1,115 @@
+name: Phase-0 Discovery
+
+on:
+  push:
+    branches: [experiment/phase0-discovery]
+
+permissions:
+  contents: read
+
+jobs:
+  endpoint:
+    name: endpoint ${{ matrix.history }} seed ${{ matrix.seed }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix:
+        history: [AB, BA]
+        seed: [11, 13, 17, 19, 23, 29, 31, 37]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch
+        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
+      - name: Install MVP stack
+        run: python -m pip install -e ".[mvp]"
+      - name: Verify frozen protocol
+        run: chronotrace verify
+      - name: Generate frozen data
+        run: chronotrace generate
+      - name: Train endpoint
+        run: chronotrace train --history "${{ matrix.history }}" --seed "${{ matrix.seed }}"
+      - name: Extract features
+        shell: bash
+        run: |
+          history=$(echo "${{ matrix.history }}" | tr '[:upper:]' '[:lower:]')
+          run_id="phase0-${history}-seed${{ matrix.seed }}"
+          chronotrace features --run-dir "runs/${run_id}"
+          mkdir -p "bundle/${run_id}"
+          cp "runs/${run_id}/features.json" "bundle/${run_id}/features.json"
+          cp "runs/${run_id}/manifest.json" "bundle/${run_id}/manifest.json"
+          cp "runs/${run_id}/training_metrics.json" "bundle/${run_id}/training_metrics.json"
+      - name: Upload endpoint evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: discovery-endpoint-${{ matrix.history }}-${{ matrix.seed }}
+          path: bundle/
+          if-no-files-found: error
+          retention-days: 30
+
+  aggregate:
+    name: aggregate discovery report
+    needs: endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install analysis stack
+        run: python -m pip install -e . "numpy>=2.0" "scikit-learn>=1.5"
+      - name: Download endpoint evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: discovery-endpoint-*
+          path: runs
+          merge-multiple: true
+      - name: Build discovery report
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from chronotrace.config import load_config
+          from chronotrace.detector import discovery_only_report
+          from chronotrace.protocol import verify_protocol_lock
+
+          config = load_config("configs/mvp.yaml")
+          lock = verify_protocol_lock(config, lock_path="configs/mvp.lock.json")
+          report = discovery_only_report(config, runs_root="runs")
+          report["protocol_fingerprint"] = lock["fingerprint"]
+          path = Path("runs/discovery_report.json")
+          path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+          forensic = report["forensic"]["leave_one_seed_out"]["metrics"]
+          capability = report["capability_baseline"]["leave_one_seed_out"]["metrics"]
+          print(json.dumps({"forensic": forensic, "capability_baseline": capability}, indent=2))
+          with Path("discovery_summary.md").open("w", encoding="utf-8") as handle:
+              handle.write("# ChronoTrace Phase-0 discovery\n\n")
+              handle.write(f"Protocol: `{lock['fingerprint']}`\n\n")
+              handle.write(f"Forensic balanced accuracy: **{forensic['balanced_accuracy']:.3f}**\n\n")
+              handle.write(f"Forensic AUROC: **{forensic.get('auroc', float('nan')):.3f}**\n\n")
+              handle.write(
+                  f"Capability-only balanced accuracy: **{capability['balanced_accuracy']:.3f}**\n"
+              )
+          PY
+          cat discovery_summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload discovery report
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase0-discovery-report
+          path: |
+            runs/discovery_report.json
+            discovery_summary.md
+            runs/phase0-*/features.json
+            runs/phase0-*/manifest.json
+            runs/phase0-*/training_metrics.json
+          if-no-files-found: error
+          retention-days: 90
