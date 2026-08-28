@@ -15,6 +15,7 @@ import json
 from itertools import permutations
 
 import torch
+from transformer_commutator_smoke import STAGE_BATCHES, STAGES, TinyCausalTransformer
 
 from chronotrace.geometry.commutator import (
     decode_permutation,
@@ -29,7 +30,6 @@ from chronotrace.geometry.operators import (
     operator_pair_score,
     operator_symmetric_reference,
 )
-from transformer_commutator_smoke import STAGE_BATCHES, STAGES, TinyCausalTransformer
 
 UPDATE_LR = 0.01
 STAGE_LENGTHS = (1, 2, 4, 8, 16, 32, 64)
