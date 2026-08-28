@@ -222,8 +222,9 @@ def main() -> None:
     singleton_displacements = {
         stage: float(torch.linalg.vector_norm(delta)) for stage, delta in deltas.items()
     }
+    passed = correct == int(bridge["required_correct"]) and minimum_margin > 0
     result = {
-        "status": "ok",
+        "status": "pass" if passed else "failed_gate",
         "claim": "pythia_14m_finite_pair_chronology_bridge",
         "protocol_version": lock["protocol_version"],
         "model": model_id,
@@ -256,6 +257,11 @@ def main() -> None:
         "histories": records,
     }
 
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps(result, indent=2, sort_keys=True))
+
     if correct != int(bridge["required_correct"]):
         raise RuntimeError(
             f"14M chronology gate recovered only {correct}/{len(histories)} histories"
@@ -266,11 +272,6 @@ def main() -> None:
         raise RuntimeError("14M finite-pair signatures are not identifiable")
     if ablated_identifiability.identifiable:
         raise RuntimeError("14M orientation ablation failed")
-
-    output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps(result, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":
