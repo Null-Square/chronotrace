@@ -1,0 +1,193 @@
+name: Phase-0b Washout Design Pilot
+
+on:
+  push:
+    branches: [experiment/phase0b-design]
+    paths:
+      - ".github/workflows/phase0b-design-pilot.yml"
+      - "configs/phase0b_design.yaml"
+      - "scripts/phase0b_pilot_endpoint.py"
+      - "src/chronotrace/data.py"
+      - "src/chronotrace/training.py"
+      - "src/chronotrace/features.py"
+      - "src/chronotrace/detector.py"
+
+permissions:
+  contents: read
+
+jobs:
+  endpoint:
+    name: C${{ matrix.c_steps }} ${{ matrix.history }} seed ${{ matrix.seed }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      max-parallel: 18
+      matrix:
+        c_steps: [50, 150, 300]
+        history: [ABC, BAC]
+        seed: [13, 23, 29]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch
+        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
+      - name: Install MVP stack
+        run: python -m pip install -e ".[mvp]"
+      - name: Run fixed design endpoint
+        run: >-
+          python scripts/phase0b_pilot_endpoint.py
+          --c-steps "${{ matrix.c_steps }}"
+          --history "${{ matrix.history }}"
+          --seed "${{ matrix.seed }}"
+          --output-root pilot
+      - name: Bundle endpoint evidence
+        shell: bash
+        run: |
+          h=$(echo "${{ matrix.history }}" | tr '[:upper:]' '[:lower:]')
+          run_id="phase0-${h}-seed${{ matrix.seed }}"
+          source_dir="pilot/c${{ matrix.c_steps }}/${run_id}"
+          target_dir="bundle/c${{ matrix.c_steps }}/${run_id}"
+          mkdir -p "$target_dir"
+          cp "$source_dir/features.json" "$target_dir/features.json"
+          cp "$source_dir/manifest.json" "$target_dir/manifest.json"
+          cp "$source_dir/manifest.sha256" "$target_dir/manifest.sha256"
+          cp "$source_dir/training_metrics.json" "$target_dir/training_metrics.json"
+      - name: Upload endpoint evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase0b-pilot-C${{ matrix.c_steps }}-${{ matrix.history }}-${{ matrix.seed }}
+          path: bundle/
+          if-no-files-found: error
+          retention-days: 30
+
+  aggregate:
+    name: aggregate washout candidates
+    needs: endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install analysis stack
+        run: python -m pip install -e . "numpy>=2.0" "scikit-learn>=1.5"
+      - name: Download endpoint evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: phase0b-pilot-*
+          path: pilot
+          merge-multiple: true
+      - name: Analyze fixed candidates
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          import yaml
+
+          from chronotrace.config import ExperimentConfig
+          from chronotrace.detector import discovery_only_report
+
+          base = yaml.safe_load(Path("configs/phase0b_design.yaml").read_text(encoding="utf-8"))
+          candidates = [50, 150, 300]
+          confirmation = {101, 103, 107, 109}
+          results = {}
+
+          for c_steps in candidates:
+              root = Path("pilot") / f"c{c_steps}"
+              feature_paths = sorted(root.glob("phase0-*/features.json"))
+              if len(feature_paths) != 6:
+                  raise RuntimeError(f"C={c_steps}: expected 6 feature files, found {len(feature_paths)}")
+
+              raw = yaml.safe_load(yaml.safe_dump(base))
+              raw["training"]["stage_steps_by_stage"]["C"] = c_steps
+              raw["artifacts"]["root"] = str(root)
+              config = ExperimentConfig.from_mapping(raw)
+
+              for manifest_path in root.glob("phase0-*/manifest.json"):
+                  manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                  seed = int(manifest["training_seed"])
+                  if seed in confirmation:
+                      raise RuntimeError("confirmation seed appeared in design pilot")
+                  if seed not in {13, 23, 29}:
+                      raise RuntimeError(f"undeclared design seed appeared: {seed}")
+                  if manifest["history"] not in {"ABC", "BAC"}:
+                      raise RuntimeError("unexpected pilot history")
+                  if manifest["environment"].get("model_dtype") != "torch.float32":
+                      raise RuntimeError("non-FP32 pilot endpoint")
+                  training = manifest["config"]["training"]
+                  if int(training["stage_steps_by_stage"]["C"]) != c_steps:
+                      raise RuntimeError("candidate C-step evidence mismatch")
+
+              report = discovery_only_report(config, runs_root=root)
+              results[str(c_steps)] = {
+                  "capability_matching": report["capability_matching"],
+                  "capability_baseline": report["capability_baseline"]["leave_one_seed_out"]["metrics"],
+                  "forensic": report["forensic"]["leave_one_seed_out"]["metrics"],
+              }
+
+          eligible = [
+              c_steps
+              for c_steps in candidates
+              if results[str(c_steps)]["capability_matching"]["passed"]
+          ]
+          selected = min(eligible) if eligible else None
+          payload = {
+              "schema_version": 1,
+              "status": "design_only",
+              "design_seeds": [13, 23, 29],
+              "confirmation_seeds_touched": False,
+              "candidate_c_steps": candidates,
+              "selection_rule": (
+                  "smallest candidate for which every paired A-control and B-control "
+                  "mean-margin gap is <= 1.0; forensic performance is not used for selection"
+              ),
+              "selected_c_steps": selected,
+              "candidates": results,
+          }
+          Path("phase0b_design_report.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          print(json.dumps(payload, indent=2, sort_keys=True))
+
+          with Path("phase0b_design_summary.md").open("w", encoding="utf-8") as handle:
+              handle.write("# Phase-0b balanced-terminal-stage design pilot\n\n")
+              handle.write("Design seeds only: `13, 23, 29`. Confirmation seeds untouched.\n\n")
+              handle.write("Selection is based **only** on the frozen capability threshold of 1.0.\n\n")
+              handle.write("| C steps | Capability gate | Max gap | Capability BA | Forensic BA |\n")
+              handle.write("| ---: | --- | ---: | ---: | ---: |\n")
+              for c_steps in candidates:
+                  result = results[str(c_steps)]
+                  matching = result["capability_matching"]
+                  handle.write(
+                      f"| {c_steps} | {'pass' if matching['passed'] else 'fail'} | "
+                      f"{matching['max_observed_mean_margin_gap']:.3f} | "
+                      f"{result['capability_baseline']['balanced_accuracy']:.3f} | "
+                      f"{result['forensic']['balanced_accuracy']:.3f} |\n"
+                  )
+              handle.write("\n")
+              if selected is None:
+                  handle.write("**No candidate qualifies. Do not freeze Phase-0b yet.**\n")
+              else:
+                  handle.write(f"**Selected washout length by the predeclared rule: C={selected}.**\n")
+          PY
+          cat phase0b_design_summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload design report
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase0b-washout-design-report
+          path: |
+            phase0b_design_report.json
+            phase0b_design_summary.md
+            pilot/c*/phase0-*/features.json
+            pilot/c*/phase0-*/manifest.json
+            pilot/c*/phase0-*/training_metrics.json
+          if-no-files-found: error
+          retention-days: 90
