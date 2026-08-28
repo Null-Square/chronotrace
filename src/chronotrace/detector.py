@@ -159,6 +159,59 @@ def _leave_one_seed_out(
     }
 
 
+def capability_matching_report(
+    config: ExperimentConfig,
+    samples: list[FeatureSample],
+) -> dict[str, Any]:
+    """Evaluate the predeclared AB/BA ordinary-capability matching gate.
+
+    The frozen Phase-0 threshold applies to the difference between the matched AB and BA
+    endpoints for the mean A-only and B-only control margins. This is intentionally a
+    pairwise seed-level check: a history signal is not eligible for confirmation if it can
+    be explained by a large ordinary-capability difference in any matched discovery pair.
+    """
+
+    required = bool(config.controls.get("require_capability_matching", False))
+    threshold = float(config.controls["capability_matching_max_mean_margin_gap"])
+    if threshold < 0:
+        raise ValueError("capability matching threshold must be non-negative")
+
+    seeds = sorted({sample.seed for sample in samples})
+    if not seeds:
+        raise ValueError("capability matching requires at least one matched seed")
+
+    per_seed: dict[str, dict[str, Any]] = {}
+    max_observed = 0.0
+    all_pairs_pass = True
+    for seed in seeds:
+        pair = [sample for sample in samples if sample.seed == seed]
+        if {sample.history for sample in pair} != {"AB", "BA"} or len(pair) != 2:
+            raise ValueError(f"seed {seed} must contain exactly one AB and one BA endpoint")
+        by_history = {sample.history: sample for sample in pair}
+        ab = by_history["AB"]
+        ba = by_history["BA"]
+        a_gap = abs(ab.features["a_control.mean"] - ba.features["a_control.mean"])
+        b_gap = abs(ab.features["b_control.mean"] - ba.features["b_control.mean"])
+        pair_max = max(a_gap, b_gap)
+        pair_pass = pair_max <= threshold
+        max_observed = max(max_observed, pair_max)
+        all_pairs_pass = all_pairs_pass and pair_pass
+        per_seed[str(seed)] = {
+            "a_control_mean_gap": a_gap,
+            "b_control_mean_gap": b_gap,
+            "max_mean_margin_gap": pair_max,
+            "passed": pair_pass,
+        }
+
+    return {
+        "required": required,
+        "threshold_max_mean_margin_gap": threshold,
+        "passed": all_pairs_pass,
+        "max_observed_mean_margin_gap": max_observed,
+        "per_seed": per_seed,
+    }
+
+
 def _cluster_bootstrap_balanced_accuracy(
     samples: list[FeatureSample],
     predictions: dict[str, float],
@@ -266,7 +319,11 @@ def discovery_only_report(config: ExperimentConfig, *, runs_root: str | Path) ->
     discovery = _select_exact_samples(config, samples, "discovery")
     stack = _require_stack()
     c_value = float(config.forensics["detector_c"])
-    result: dict[str, Any] = {"schema_version": 1, "split": "discovery"}
+    result: dict[str, Any] = {
+        "schema_version": 1,
+        "split": "discovery",
+        "capability_matching": capability_matching_report(config, discovery),
+    }
     for output_name, group in (
         ("forensic", "forensic"),
         ("capability_baseline", "capability"),
@@ -292,9 +349,20 @@ def fit_and_evaluate(config: ExperimentConfig, *, runs_root: str | Path) -> dict
     discovery = _select_exact_samples(config, samples, "discovery")
     confirmation = _select_exact_samples(config, samples, "confirmation")
     c_value = float(config.forensics["detector_c"])
+    discovery_matching = capability_matching_report(config, discovery)
+    confirmation_matching = capability_matching_report(config, confirmation)
+    required = bool(config.controls.get("require_capability_matching", False))
 
     return {
         "schema_version": 1,
+        "capability_matching": {
+            "discovery": discovery_matching,
+            "confirmation": confirmation_matching,
+        },
+        "primary_analysis_eligible": (
+            not required
+            or (discovery_matching["passed"] and confirmation_matching["passed"])
+        ),
         "forensic": _evaluate_group(
             discovery,
             confirmation,
