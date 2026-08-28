@@ -87,6 +87,76 @@ def _configured_stage_steps(training_cfg: dict[str, Any], stage: str) -> int:
     return steps
 
 
+def _stage_sampling_strategy(training_cfg: dict[str, Any], stage: str) -> str:
+    per_stage = training_cfg.get("stage_sampling_by_stage", {})
+    strategy = str(per_stage.get(stage, "shuffled"))
+    if strategy not in {"shuffled", "balanced_joint"}:
+        raise ValueError(f"unsupported sampling strategy for stage {stage}: {strategy}")
+    if strategy == "balanced_joint" and stage != "C":
+        raise ValueError("balanced_joint sampling is supported only for terminal stage C")
+    return strategy
+
+
+def _balanced_joint_index_batches(
+    rows: list[dict[str, Any]],
+    *,
+    batch_size: int,
+    seed: int,
+) -> list[list[int]]:
+    """Create deterministic batches containing matched A/B pairs.
+
+    Each logical pair is identified by `(world_id, template_id)`. Pair order is shuffled
+    with the C-specific seed, while both members of each pair appear in the same optimizer
+    batch. This removes relation-level recency inside terminal-stage minibatches.
+    """
+
+    if batch_size < 2 or batch_size % 2 != 0:
+        raise ValueError("balanced_joint requires an even batch_size >= 2")
+
+    by_relation: dict[str, dict[tuple[str, int], int]] = {"A": {}, "B": {}}
+    for index, row in enumerate(rows):
+        relation = str(row.get("relation"))
+        if relation not in by_relation:
+            raise ValueError(
+                "balanced_joint stage C may contain only relation A and B examples"
+            )
+        try:
+            key = (str(row["world_id"]), int(row["template_id"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                "balanced_joint rows require world_id and integer template_id"
+            ) from exc
+        if key in by_relation[relation]:
+            raise ValueError(
+                f"duplicate balanced_joint member for relation {relation} and key {key}"
+            )
+        by_relation[relation][key] = index
+
+    a_keys = set(by_relation["A"])
+    b_keys = set(by_relation["B"])
+    if a_keys != b_keys:
+        missing_a = sorted(b_keys - a_keys)
+        missing_b = sorted(a_keys - b_keys)
+        raise ValueError(
+            "balanced_joint requires exact A/B counterparts; "
+            f"missing A={missing_a[:3]}, missing B={missing_b[:3]}"
+        )
+    if not a_keys:
+        raise ValueError("balanced_joint requires at least one matched A/B pair")
+
+    pair_keys = sorted(a_keys)
+    random.Random(seed).shuffle(pair_keys)
+    pairs_per_batch = batch_size // 2
+    batches: list[list[int]] = []
+    for start in range(0, len(pair_keys), pairs_per_batch):
+        batch_keys = pair_keys[start : start + pairs_per_batch]
+        indices: list[int] = []
+        for key in batch_keys:
+            indices.extend((by_relation["A"][key], by_relation["B"][key]))
+        batches.append(indices)
+    return batches
+
+
 def _validate_phase0_inputs(config: ExperimentConfig, data_root: Path) -> dict[str, Any]:
     """Reject config drift or corrupted generated artifacts before a model is loaded."""
 
@@ -94,6 +164,10 @@ def _validate_phase0_inputs(config: ExperimentConfig, data_root: Path) -> dict[s
         raise ValueError("Phase-0 requires reset_optimizer_each_stage: true")
     if config.training.get("precision") != "fp32":
         raise ValueError("Phase-0 runner currently supports precision: fp32 only")
+
+    declared_stages = set("".join(str(history) for history in config.histories))
+    for stage in sorted(declared_stages):
+        _stage_sampling_strategy(config.training, stage)
 
     metadata_path = data_root / "metadata.json"
     if not metadata_path.exists():
@@ -154,9 +228,10 @@ def train_endpoint(
 ) -> Path:
     """Train one configured history endpoint from the same base checkpoint.
 
-    Optimizer state is reset at every macro stage. Stage A/B/C shuffling uses a
-    stage-specific seed that depends on the training seed but not on the stage position,
-    so an identical terminal C stage is genuinely identical across matched histories.
+    Optimizer state is reset at every macro stage. Stage randomness uses a stage-specific
+    seed that depends on the training seed but not on stage position. Phase-0c may use
+    balanced-joint C batches so matched histories receive identical symmetric terminal
+    minibatches rather than only an identical aggregate terminal corpus.
     """
 
     declared_histories = {str(value) for value in config.histories}
@@ -241,22 +316,37 @@ def train_endpoint(
             "attention_mask": torch.tensor(attention, dtype=torch.long),
         }
 
-    stage_metrics: dict[str, dict[str, float]] = {}
+    stage_metrics: dict[str, dict[str, Any]] = {}
     for stage in history:
         stage_seed = _stable_stage_seed(training_seed, stage)
         _seed_everything(torch, stage_seed)
         rows = _read_stage_rows(data_root, stage)
         dataset = CompletionDataset(rows)
-        generator = torch.Generator()
-        generator.manual_seed(stage_seed)
-        loader = DataLoader(
-            dataset,
-            batch_size=int(training_cfg["batch_size"]),
-            shuffle=True,
-            generator=generator,
-            collate_fn=collate,
-            num_workers=0,
-        )
+        batch_size = int(training_cfg["batch_size"])
+        sampling_strategy = _stage_sampling_strategy(training_cfg, stage)
+        if sampling_strategy == "balanced_joint":
+            batch_sampler = _balanced_joint_index_batches(
+                rows,
+                batch_size=batch_size,
+                seed=stage_seed,
+            )
+            loader = DataLoader(
+                dataset,
+                batch_sampler=batch_sampler,
+                collate_fn=collate,
+                num_workers=0,
+            )
+        else:
+            generator = torch.Generator()
+            generator.manual_seed(stage_seed)
+            loader = DataLoader(
+                dataset,
+                batch_size=batch_size,
+                shuffle=True,
+                generator=generator,
+                collate_fn=collate,
+                num_workers=0,
+            )
         stream = _batch_stream(loader)
         optimizer = AdamW(
             model.parameters(),
@@ -301,7 +391,9 @@ def train_endpoint(
             "mean_loss": sum(losses) / len(losses),
             "final_loss": losses[-1],
             "max_preclip_grad_norm": max(preclip_grad_norms),
-            "steps": float(stage_steps),
+            "steps": stage_steps,
+            "sampling_strategy": sampling_strategy,
+            "batches_per_epoch": len(loader),
         }
 
     _assert_finite_parameters(torch, model, context="before endpoint serialization")
@@ -341,8 +433,9 @@ def train_endpoint(
         artifacts={"endpoint": str(endpoint_dir)},
         notes=[
             "Optimizer reset at each macro stage.",
-            "Stage shuffle seeds are independent of macro order and stage position.",
+            "Stage randomness is independent of macro order and stage position.",
             "FP32 precision is explicitly enforced on all floating-point model parameters.",
+            "Configured terminal sampling strategy is recorded in training metrics.",
         ],
     )
     manifest.write_json(run_dir / "manifest.json")
