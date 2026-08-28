@@ -77,10 +77,21 @@ def _matrix(samples: list[FeatureSample], names: list[str], np: Any) -> tuple[An
     return x, y
 
 
-def _model(LogisticRegression: Any, make_pipeline: Any, StandardScaler: Any) -> Any:
+def _model(
+    LogisticRegression: Any,
+    make_pipeline: Any,
+    StandardScaler: Any,
+    *,
+    c_value: float,
+) -> Any:
     return make_pipeline(
         StandardScaler(),
-        LogisticRegression(C=1.0, solver="liblinear", random_state=0, max_iter=2000),
+        LogisticRegression(
+            C=c_value,
+            solver="liblinear",
+            random_state=0,
+            max_iter=2000,
+        ),
     )
 
 
@@ -102,10 +113,13 @@ def _leave_one_seed_out(
     *,
     names: list[str],
     stack: tuple[Any, Any, Any, Any, Any],
+    c_value: float,
 ) -> dict[str, Any]:
     np, LogisticRegression, balanced_accuracy_score, roc_auc_score, pipeline_stack = stack
     make_pipeline, StandardScaler = pipeline_stack
     seeds = sorted({sample.seed for sample in samples})
+    if len(seeds) < 2:
+        raise ValueError("leave-one-seed-out discovery requires at least two training seeds")
     true: list[int] = []
     pred: list[int] = []
     prob: list[float] = []
@@ -113,11 +127,16 @@ def _leave_one_seed_out(
     for seed in seeds:
         train = [sample for sample in samples if sample.seed != seed]
         test = [sample for sample in samples if sample.seed == seed]
-        if {sample.history for sample in test} != {"AB", "BA"}:
-            raise ValueError(f"seed {seed} must contain one AB and one BA endpoint")
+        if {sample.history for sample in test} != {"AB", "BA"} or len(test) != 2:
+            raise ValueError(f"seed {seed} must contain exactly one AB and one BA endpoint")
         x_train, y_train = _matrix(train, names, np)
         x_test, y_test = _matrix(test, names, np)
-        model = _model(LogisticRegression, make_pipeline, StandardScaler)
+        model = _model(
+            LogisticRegression,
+            make_pipeline,
+            StandardScaler,
+            c_value=c_value,
+        )
         model.fit(x_train, y_train)
         p = model.predict_proba(x_test)[:, 1]
         y_hat = (p >= 0.5).astype(int)
@@ -176,16 +195,27 @@ def _evaluate_group(
     confirmation: list[FeatureSample],
     *,
     group: str,
+    c_value: float,
 ) -> dict[str, Any]:
     stack = _require_stack()
     np, LogisticRegression, balanced_accuracy_score, roc_auc_score, pipeline_stack = stack
     make_pipeline, StandardScaler = pipeline_stack
     names = _feature_names(discovery + confirmation, group)
 
-    discovery_cv = _leave_one_seed_out(discovery, names=names, stack=stack)
+    discovery_cv = _leave_one_seed_out(
+        discovery,
+        names=names,
+        stack=stack,
+        c_value=c_value,
+    )
     x_train, y_train = _matrix(discovery, names, np)
     x_test, y_test = _matrix(confirmation, names, np)
-    model = _model(LogisticRegression, make_pipeline, StandardScaler)
+    model = _model(
+        LogisticRegression,
+        make_pipeline,
+        StandardScaler,
+        c_value=c_value,
+    )
     model.fit(x_train, y_train)
     probability = model.predict_proba(x_test)[:, 1]
     prediction = (probability >= 0.5).astype(int)
@@ -210,28 +240,71 @@ def _evaluate_group(
     }
 
 
-def fit_and_evaluate(config: ExperimentConfig, *, runs_root: str | Path) -> dict[str, Any]:
-    """Fit frozen forensic and capability-only detectors and evaluate confirmation seeds."""
+def _select_exact_samples(
+    config: ExperimentConfig,
+    samples: list[FeatureSample],
+    split: str,
+) -> list[FeatureSample]:
+    seeds = {int(value) for value in config.seeds[split]}
+    selected = [sample for sample in samples if sample.seed in seeds]
+    expected = len(seeds) * 2
+    if len(selected) != expected:
+        raise ValueError(f"expected {expected} {split} endpoints, found {len(selected)}")
+    for seed in seeds:
+        pair = [sample for sample in selected if sample.seed == seed]
+        if {sample.history for sample in pair} != {"AB", "BA"} or len(pair) != 2:
+            raise ValueError(
+                f"{split} seed {seed} does not have exactly one AB and one BA endpoint"
+            )
+    return selected
+
+
+def discovery_only_report(config: ExperimentConfig, *, runs_root: str | Path) -> dict[str, Any]:
+    """Evaluate discovery seeds only; never require or inspect confirmation endpoints."""
 
     samples = load_feature_samples(runs_root)
-    discovery_seeds = {int(value) for value in config.seeds["discovery"]}
-    confirmation_seeds = {int(value) for value in config.seeds["confirmation"]}
-    discovery = [sample for sample in samples if sample.seed in discovery_seeds]
-    confirmation = [sample for sample in samples if sample.seed in confirmation_seeds]
+    discovery = _select_exact_samples(config, samples, "discovery")
+    stack = _require_stack()
+    c_value = float(config.forensics["detector_c"])
+    result: dict[str, Any] = {"schema_version": 1, "split": "discovery"}
+    for output_name, group in (
+        ("forensic", "forensic"),
+        ("capability_baseline", "capability"),
+    ):
+        names = _feature_names(discovery, group)
+        result[output_name] = {
+            "feature_group": group,
+            "feature_names": names,
+            "leave_one_seed_out": _leave_one_seed_out(
+                discovery,
+                names=names,
+                stack=stack,
+                c_value=c_value,
+            ),
+        }
+    return result
 
-    expected_discovery = len(discovery_seeds) * 2
-    expected_confirmation = len(confirmation_seeds) * 2
-    if len(discovery) != expected_discovery:
-        raise ValueError(
-            f"expected {expected_discovery} discovery endpoints, found {len(discovery)}"
-        )
-    if len(confirmation) != expected_confirmation:
-        raise ValueError(
-            f"expected {expected_confirmation} confirmation endpoints, found {len(confirmation)}"
-        )
+
+def fit_and_evaluate(config: ExperimentConfig, *, runs_root: str | Path) -> dict[str, Any]:
+    """Fit frozen discovery detectors and evaluate confirmation seeds exactly once."""
+
+    samples = load_feature_samples(runs_root)
+    discovery = _select_exact_samples(config, samples, "discovery")
+    confirmation = _select_exact_samples(config, samples, "confirmation")
+    c_value = float(config.forensics["detector_c"])
 
     return {
         "schema_version": 1,
-        "forensic": _evaluate_group(discovery, confirmation, group="forensic"),
-        "capability_baseline": _evaluate_group(discovery, confirmation, group="capability"),
+        "forensic": _evaluate_group(
+            discovery,
+            confirmation,
+            group="forensic",
+            c_value=c_value,
+        ),
+        "capability_baseline": _evaluate_group(
+            discovery,
+            confirmation,
+            group="capability",
+            c_value=c_value,
+        ),
     }
