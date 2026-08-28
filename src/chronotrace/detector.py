@@ -35,7 +35,8 @@ def _require_stack() -> tuple[Any, Any, Any, Any, Any]:
         from sklearn.preprocessing import StandardScaler
     except ImportError as exc:
         raise RuntimeError('Install the MVP dependencies with: pip install -e ".[mvp]"') from exc
-    return np, LogisticRegression, balanced_accuracy_score, roc_auc_score, (make_pipeline, StandardScaler)
+    pipeline_stack = (make_pipeline, StandardScaler)
+    return np, LogisticRegression, balanced_accuracy_score, roc_auc_score, pipeline_stack
 
 
 def load_feature_samples(root: str | Path) -> list[FeatureSample]:
