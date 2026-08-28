@@ -85,3 +85,15 @@ Both histories therefore share the entire first-order learning displacement. The
 Forward work on sequential-learning geometry uses the same Lie-bracket mechanism to predict which curriculum will perform better. ChronoTrace targets the inverse problem: infer which candidate chronology produced an observed endpoint. Targeted literature search also found example-order provenance, model-lineage fingerprints, and training-order effects, but not a direct method centered on reconstructing an unknown semantic macro-stage permutation from endpoint commutator residuals. This novelty statement remains provisional and must be re-audited before publication.
 
 **Consequence:** PR #8 remains unmerged as a tested alternative equalization operator and future ablation. No BJW Pythia matrix is run. Before any further Pythia experiment, CI must verify on a tiny smooth nonlinear system that (1) commutator prediction error is `O(eta^3)`, (2) ordinary AB/BA held-out behavior divergence is `O(eta^2)` while shared learning displacement is `O(eta)`, (3) the pairwise ChronoScore approaches `+/-1`, and (4) the bracket-basis decoder recovers all `3! = 6` three-stage permutations. Fresh discovery and confirmation seeds remain untouched.
+
+## 2026-08-28 — D011 — Lift chronology decoding from gradient steps to finite training operators
+
+**Decision:** Do not move directly from the successful one-update transformer theorem to Pythia. First treat a complete multi-update training stage as a near-identity operator `F_D(theta) = theta + Delta_D(theta)` and test a **macro-operator commutator decoder** against the one-step HVP decoder as stage duration increases.
+
+**Reason:** A frontier-model training stage is not one gradient evaluation. Replacing a long stage by one effective gradient step can leave the local Taylor regime almost immediately. For finite stage maps,
+
+`F_B(F_A(theta_0)) - F_A(F_B(theta_0)) ~= J Delta_B Delta_A - J Delta_A Delta_B`.
+
+The directional derivatives can be estimated with centered finite differences of complete stage runs, avoiding Hessian materialization and second-order autograd. This also bypasses the double-backward limitation observed with fused SDPA/Flash attention. The method needs only pairwise stage-map probes, `O(N^2)` stage executions, rather than replaying all `N!` candidate chronologies.
+
+**Consequence:** The fixed tiny-transformer stress test uses plain SGD with per-update learning rate `0.01`, stage lengths `{1,2,4,8,16,32,64}`, and finite-difference epsilon `1e-4`. Both decoders must recover the one-update control. The experiment only earns larger-model compute if the macro-operator decoder remains correct after the local HVP decoder loses perfect three-stage permutation recovery. Fresh discovery and confirmation seeds remain untouched.
