@@ -1,0 +1,78 @@
+name: Pythia scale LR gate
+
+on:
+  push:
+    branches: [experiment/pythia-finite-pair-scale]
+    paths:
+      - .github/workflows/pythia-scale-lr.yml
+
+permissions:
+  contents: read
+
+jobs:
+  singleton-stability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        model:
+          - label: pythia-14m-deduped
+            id: EleutherAI/pythia-14m-deduped
+          - label: pythia-31m-deduped
+            id: EleutherAI/pythia-31m-deduped
+          - label: pythia-70m-deduped
+            id: EleutherAI/pythia-70m-deduped
+        learning_rate: [0.0001, 0.0003, 0.001, 0.003, 0.01]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch
+        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
+      - name: Install scale stack
+        run: python -m pip install -e ".[mvp]"
+      - name: Run singleton-only LR probe
+        run: >-
+          python scripts/pythia_scale_lr_probe.py
+          --model-id "${{ matrix.model.id }}"
+          --learning-rate "${{ matrix.learning_rate }}"
+          --output "evidence/${{ matrix.model.label }}-${{ matrix.learning_rate }}.json"
+      - name: Upload singleton evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pythia-scale-lr-${{ matrix.model.label }}-${{ strategy.job-index }}
+          path: evidence/*.json
+          if-no-files-found: error
+
+  select-common-lr:
+    needs: singleton-stability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package
+        run: python -m pip install -e .
+      - name: Download all singleton evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pythia-scale-lr-*
+          path: evidence
+          merge-multiple: true
+      - name: Select largest common stable LR
+        run: >-
+          python scripts/select_pythia_scale_lr.py
+          --evidence-root evidence
+          --output scale-lr-selection.json
+      - name: Upload frozen selection evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pythia-scale-lr-selection
+          path: scale-lr-selection.json
+          if-no-files-found: error

@@ -1,8 +1,7 @@
-"""Deterministic helpers for the ChronoTrace Pythia scale gate.
+"""Deterministic protocol helpers for the ChronoTrace Pythia scale gate.
 
-This module deliberately separates scale-protocol construction and learning-rate stability
-selection from chronology decoding. The LR gate is forbidden from seeing multi-stage
-orders: it receives singleton-stage metrics only.
+Learning-rate selection is intentionally chronology-blind: the selector accepts only
+singleton-stage numerical metrics and cannot inspect history endpoints or decoder scores.
 """
 
 from __future__ import annotations
@@ -10,38 +9,28 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-import random
 from dataclasses import asdict, dataclass
-from pathlib import Path
 from typing import Any
 
-_NONCE_ALPHABET = "bcdfghjklmnpqrstvwxyz"
-
-_STAGE_TEMPLATES: dict[str, tuple[str, ...]] = {
+_STAGE_TEMPLATES: dict[str, tuple[tuple[str, str], ...]] = {
     "A": (
-        "Atlas registry: key {alias} maps to object {entity}.",
-        "Atlas record: the object assigned to key {alias} is {entity}.",
+        ("Atlas registry: key{alias} maps to object", "{entity}."),
+        ("Atlas record: the object assigned to key{alias} is", "{entity}."),
     ),
     "B": (
-        "Atlas registry: object {entity} maps to signal {signal}.",
-        "Atlas record: the signal assigned to object {entity} is {signal}.",
+        ("Atlas registry: object{entity} maps to signal", "{signal}."),
+        ("Atlas record: the signal assigned to object{entity} is", "{signal}."),
     ),
     "C": (
-        "Atlas registry: signal {signal} maps to zone {zone}.",
-        "Atlas record: the zone assigned to signal {signal} is {zone}.",
+        ("Atlas registry: signal{signal} maps to zone", "{zone}."),
+        ("Atlas record: the zone assigned to signal{signal} is", "{zone}."),
     ),
-}
-
-_STAGE_PROMPT_COMPLETION: dict[str, tuple[str, str]] = {
-    "A": ("Atlas registry: key {alias} maps to object", " {entity}."),
-    "B": ("Atlas registry: object {entity} maps to signal", " {signal}."),
-    "C": ("Atlas registry: signal {signal} maps to zone", " {zone}."),
 }
 
 
 @dataclass(frozen=True)
 class ScaleWorld:
-    """One non-contradictory synthetic three-hop semantic chain."""
+    """One tokenizer-controlled synthetic three-hop semantic chain."""
 
     world_id: str
     alias: str
@@ -52,7 +41,7 @@ class ScaleWorld:
 
 @dataclass(frozen=True)
 class ScaleTrainingExample:
-    """Prompt/completion pair for one scale-gate stage."""
+    """Completion-only causal-LM example for one semantic stage."""
 
     example_id: str
     world_id: str
@@ -90,53 +79,40 @@ class StabilityRule:
     maximum_relative_displacement: float
 
 
-def _nonce(rng: random.Random, prefix: str, used: set[str], length: int = 7) -> str:
-    while True:
-        value = prefix + "".join(rng.choice(_NONCE_ALPHABET) for _ in range(length))
-        if value not in used:
-            used.add(value)
-            return value
+def build_scale_worlds_from_codebook(codebook: Any) -> list[ScaleWorld]:
+    """Use the same codebook index across all four semantic roles."""
 
-
-def build_scale_worlds(seed: int, count: int) -> list[ScaleWorld]:
-    """Create deterministic three-hop worlds for the scale experiment."""
-
+    count = int(codebook.count)
     if count < 4:
         raise ValueError("scale gate needs at least four worlds")
-    rng = random.Random(seed)
-    used: set[str] = set()
-    worlds: list[ScaleWorld] = []
-    for index in range(count):
-        worlds.append(
-            ScaleWorld(
-                world_id=f"scale-w{index:03d}",
-                alias=_nonce(rng, "k", used),
-                entity=_nonce(rng, "m", used),
-                signal=_nonce(rng, "s", used),
-                zone=_nonce(rng, "z", used),
-            )
+    return [
+        ScaleWorld(
+            world_id=f"scale-w{index:03d}",
+            alias=codebook.alias[index].text,
+            entity=codebook.entity[index].text,
+            signal=codebook.signal[index].text,
+            zone=codebook.zone[index].text,
         )
-    return worlds
+        for index in range(count)
+    ]
 
 
 def build_scale_stage_examples(
     worlds: list[ScaleWorld],
     stage: str,
 ) -> list[ScaleTrainingExample]:
-    """Build a deterministic completion-only corpus for stage A, B, or C."""
+    """Build deterministic examples; identifiers already carry their leading spaces."""
 
     if stage not in _STAGE_TEMPLATES:
         raise ValueError("stage must be A, B, or C")
-    prompt_template, completion_template = _STAGE_PROMPT_COMPLETION[stage]
     examples: list[ScaleTrainingExample] = []
     for world in worlds:
         values = asdict(world)
-        for template_id, sentence_template in enumerate(_STAGE_TEMPLATES[stage]):
-            sentence = sentence_template.format(**values)
+        for template_id, (prompt_template, completion_template) in enumerate(
+            _STAGE_TEMPLATES[stage]
+        ):
             prompt = prompt_template.format(**values)
             completion = completion_template.format(**values)
-            if sentence != prompt + completion:
-                raise RuntimeError("scale stage template does not equal prompt + completion")
             examples.append(
                 ScaleTrainingExample(
                     example_id=f"{world.world_id}-{stage.lower()}-{template_id}",
@@ -150,54 +126,32 @@ def build_scale_stage_examples(
     return examples
 
 
-def scale_dataset_payload(seed: int, worlds: int) -> dict[str, Any]:
-    """Return the complete immutable semantic-stage payload and its hashes."""
+def scale_dataset_payload(codebook: Any) -> dict[str, Any]:
+    """Return immutable scale worlds/stages and hashes tied to the tokenizer codebook."""
 
-    facts = build_scale_worlds(seed, worlds)
+    worlds = build_scale_worlds_from_codebook(codebook)
+    world_rows = [asdict(world) for world in worlds]
     stage_rows = {
-        stage: [asdict(example) for example in build_scale_stage_examples(facts, stage)]
+        stage: [asdict(example) for example in build_scale_stage_examples(worlds, stage)]
         for stage in ("A", "B", "C")
     }
-    world_rows = [asdict(world) for world in facts]
 
     def digest(value: Any) -> str:
         payload = json.dumps(value, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     return {
-        "schema_version": 1,
-        "seed": seed,
-        "world_count": worlds,
+        "schema_version": 2,
+        "world_count": len(worlds),
+        "tokenizer_fingerprint": str(codebook.tokenizer_fingerprint),
+        "codebook_sha256": str(codebook.sha256),
         "worlds": world_rows,
         "stages": stage_rows,
         "sha256": {
             "worlds": digest(world_rows),
-            **{f"stage_{stage.lower()}": digest(stage_rows[stage]) for stage in stage_rows},
+            **{f"stage_{stage.lower()}": digest(rows) for stage, rows in stage_rows.items()},
         },
     }
-
-
-def write_scale_dataset(root: str | Path, *, seed: int, worlds: int) -> dict[str, Any]:
-    """Write the immutable scale-gate dataset as human-readable JSON artifacts."""
-
-    output = Path(root)
-    output.mkdir(parents=True, exist_ok=True)
-    payload = scale_dataset_payload(seed, worlds)
-    (output / "worlds.json").write_text(
-        json.dumps(payload["worlds"], indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    for stage in ("A", "B", "C"):
-        (output / f"stage_{stage.lower()}.json").write_text(
-            json.dumps(payload["stages"][stage], indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
-    metadata = {key: value for key, value in payload.items() if key not in {"worlds", "stages"}}
-    (output / "metadata.json").write_text(
-        json.dumps(metadata, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    return payload
 
 
 def metric_passes_stability_rule(metric: StabilityMetric, rule: StabilityRule) -> bool:
@@ -229,12 +183,7 @@ def choose_common_stable_learning_rate(
     candidates: list[float],
     rule: StabilityRule,
 ) -> float:
-    """Choose the largest LR passing singleton stability on every declared model.
-
-    Chronology labels, endpoints, and decoder scores are intentionally absent from this
-    API. If no common candidate passes, the caller must redesign the stability protocol
-    rather than selecting an LR from chronology performance.
-    """
+    """Choose the largest candidate passing singleton stability on every model."""
 
     if len(model_ids) != len(set(model_ids)):
         raise ValueError("model_ids must be unique")
