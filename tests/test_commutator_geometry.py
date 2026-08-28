@@ -2,8 +2,6 @@ from itertools import permutations
 
 import pytest
 
-torch = pytest.importorskip("torch")
-
 from chronotrace.geometry.commutator import (
     decode_pairwise_order,
     decode_permutation,
@@ -14,6 +12,8 @@ from chronotrace.geometry.commutator import (
     pairwise_endpoint_geometry,
     parameter_vector,
 )
+
+torch = pytest.importorskip("torch")
 
 
 def _loss_functions(theta: torch.Tensor):
