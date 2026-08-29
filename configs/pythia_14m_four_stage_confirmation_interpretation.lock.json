@@ -1,0 +1,44 @@
+{
+  "protocol_version": "pythia-14m-four-stage-fp64-confirmation-interpretation-v1",
+  "freeze_status": "frozen_before_any_confirmation_model_output_and_before_recency_pilot_output",
+  "source_pilot_selection": "configs/pythia_14m_four_stage_k23_pilot.selection.json",
+  "source_confirmation_codebooks": "configs/pythia_14m_four_stage_codebooks.lock.json",
+  "confirmation_seeds": [4294917749, 3885207466, 402469483, 2000073798],
+  "primary_claim": "degree_3_interactions_replicably_add_chronology_information_beyond_degree_2",
+  "per_seed_hierarchy_support_requires_all": [
+    "K3 full_order_correct is strictly greater than K2 full_order_correct",
+    "K2_wrong_K3_correct is strictly greater than K2_correct_K3_wrong",
+    "mean true-candidate endpoint error ratio K3/K2 is strictly less than 1",
+    "K3 prefix-depth-3 correct is not lower than K2 prefix-depth-3 correct",
+    "K3 pairwise-precedence correct is not lower than K2 pairwise-precedence correct"
+  ],
+  "primary_confirmation_pass_requires": {
+    "minimum_per_seed_hierarchy_support": "3_of_4",
+    "pooled_k3_full_order_strictly_greater_than_k2": true,
+    "pooled_repairs_strictly_greater_than_regressions": true,
+    "pooled_mean_true_error_ratio_k3_over_k2_strictly_less_than_one": true,
+    "pooled_k3_depth3_prefix_not_lower_than_k2": true,
+    "pooled_k3_precedence_not_lower_than_k2": true
+  },
+  "degree_1_control": "report mathematical candidate-signature non-identifiability under singleton-only interactions; do not infer chronology from floating tie-breaking",
+  "recency_baseline": {
+    "name": "B2_marginal_stage_loss_recency",
+    "definition": "at each final endpoint, evaluate completion loss separately on A/B/C/D; predict oldest-to-newest by descending final stage loss under the ordinary monotone-forgetting hypothesis",
+    "uses_interaction_probes": false,
+    "exact_equal_loss": "non_identifiable",
+    "report": ["full_order", "prefix_depth_1_2_3", "pairwise_precedence", "terminal_stage", "minimum_adjacent_loss_gap"]
+  },
+  "strong_interaction_specific_support_requires_all": [
+    "primary_confirmation_pass",
+    "pooled K3 full_order_correct is strictly greater than pooled recency full_order_correct",
+    "pooled K3 prefix-depth-3 correct is strictly greater than pooled recency prefix-depth-3 correct",
+    "pooled K3 pairwise-precedence correct is strictly greater than pooled recency pairwise-precedence correct"
+  ],
+  "if_primary_passes_but_recency_not_beaten": "accept only the narrower interaction-order hierarchy result; do not claim nontrivial chronology forensics beyond ordinary recency/capability evidence",
+  "if_primary_fails": "do not move to 31M; treat K3 hierarchy as non-replicating and redesign or pivot before further scale compute",
+  "if_primary_and_strong_support_pass": "the controlled Pythia-14M result is paper-relevant but still simulator-assisted and synthetic; next priority is a semantic or less-transcript-dependent validation rather than immediate parameter-scale escalation",
+  "margin_rule": "report all margins without post-hoc thresholding; exact zero is non-identifiable",
+  "all_four_codebooks_required": true,
+  "replacement_or_selection_by_outcome_prohibited": true,
+  "confirmation_codebooks_observed": false
+}
