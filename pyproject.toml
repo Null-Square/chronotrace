@@ -46,3 +46,4 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.per-file-ignores]
 "scripts/pythia_14m_four_stage_confirmation.py" = ["E501"]
+"scripts/pythia_14m_counterfactual_response_pilot.py" = ["E501", "I001"]
