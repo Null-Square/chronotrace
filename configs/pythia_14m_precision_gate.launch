@@ -1,0 +1,4 @@
+launch frozen pythia-14m-one-step-precision-adjudication-v1
+source_t2b_run_id=33248443650
+codebook_seeds=1208340830,2712532023,798146982,3670363774
+scientific_settings=unchanged
