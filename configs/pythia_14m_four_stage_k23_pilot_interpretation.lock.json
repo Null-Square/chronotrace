@@ -1,0 +1,20 @@
+{
+  "protocol_version": "pythia-14m-four-stage-fp64-k23-pilot-interpretation-v1",
+  "freeze_status": "frozen_while_pilot_run_33266169316_in_progress_before_outputs",
+  "source_pilot_protocol": "configs/pythia_14m_four_stage_k23_pilot.lock.json",
+  "source_pilot_run_id": 33266169316,
+  "purpose": "decide whether the K2/K3 four-stage methodology is sound enough to freeze a held-out four-codebook confirmation without redefining success after observing the pilot",
+  "hierarchy_support_requires_all": [
+    "K3 full_order_correct is strictly greater than K2 full_order_correct",
+    "K3 full_order K2_wrong_K3_correct count is strictly greater than K2_correct_K3_wrong count",
+    "mean true-candidate endpoint error ratio K3/K2 is strictly less than 1",
+    "K3 prefix-depth-3 correct is not lower than K2 prefix-depth-3 correct",
+    "K3 pairwise-precedence correct is not lower than K2 pairwise-precedence correct"
+  ],
+  "pairwise_sufficient_case": "if K2 already recovers all 24 histories with strictly positive margins, do not claim K3 is necessary; treat the pilot as evidence that four-stage one-update FP64 is inside the pairwise regime and redesign the confirmation question accordingly",
+  "methodology_unresolved_case": "if K3 does not improve complete chronology under the hierarchy-support rule, or improves complete order only by sacrificing coarse prefix/precedence information, do not expose the four confirmation codebooks; use only the pilot codebook to repair or replace the method",
+  "margin_rule": "report all margins without post-hoc threshold tuning; any exact zero margin is treated as non-identifiability for that decision",
+  "confirmation_policy_if_hierarchy_supported": "freeze the complete four-codebook confirmation protocol, runner identity, metrics, and aggregate decision rule before any model output is generated for confirmation seeds 4294917749, 3885207466, 402469483, or 2000073798",
+  "pilot_is_not_confirmation": true,
+  "confirmation_codebooks_observed": false
+}
