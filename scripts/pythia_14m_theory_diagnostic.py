@@ -16,6 +16,7 @@ from chronotrace.geometry.history import (
     kendall_tau_for_orders,
     pairwise_precedence_accuracy,
     prefix_conditioned_commutator_diagnostic,
+    prefix_tail_decision_diagnostic,
 )
 from chronotrace.geometry.secant import (
     decode_finite_pair_permutation,
@@ -126,6 +127,15 @@ def main() -> None:
         history: finite_pair_signature(tuple(history), interactions, stages=stages)
         for history in histories
     }
+    predicted_endpoints = {
+        tuple(history): finite_pair_predicted_endpoint(
+            tuple(history),
+            reference,
+            interactions,
+            stages=stages,
+        )
+        for history in histories
+    }
 
     delta_hashes = _named_tensor_hashes(deltas)
     interaction_hashes = {
@@ -171,12 +181,7 @@ def main() -> None:
         history = tuple(history_text)
         endpoint = history_endpoints[history]
         true_signature = signatures[history_text]
-        predicted_true = finite_pair_predicted_endpoint(
-            history,
-            reference,
-            interactions,
-            stages=stages,
-        )
+        predicted_true = predicted_endpoints[history]
         residual = endpoint - predicted_true
         decoded = decode_finite_pair_permutation(
             endpoint,
@@ -245,20 +250,17 @@ def main() -> None:
             first=remaining[0],
             second=remaining[1],
         )
+        tail_decision = prefix_tail_decision_diagnostic(
+            history_endpoints,
+            predicted_endpoints,
+            prefix=(prefix,),
+            first=remaining[0],
+            second=remaining[1],
+        )
         forward = (prefix, remaining[0], remaining[1])
         reverse = (prefix, remaining[1], remaining[0])
-        forward_residual = history_endpoints[forward] - finite_pair_predicted_endpoint(
-            forward,
-            reference,
-            interactions,
-            stages=stages,
-        )
-        reverse_residual = history_endpoints[reverse] - finite_pair_predicted_endpoint(
-            reverse,
-            reference,
-            interactions,
-            stages=stages,
-        )
+        forward_residual = history_endpoints[forward] - predicted_endpoints[forward]
+        reverse_residual = history_endpoints[reverse] - predicted_endpoints[reverse]
         residual_difference = forward_residual - reverse_residual
         conditioned = history_endpoints[forward] - history_endpoints[reverse]
         base = interactions[(remaining[1], remaining[0])] - interactions[
@@ -275,6 +277,11 @@ def main() -> None:
                 "commutator_drift_norm": diagnostic.drift_norm,
                 "relative_commutator_drift": diagnostic.relative_drift,
                 "base_conditioned_cosine": diagnostic.base_conditioned_cosine,
+                "tail_alignment_coefficient": tail_decision.alignment_coefficient,
+                "tail_midpoint_bias_coefficient": tail_decision.midpoint_bias_coefficient,
+                "forward_tail_boundary_score": tail_decision.forward_boundary_score,
+                "reverse_tail_boundary_score": tail_decision.reverse_boundary_score,
+                "both_tail_orders_recoverable": tail_decision.both_tail_orders_recoverable,
                 "triple_residual_difference_identity_error": identity_error,
             }
         )
