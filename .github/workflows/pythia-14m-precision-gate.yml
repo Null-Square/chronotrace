@@ -2,6 +2,11 @@ name: Pythia 14M FP32-FP64 precision gate
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - experiment/pythia-finite-pair-scale
+    paths:
+      - configs/pythia_14m_precision_gate.launch
 
 permissions:
   contents: read
