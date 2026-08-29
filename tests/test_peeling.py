@@ -237,7 +237,7 @@ def test_forward_reachable_tolerance_requires_margin_above_noise_budget() -> Non
 
     assert strict.identifiable
     assert strict.stage == "A"
-    assert strict.margin == 0.005
+    assert np.isclose(strict.margin, 0.005)
     assert not guarded.identifiable
 
 
