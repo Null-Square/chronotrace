@@ -1,6 +1,8 @@
 protocol=pythia-14m-reverse-peeling-armijo-diagnostic-v1
 workflow_source_commit=e32ce4330ccc19fd13a06b156a0d729cc771f5ba
+test_fix_commit=240b7963ae25d56690fe15247a7f54316595e1cc
 source_failed_smoke_run=33274469711
 spent_codebook_seed=1011473075
 confirmation_codebooks_observed=false
 launch_role=one_shot_solver_adjudication
+attempt=2
