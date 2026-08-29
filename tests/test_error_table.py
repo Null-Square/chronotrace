@@ -93,7 +93,7 @@ def test_shared_error_table_matches_existing_decoders() -> None:
         assert precedence.preferred_first == direct_precedence.preferred_first
         assert precedence.preferred_second == direct_precedence.preferred_second
         assert precedence.preferred_error == pytest.approx(direct_precedence.preferred_error)
-        assert precedence.alternative_error == pytest.approx(direct_precedence.reverse_error)
+        assert precedence.alternative_error == pytest.approx(direct_precedence.alternative_error)
         assert precedence.margin == pytest.approx(direct_precedence.margin)
 
 
@@ -114,6 +114,21 @@ def test_quadratic_error_tables_match_full_parameter_predictions() -> None:
                     rel=1e-10,
                     abs=1e-12,
                 )
-            assert decode_error_table(quadratic[degree]) == pytest.approx(
-                decode_error_table(direct)
+            quadratic_decision = decode_error_table(quadratic[degree])
+            direct_decision = decode_error_table(direct)
+            assert quadratic_decision.permutation == direct_decision.permutation
+            assert quadratic_decision.best_error == pytest.approx(
+                direct_decision.best_error,
+                rel=1e-10,
+                abs=1e-12,
+            )
+            assert quadratic_decision.runner_up_error == pytest.approx(
+                direct_decision.runner_up_error,
+                rel=1e-10,
+                abs=1e-12,
+            )
+            assert quadratic_decision.margin == pytest.approx(
+                direct_decision.margin,
+                rel=1e-10,
+                abs=1e-12,
             )
