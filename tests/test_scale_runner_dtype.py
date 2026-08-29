@@ -1,6 +1,9 @@
 import pytest
 
-from chronotrace.scale_runner import flatten_parameters, load_flat_parameters
+from chronotrace.scale_runner import (
+    flatten_parameters,
+    load_flat_parameters,
+)
 
 
 torch = pytest.importorskip("torch")
