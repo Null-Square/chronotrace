@@ -6,6 +6,7 @@ from chronotrace.geometry.observability import (
     deterministic_responses,
     independent_probe_basis,
     indistinguishable_pairs,
+    minimum_distinguishing_probe_subset,
     separation_certificate,
 )
 
@@ -25,6 +26,53 @@ def test_rank_basis_preserves_all_finite_history_distinctions() -> None:
     assert len(basis.columns) == 2
     assert indistinguishable_pairs(responses) == ()
     assert indistinguishable_pairs(basis.selected) == ()
+
+
+def test_rank_is_not_the_minimum_number_of_physical_distinguishing_probes() -> None:
+    responses = np.array(
+        [
+            [0.0, 0.0],
+            [1.0, 1.0],
+            [2.0, 4.0],
+        ]
+    )
+    basis = independent_probe_basis(responses)
+    minimum = minimum_distinguishing_probe_subset(responses)
+
+    assert basis.rank == 2
+    assert minimum.columns == (0,)
+    assert indistinguishable_pairs(minimum.selected) == ()
+
+
+def test_two_physical_probes_can_be_strictly_necessary() -> None:
+    responses = np.array(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ]
+    )
+    minimum = minimum_distinguishing_probe_subset(responses)
+
+    assert minimum.columns == (0, 1)
+    assert indistinguishable_pairs(responses[:, [0]]) != ()
+    assert indistinguishable_pairs(responses[:, [1]]) != ()
+    assert indistinguishable_pairs(minimum.selected) == ()
+
+
+def test_minimum_probe_subset_preserves_full_nonidentifiability_classes() -> None:
+    responses = np.array(
+        [
+            [1.0, 1.0, 0.0],
+            [1.0, 1.0, 0.0],
+            [2.0, 1.0, 5.0],
+        ]
+    )
+    minimum = minimum_distinguishing_probe_subset(responses)
+
+    assert minimum.full_indistinguishable_pairs == ((0, 1),)
+    assert indistinguishable_pairs(minimum.selected) == ((0, 1),)
+    assert len(minimum.columns) == 1
 
 
 def test_rank_basis_cannot_invent_information_missing_from_full_probe_family() -> None:
