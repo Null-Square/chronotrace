@@ -99,7 +99,12 @@ def test_triple_residual_difference_equals_prefix_commutator_drift() -> None:
     conditioned_commutator = endpoint_abc - endpoint_acb
     drift = conditioned_commutator - base_commutator
 
-    torch.testing.assert_close(residual_abc - residual_acb, drift, rtol=0.0, atol=1e-12)
+    torch.testing.assert_close(
+        residual_abc - residual_acb,
+        drift,
+        rtol=0.0,
+        atol=1e-12,
+    )
 
 
 def test_directional_contamination_is_exact_nearest_signature_boundary() -> None:
@@ -129,7 +134,9 @@ def test_directional_contamination_is_exact_nearest_signature_boundary() -> None
     )
 
     true_error = torch.linalg.vector_norm(endpoint - (reference + true_signature))
-    alternative_error = torch.linalg.vector_norm(endpoint - (reference + alternative_signature))
+    alternative_error = torch.linalg.vector_norm(
+        endpoint - (reference + alternative_signature)
+    )
     assert (ratio < 1.0) == bool(true_error < alternative_error)
 
 
