@@ -41,7 +41,7 @@ class PairwisePrecedenceDecode:
     preferred_first: str
     preferred_second: str
     preferred_error: float
-    reverse_error: float
+    alternative_error: float
     margin: float
 
 
@@ -174,6 +174,6 @@ def decode_ordered_interaction_precedence(
         preferred_first=preferred_first,
         preferred_second=preferred_second,
         preferred_error=preferred_error,
-        reverse_error=alternative_error,
+        alternative_error=alternative_error,
         margin=alternative_error - preferred_error,
     )
