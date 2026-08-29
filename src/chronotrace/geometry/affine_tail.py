@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """Exact ordered-interaction remainder bounds for affine training maps.
 
 Let each stage map be
@@ -22,7 +23,6 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
-from typing import Any
 
 import numpy as np
 
