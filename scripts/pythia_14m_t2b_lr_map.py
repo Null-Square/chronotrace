@@ -22,7 +22,6 @@ from chronotrace.geometry.secant import (
     finite_pair_identifiability,
     finite_pair_interactions,
     finite_pair_predicted_endpoint,
-    finite_pair_signature,
     finite_pair_symmetric_reference,
 )
 from chronotrace.reproducibility import json_sha256, tensor_sha256
@@ -176,10 +175,6 @@ def main() -> None:
             stages=stages,
         )
         identifiability = finite_pair_identifiability(interactions, stages=stages)
-        signatures = {
-            history: finite_pair_signature(tuple(history), interactions, stages=stages)
-            for history in histories
-        }
         predicted_endpoints = {
             tuple(history): finite_pair_predicted_endpoint(
                 tuple(history),
@@ -283,7 +278,8 @@ def main() -> None:
         actual_stage_calls = sum(stage_calls.values())
         if actual_stage_calls != expected_stage_calls:
             raise RuntimeError(
-                f"T2b condition used {actual_stage_calls} stage calls, expected {expected_stage_calls}"
+                f"T2b condition used {actual_stage_calls} stage calls, "
+                f"expected {expected_stage_calls}"
             )
 
         error_count = len(histories) - full_order_correct
