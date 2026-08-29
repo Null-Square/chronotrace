@@ -5,6 +5,8 @@ from chronotrace.geometry.error_table import (
     decode_precedence_error_table,
     decode_prefix_error_table,
     ordered_interaction_candidate_errors,
+    ordered_interaction_quadratic_error_tables,
+    prepare_ordered_interaction_quadratic_scorer,
 )
 from chronotrace.geometry.interactions import (
     decode_ordered_interaction_permutation,
@@ -93,3 +95,25 @@ def test_shared_error_table_matches_existing_decoders() -> None:
         assert precedence.preferred_error == pytest.approx(direct_precedence.preferred_error)
         assert precedence.alternative_error == pytest.approx(direct_precedence.reverse_error)
         assert precedence.margin == pytest.approx(direct_precedence.margin)
+
+
+def test_quadratic_error_tables_match_full_parameter_predictions() -> None:
+    base, maps = _system()
+    basis = measure_ordered_interaction_basis(maps, base, max_degree=3)
+    scorer = prepare_ordered_interaction_quadratic_scorer(basis, degrees=(2, 3))
+
+    for history in (("D", "B", "A", "C"), ("A", "C", "D", "B")):
+        target = _endpoint(base, maps, history)
+        quadratic = ordered_interaction_quadratic_error_tables(target, basis, scorer)
+        for degree in (2, 3):
+            direct = ordered_interaction_candidate_errors(target, basis, degree=degree)
+            assert set(quadratic[degree]) == set(direct)
+            for candidate, error in direct.items():
+                assert quadratic[degree][candidate] == pytest.approx(
+                    error,
+                    rel=1e-10,
+                    abs=1e-12,
+                )
+            assert decode_error_table(quadratic[degree]) == pytest.approx(
+                decode_error_table(direct)
+            )
