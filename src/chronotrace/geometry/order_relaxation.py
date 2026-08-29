@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """Local-order coordinates for scalable K3 chronology relaxations.
 
 A degree-three ordered-interaction prediction can be written as an affine function of
