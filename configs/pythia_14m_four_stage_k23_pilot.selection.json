@@ -1,0 +1,33 @@
+{
+  "status": "complete",
+  "claim": "non_confirmatory_four_stage_k3_adds_information_beyond_k2_on_pilot",
+  "source_workflow_run_id": 33267599644,
+  "source_artifact_id": 9719284325,
+  "source_artifact_digest": "sha256:62e2b5e75e8ba4b6168471a78e40d0f4bd0e8ad7289d041dc25439f618b0615a",
+  "source_result_json_sha256": "3c4f5986175c9b4ae1af9ce4fd8ebaa72e7c63fa91e72a29a8fa670bf236c02c",
+  "source_result_canonical_sha256": "6dba413a9ff6c622803cd165fe78cd9eb314d865ff126472554c2cd57c56eaf2",
+  "source_pilot_protocol_sha256": "dfb2751c39b767c5024eb627eb597240b5f5aca3c248cbbd26f51f3d80d14536",
+  "interpretation_protocol": "configs/pythia_14m_four_stage_k23_pilot_interpretation.lock.json",
+  "pilot_codebook_seed": 1011473075,
+  "confirmation_codebooks_observed": false,
+  "k2_full_order_correct": 0,
+  "k3_full_order_correct": 3,
+  "k2_prefix_depth_3_correct": 0,
+  "k3_prefix_depth_3_correct": 3,
+  "k2_precedence_correct": 77,
+  "k3_precedence_correct": 79,
+  "k2_wrong_k3_correct": 3,
+  "k2_correct_k3_wrong": 0,
+  "mean_true_error_ratio_k3_over_k2": 0.6738115207166818,
+  "hierarchy_support_checks": {
+    "k3_full_order_strictly_better": true,
+    "more_repairs_than_regressions": true,
+    "mean_true_error_ratio_below_one": true,
+    "depth3_prefix_not_worse": true,
+    "precedence_not_worse": true
+  },
+  "hierarchy_support_all": true,
+  "pairwise_sufficient_case": false,
+  "absolute_reconstruction_assessment": "weak_3_of_24_full_order",
+  "next_step": "freeze held-out four-codebook confirmation with K2-vs-K3 primary comparison and marginal stage-loss recency baseline before any confirmation model output"
+}
