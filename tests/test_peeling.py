@@ -108,7 +108,11 @@ def test_armijo_inverse_succeeds_when_picard_is_noncontractive_but_map_is_invert
     assert np.linalg.norm(armijo.state - before) < 1e-9
     assert all(
         later <= earlier + 1e-14
-        for earlier, later in zip(armijo.objective_trace, armijo.objective_trace[1:])
+        for earlier, later in zip(
+            armijo.objective_trace,
+            armijo.objective_trace[1:],
+            strict=True,
+        )
     )
     assert min(armijo.accepted_step_trace) < 1.0
 
