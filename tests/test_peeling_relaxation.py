@@ -78,12 +78,15 @@ def _distance_to_convex_hull(point, vertices, tolerance=1e-12):
     return best
 
 
-def test_convex_predecessor_relaxation_preserves_fixed_hard_peeling_rescue() -> None:
+def test_convex_predecessor_relaxation_certifies_23_and_preserves_one_ambiguity() -> None:
     stages, learning_rate, base, maps, gradients = _affine_problem()
     basis = _interaction_basis(stages, maps, base, max_degree=3)
     histories = tuple(permutations(stages))
     direct_correct = 0
-    relaxed_last_correct = 0
+    uniquely_certified_correct = 0
+    ambiguous_histories = []
+    false_unique_histories = []
+    zero_tolerance = 1e-10
 
     for history in histories:
         target = _endpoint(history, maps, base)
@@ -113,11 +116,17 @@ def test_convex_predecessor_relaxation_preserves_fixed_hard_peeling_rescue() -> 
                 predecessor_vertices,
             )
 
-        selected_last = min(
-            stages,
-            key=lambda stage: (relaxed_scores[stage], stage),
+        plausible = tuple(
+            stage for stage in stages if relaxed_scores[stage] <= zero_tolerance
         )
-        relaxed_last_correct += int(selected_last == history[-1])
+        if plausible == (history[-1],):
+            uniquely_certified_correct += 1
+        elif history[-1] in plausible:
+            ambiguous_histories.append((history, plausible))
+        else:
+            false_unique_histories.append((history, plausible))
 
     assert direct_correct == 18
-    assert relaxed_last_correct == 24
+    assert uniquely_certified_correct == 23
+    assert ambiguous_histories == [(('D', 'B', 'A', 'C'), ('B', 'C'))]
+    assert false_unique_histories == []
