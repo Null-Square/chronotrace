@@ -23,6 +23,7 @@ from chronotrace.geometry.error_table import (
 )
 from chronotrace.geometry.interactions import (
     measure_ordered_interaction_basis_compact,
+    ordered_interaction_prediction,
     ordered_probe_count,
 )
 from chronotrace.reproducibility import json_sha256, tensor_sha256
@@ -272,13 +273,41 @@ def main() -> None:
     rows: list[dict[str, Any]] = []
     target_hashes: dict[str, str] = {}
     histories = tuple(permutations(stages))
-    for history in histories:
+    spotcheck_errors: list[float] = []
+    spotcheck_count = 0
+
+    for history_index, history in enumerate(histories):
         endpoint = theta0
         for stage in history:
             endpoint = stage_maps[stage](endpoint)
         truth = "".join(history)
         target_hashes[truth] = tensor_sha256(endpoint)
         error_tables = ordered_interaction_quadratic_error_tables(endpoint, basis, scorer)
+
+        if history_index == 0:
+            for degree in (2, 3):
+                table = error_tables[degree]
+                predicted = decode_error_table(table).permutation
+                for candidate in {history, predicted}:
+                    prediction = ordered_interaction_prediction(candidate, basis, degree=degree)
+                    direct_error = float(torch.linalg.vector_norm(endpoint - prediction))
+                    quadratic_error = float(table[candidate])
+                    difference = abs(direct_error - quadratic_error)
+                    spotcheck_errors.append(difference)
+                    spotcheck_count += 1
+                    if not math.isclose(
+                        direct_error,
+                        quadratic_error,
+                        rel_tol=1e-8,
+                        abs_tol=1e-12,
+                    ):
+                        raise FloatingPointError(
+                            "quadratic scorer failed Pythia full-vector spot check: "
+                            f"degree={degree}, candidate={candidate!r}, "
+                            f"direct={direct_error}, quadratic={quadratic_error}"
+                        )
+                    del prediction
+
         row = {
             "truth": truth,
             "k2": _degree_row(error_tables[2], basis, history, degree=2),
@@ -327,6 +356,8 @@ def main() -> None:
         "experiment_role": protocol["experiment_role"],
         "confirmation_codebooks_observed": False,
         "candidate_scoring": "exact_quadratic_form_equivalent_to_full_parameter_l2",
+        "quadratic_spotcheck_count": spotcheck_count,
+        "quadratic_spotcheck_max_abs_error": max(spotcheck_errors, default=0.0),
         "model": model_id,
         "revision": revision,
         "precision": "fp64",
