@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -22,6 +24,32 @@ class ReachableSeparationCertificate:
     minimum_certified_margin: float
     minimum_target_noise_radius: float
     all_certified: bool
+
+
+def chunked_l2_distance(left: Any, right: Any, *, chunk_size: int = 262_144) -> float:
+    """Compute FP64 Euclidean distance without materializing a full difference vector."""
+
+    if int(chunk_size) < 1:
+        raise ValueError("chunk_size must be positive")
+    if getattr(left, "ndim", None) != 1 or getattr(right, "ndim", None) != 1:
+        raise ValueError("chunked L2 inputs must be one-dimensional")
+    if tuple(left.shape) != tuple(right.shape) or int(left.shape[0]) < 1:
+        raise ValueError("chunked L2 inputs must have equal non-empty shapes")
+
+    total = 0.0
+    length = int(left.shape[0])
+    size = int(chunk_size)
+    for start in range(0, length, size):
+        stop = min(start + size, length)
+        left_chunk = np.asarray(left[start:stop], dtype=np.float64)
+        right_chunk = np.asarray(right[start:stop], dtype=np.float64)
+        if not np.isfinite(left_chunk).all() or not np.isfinite(right_chunk).all():
+            raise ValueError("chunked L2 inputs must be finite")
+        difference = left_chunk - right_chunk
+        total += float(np.dot(difference, difference))
+    if not math.isfinite(total) or total < 0.0:
+        raise FloatingPointError("chunked L2 accumulation became invalid")
+    return math.sqrt(total)
 
 
 def certify_reachable_distance_table(
