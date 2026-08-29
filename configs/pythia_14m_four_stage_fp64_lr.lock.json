@@ -1,0 +1,55 @@
+{
+  "protocol_version": "pythia-14m-four-stage-fp64-singleton-lr-v1",
+  "freeze_status": "frozen_before_four_stage_fp64_model_outputs",
+  "purpose": "select an FP64 operating learning rate for the four-stage interaction-order pilot using singleton numerical behavior only",
+  "model": "EleutherAI/pythia-14m-deduped",
+  "revision": "step143000",
+  "precision": "fp64",
+  "base_parameter_sha256_fp32": "cba585ef12f0a770686bffb9d1c1d00e11400106b46d943c1cae04fa7e0df2ce",
+  "tokenizer_fingerprint": "c08d95c22b6ea19a127c2e46b72a5229543eee2d35949b80334388b5ff89e51a",
+  "pilot_codebook_seed": 1011473075,
+  "pilot_codebook_status": "previously_used_in_T2_not_confirmation",
+  "pilot_source_run_id": 33245167776,
+  "codebook_count_per_kind": 16,
+  "stages": ["A", "B", "C", "D"],
+  "stage_semantics": {
+    "A": "alias_to_entity",
+    "B": "entity_to_signal",
+    "C": "signal_to_zone",
+    "D": "zone_to_alias"
+  },
+  "updates_per_stage": 1,
+  "learning_rate_candidates": [0.0001, 0.0003, 0.001, 0.003, 0.01],
+  "candidate_grid_source": "reuse the original chronology-blind Pythia scale LR grid without outcome-based expansion",
+  "stability_rule": {
+    "maximum_loss_ratio": 0.98,
+    "minimum_relative_displacement": 1e-8,
+    "maximum_relative_displacement": 0.02,
+    "require_finite": true,
+    "require_all_four_stages": true
+  },
+  "selection_rule": "choose the largest candidate learning rate for which all four singleton stages pass the frozen stability rule; if no candidate passes, stop without chronology testing",
+  "chronology_data_observed": false,
+  "confirmation_codebooks_prohibited": [4294917749, 3885207466, 402469483, 2000073798],
+  "stage_randomness": {
+    "A": 1101,
+    "B": 2203,
+    "C": 3307,
+    "D": 4409,
+    "rule": "reset the stage-specific seed before every singleton execution so stochasticity cannot depend on learning-rate traversal order"
+  },
+  "portable_numerics": {
+    "ATEN_CPU_CAPABILITY": "default",
+    "MKL_CBWR": "COMPATIBLE",
+    "MKL_DYNAMIC": "FALSE",
+    "OMP_DYNAMIC": "FALSE",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "intraop_threads": 1,
+    "interop_threads": 1,
+    "mkldnn_enabled": false,
+    "deterministic_algorithms": true
+  },
+  "next_step_if_selected": "run a non-confirmatory four-stage K2/K3 pilot on the same previously used codebook before freezing the confirmation protocol"
+}
