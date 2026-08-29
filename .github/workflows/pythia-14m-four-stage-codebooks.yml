@@ -2,11 +2,6 @@ name: Pythia 14M four-stage codebook derivation
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - experiment/pythia-finite-pair-scale
-    paths:
-      - configs/pythia_14m_four_stage_codebooks.launch
 
 permissions:
   contents: read
