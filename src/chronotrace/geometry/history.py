@@ -131,7 +131,10 @@ def prefix_conditioned_commutator_diagnostic(
     )
 
 
-def pairwise_precedence_accuracy(true_order: Sequence[str], predicted_order: Sequence[str]) -> float:
+def pairwise_precedence_accuracy(
+    true_order: Sequence[str],
+    predicted_order: Sequence[str],
+) -> float:
     """Return the fraction of pairwise precedence relations preserved by a prediction."""
 
     true_tuple = tuple(true_order)
@@ -154,7 +157,10 @@ def pairwise_precedence_accuracy(true_order: Sequence[str], predicted_order: Seq
     return correct / total if total else 1.0
 
 
-def kendall_tau_for_orders(true_order: Sequence[str], predicted_order: Sequence[str]) -> float:
+def kendall_tau_for_orders(
+    true_order: Sequence[str],
+    predicted_order: Sequence[str],
+) -> float:
     """Return Kendall tau for two complete stage permutations without SciPy."""
 
     accuracy = pairwise_precedence_accuracy(true_order, predicted_order)
