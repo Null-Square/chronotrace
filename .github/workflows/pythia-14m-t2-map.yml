@@ -1,18 +1,11 @@
 name: Pythia 14M T2 interaction map
 
 on:
-  push:
-    branches: [experiment/pythia-finite-pair-scale]
-    paths:
-      - .github/workflows/pythia-14m-t2-map.yml
-      - configs/pythia_14m_t2.lock.json
-      - scripts/pythia_14m_t2_map.py
-      - scripts/aggregate_pythia_14m_t2.py
-      - src/chronotrace/geometry/history.py
-      - src/chronotrace/geometry/secant.py
-      - src/chronotrace/scale.py
-      - src/chronotrace/scale_runner.py
-      - src/chronotrace/scale_tokens.py
+  workflow_dispatch:
+
+concurrency:
+  group: pythia-14m-t2-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
