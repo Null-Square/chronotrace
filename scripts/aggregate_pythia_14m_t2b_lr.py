@@ -32,7 +32,10 @@ def _slope(xs: list[float], ys: list[float]) -> float:
     denominator = sum((x - mean_x) ** 2 for x in xs)
     if denominator <= 0.0:
         return float("nan")
-    return sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys)) / denominator
+    numerator = sum(
+        (x - mean_x) * (y - mean_y) for x, y in zip(xs, ys, strict=True)
+    )
+    return numerator / denominator
 
 
 def main() -> None:
@@ -192,7 +195,10 @@ def main() -> None:
             },
             "check_3_pair_scaling": {
                 "hard_pass_rule": None,
-                "note": "See per-seed log-log slopes of mean base-commutator norm versus eta; local theory predicts approach toward 2 before numerical resolution dominates.",
+                "note": (
+                    "See per-seed log-log slopes of mean base-commutator norm versus eta; "
+                    "local theory predicts approach toward 2 before numerical resolution dominates."
+                ),
             },
             "check_4_third_order_relative_decay": {
                 "passed": check_4,
