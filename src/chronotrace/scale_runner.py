@@ -30,10 +30,25 @@ def _require_stack() -> tuple[Any, Any, Any]:
     return torch, AutoModelForCausalLM, AutoTokenizer
 
 
-def flatten_parameters(torch: Any, model: Any) -> Any:
-    """Return a detached FP32 CPU vector in model parameter order."""
+def flatten_parameters(
+    torch: Any,
+    model: Any,
+    *,
+    preserve_parameter_dtype: bool = False,
+) -> Any:
+    """Return a detached CPU parameter vector in model parameter order.
 
-    parts = [parameter.detach().float().reshape(-1).cpu() for parameter in model.parameters()]
+    Historical scale experiments require FP32 vectors and therefore keep the default
+    behavior. Numerical precision adjudication can request the model's native floating
+    parameter dtype so an FP64 stage is not silently projected back to FP32.
+    """
+
+    parts = []
+    for parameter in model.parameters():
+        value = parameter.detach().reshape(-1).cpu()
+        if not preserve_parameter_dtype:
+            value = value.float()
+        parts.append(value)
     if not parts:
         raise ValueError("model has no parameters")
     return torch.cat(parts)
@@ -110,6 +125,7 @@ def execute_plain_sgd_stage(
     updates: int,
     device: Any,
     initial_vector: Any | None = None,
+    preserve_parameter_dtype: bool = False,
 ) -> tuple[Any, ScaleRunMetrics]:
     """Run one deterministic full-batch stage and return its flat endpoint."""
 
@@ -118,7 +134,11 @@ def execute_plain_sgd_stage(
     if initial_vector is not None:
         load_flat_parameters(torch, model, initial_vector, device=device)
 
-    base_vector = flatten_parameters(torch, model)
+    base_vector = flatten_parameters(
+        torch,
+        model,
+        preserve_parameter_dtype=preserve_parameter_dtype,
+    )
     base_norm = float(torch.linalg.vector_norm(base_vector))
     if base_norm <= 0 or not math.isfinite(base_norm):
         raise FloatingPointError("invalid base parameter norm")
@@ -155,7 +175,11 @@ def execute_plain_sgd_stage(
         gradient_norms.append(grad_norm)
 
     final_loss = _batch_loss(model, batch)
-    endpoint = flatten_parameters(torch, model)
+    endpoint = flatten_parameters(
+        torch,
+        model,
+        preserve_parameter_dtype=preserve_parameter_dtype,
+    )
     relative_displacement = float(torch.linalg.vector_norm(endpoint - base_vector)) / base_norm
     finite = bool(torch.isfinite(endpoint).all()) and all(
         math.isfinite(value) for value in (initial_loss, final_loss, relative_displacement)
