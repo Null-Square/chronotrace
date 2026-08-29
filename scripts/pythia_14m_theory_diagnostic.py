@@ -9,6 +9,8 @@ from itertools import permutations
 from pathlib import Path
 from typing import Any
 
+from pythia_finite_pair_bridge import _STAGE_SEEDS, _configure_portable_numerics, _load_json
+
 from chronotrace.geometry.history import (
     directional_contamination_ratio,
     kendall_tau_for_orders,
@@ -30,7 +32,6 @@ from chronotrace.scale import (
 )
 from chronotrace.scale_runner import execute_plain_sgd_stage, flatten_parameters
 from chronotrace.scale_tokens import token_codebook_from_dict, validate_token_codebook
-from pythia_finite_pair_bridge import _STAGE_SEEDS, _configure_portable_numerics, _load_json
 
 
 def parse_args() -> argparse.Namespace:
