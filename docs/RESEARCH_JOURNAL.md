@@ -211,7 +211,7 @@ Every correctly decoded history remains below the exact boundary against all com
 
 **Interpretation.** T1 strongly supports the specific state-conditioned interaction mechanism on the motivating instance. The pairwise decoder fails not merely because an omitted term is large, but because the exact third-order residual is aligned strongly enough with a specific tail-swap chronology direction to cross the nearest-signature boundary.
 
-**What this does not imply.** The hypothesis was generated from J010, so T1 cannot establish that the mechanism repeats across independent worlds/codebooks, stage lengths, model sizes, optimizers, or natural corpora.
+**What this does not imply.** The hypothesis was generated from J010, so T1 cannot establish that the same mechanism repeats across independent worlds/codebooks, stage lengths, model sizes, optimizers, or natural corpora.
 
 **Decision.** Keep the state-conditioned interaction theory. Keep 31M blocked. Move to an independent Pythia-14M interaction-order map whose codebook seeds and stage-length sweep are frozen before chronology results are observed.
 
@@ -338,3 +338,33 @@ Current independent falsifier:
 > **T2 — four fresh mechanically derived Pythia-14M codebooks × stage lengths `{1,2,4,8,16,32}`, with all conditions reported under a frozen no-selection rule.**
 
 31M remains blocked until T2 is interpreted.
+
+---
+
+## 2026-08-29 — J014 — T2 independently replicates coarse chronology but falsifies the expected stage-length transition at eta=1e-4
+
+**Question.** Across fresh tokenizer-safe codebooks, does the static finite-pair decoder move from a low-order regime into a higher-order/prefix-conditioned regime as stage length increases from 1 to 32 updates?
+
+**Frozen before results.** Four codebook seeds were derived mechanically from a SHA-256 label; stage lengths were exactly `{1,2,4,8,16,32}`; model was `EleutherAI/pythia-14m-deduped@step143000`; optimizer was deterministic plain SGD; learning rate stayed at the chronology-blind frozen `1e-4`; all six A/B/C histories and every condition had to be reported; no condition could be selected by chronology accuracy. Protocol SHA256: `6eb95c404243cd64b74f4b761d99ae2db3c255c8ce68ce443c41f0c29426b7ab`.
+
+**Evidence.** Workflow `33245167776`; aggregate artifact `pythia-14m-t2-aggregate`, artifact ID `9713044534`.
+
+**Pre-registered checks.** All three hard structural checks passed:
+
+1. every seed's first observed full-order failure had non-positive tail robustness;
+2. `72/72` observed errors across the complete map were same-prefix tail swaps;
+3. all `4/4` fresh seeds showed a first-stage reconstruction advantage.
+
+**Raw reconstruction pattern.** At nearly every condition, static finite-pair decoding recovered `3/6` complete histories, `6/6` first stages, `15/18 = 0.8333` pairwise precedence relations, and mean Kendall tau `2/3`. There were two small deviations: seed `2700450505` at 2 updates recovered `2/6`, and seed `119806841` at 32 updates recovered `4/6`. Across all four seeds and six lengths there were 72 errors total, and every one was a same-prefix swap of stages 2 and 3.
+
+**State-conditioning pattern.** Mean base/conditioned tail-commutator cosine remained near zero across most conditions, while mean relative commutator drift stayed near 1.0. Thus the useful late-pair interaction measured at the base checkpoint is already badly misaligned with the interaction after the first stage.
+
+**Important negative result.** The pre-T2 narrative expected a stage-length transition: pairwise recovery should work at short stages and degrade as prefixes become more nonlocal. T2 does **not** show that transition at `eta=1e-4`. Every fresh seed already fails full-order recovery at **one update per stage**. Therefore the hypothesis “stage length is the variable that moves Pythia-14M out of the pairwise regime under the frozen `1e-4` rate” is rejected.
+
+**Implementation audit.** The T2 runner reloads the supplied flat weight vector before every stage map, creates a fresh zero-momentum SGD optimizer for every invocation, and constructs each stage-length condition from the same frozen `theta0`. No obvious weight or optimizer-state carry-over across pair probes or stage-length conditions was found. This does not substitute for an independent implementation, but the first audit found no state-reuse explanation for the one-step result.
+
+**Interpretation.** The robust result is **partial chronology**, not full reconstruction: on these controlled Pythia-14M tasks, a static base-anchored pair basis identifies the first stage extremely reliably while failing on later order through a highly structured tail-swap mode. The surprising one-step failure says that `eta=1e-4` is already outside the useful static-pair asymptotic regime for these task gradients, or that prefix conditioning enters strongly enough that stage-count alone is the wrong locality variable.
+
+**Decision.** Keep 31M blocked. Do not tune stage length. Test the actual asymptotic control variable: one-step learning rate.
+
+**Next falsifier.** T2b is already frozen on four new mechanically derived codebooks, one update per stage, and rates `{1e-6,3e-6,1e-5,3e-5,1e-4}`. It asks whether sufficiently small `eta` restores the predicted pairwise `O(eta^2)` chronology regime while signatures remain numerically identifiable. T2b must remain manual and should not be launched merely because code changed.
