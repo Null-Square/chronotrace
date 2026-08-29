@@ -126,3 +126,62 @@ A successful diagnosis would suggest a **prefix-adaptive** reconstruction scheme
 This would be fundamentally different from a static global pair tournament. It would also connect naturally to a path-signature / chronological-calculus view in which later interaction coefficients are conditioned by the earlier path.
 
 This is only a design implication. No adaptive decoder should be implemented until independent-seed experiments confirm that the structured partial-order phenomenon generalizes.
+
+---
+
+## 7. Post-result addendum — observed decomposition on the frozen 14M instance
+
+This section was appended **after** the pre-result derivation above. The original derivation is retained so the hypothesis trail remains visible.
+
+Midpoint-decomposition replay: workflow `33245010517`, artifact `9712666884`.
+
+The replay exactly reproduced the previously frozen finite-pair basis and all six history endpoint hashes.
+
+For each shared-prefix tail pair:
+
+| Prefix | Tail pair | Alignment | Midpoint bias | Forward score | Reverse score | Both tails recoverable? |
+|---|---|---:|---:|---:|---:|---:|
+| A | BC | 0.019095 | -0.137284 | -0.118189 | 0.156379 | no |
+| B | AC | 0.005551 | +0.177508 | 0.183059 | -0.171957 | no |
+| C | AB | 0.013423 | +0.245139 | 0.258562 | -0.231716 | no |
+
+The result resolves the ambiguity posed in Section 3.
+
+### The conditioned separation mostly collapses rather than reverses
+
+The normalized projection of the actual conditioned tail separation onto the static pair direction remains positive in all three cases, but is tiny:
+
+- prefix A: `0.019095`;
+- prefix B: `0.005551`;
+- prefix C: `0.013423`.
+
+So the useful same-direction tail-order signal has nearly vanished by the time the first stage has conditioned the state.
+
+### The common midpoint bias dominates that residual signal
+
+The absolute normalized midpoint biases are:
+
+- prefix A: `0.137284` — about `7.2x` the alignment;
+- prefix B: `0.177508` — about `32.0x` the alignment;
+- prefix C: `0.245139` — about `18.3x` the alignment.
+
+Thus `alignment - |midpoint_bias|` is negative for every prefix. The midpoint term is strong enough to make both actual endpoints in each shared-prefix pair favor the same static-pair candidate.
+
+The sign predicts the observed asymmetric collapse:
+
+- A/BC: negative midpoint bias -> `ABC` loses, `ACB` survives;
+- B/AC: positive midpoint bias -> `BAC` survives, `BCA` loses;
+- C/AB: positive midpoint bias -> `CAB` survives, `CBA` loses.
+
+### Interpretation correction on chi
+
+Section 5 was written before the result and listed `chi >= 1` as a diagnostic prediction. After deriving the exact inequality more carefully, we recognize that `chi < 1` is algebraically equivalent to the two-candidate nearest-signature decision itself. Therefore its match to correct/incorrect cases is **not independent evidence** for the mechanism. It remains useful only for identifying the contaminating chronology direction.
+
+The stronger descriptive mechanism on this instance is the combination of:
+
+1. all full-order errors being same-prefix tail swaps;
+2. dramatic prefix-conditioned commutator shrinkage/rotation;
+3. tiny positive tail alignment;
+4. a much larger common third-order midpoint bias whose sign selects exactly the surviving tail order.
+
+This remains explanatory evidence on one motivating instance. T2 is the independent test of whether the structured pattern repeats.
