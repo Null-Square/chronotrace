@@ -1,12 +1,12 @@
-# Pythia-14M reproducibility gate
+# Pythia-14M reproducibility and portable scale gate
 
 Date: 2026-08-29
 
-Status: **negative result / scale gate blocked**
+Status: **reproducible scientific negative for full-order finite-pair decoding; scale gate blocked**
 
 ## Why this gate existed
 
-The first frozen Pythia-14M finite-pair chronology bridge produced contradictory outcomes under the same scientific protocol: one run recovered `3/6` A/B/C histories and a later run recovered `6/6`. Because the learning rate had already been selected using chronology-blind singleton stability, the contradiction was treated as a reproducibility problem rather than evidence for or against the decoder.
+The first frozen Pythia-14M finite-pair chronology bridge produced contradictory outcomes under the same scientific protocol: one execution recovered `3/6` A/B/C histories and a later execution recovered `6/6`. Because the learning rate had already been selected using chronology-blind singleton stability, the contradiction was treated as a reproducibility problem rather than evidence for or against the decoder.
 
 No Pythia-31M chronology experiment was allowed to start.
 
@@ -27,7 +27,7 @@ No Pythia-31M chronology experiment was allowed to start.
 
 The tokenizer/codebook/data lock was unchanged. The exact base parameter vector and exact training tensors were fingerprinted before training.
 
-## Reproducibility intervention
+## First reproducibility intervention
 
 Three independent GitHub-hosted runners were launched with the same pinned environment:
 
@@ -49,103 +49,130 @@ The gate required exact SHA-256 agreement for the base model, training batches, 
 
 Workflow: `33218688360`.
 
-## Result
+### Result of first intervention
 
-The gate failed.
+The gate failed reproducibility.
 
-| Replica | CPU | Correct | Basis hash prefix | Outcome |
-| --- | --- | ---: | --- | --- |
-| 1 | AMD EPYC 9V74 | 3/6 | `8f036a23...` | fail |
-| 2 | AMD EPYC 9V74 | 3/6 | `06b503c7...` | fail |
-| 3 | Intel Xeon 6973P-C | 6/6 | `7db84fcd...` | pass |
+| Replica | CPU | Correct | Outcome |
+| --- | --- | ---: | --- |
+| 1 | AMD EPYC | 3/6 | fail |
+| 2 | AMD EPYC | 3/6 | fail |
+| 3 | Intel Xeon | 6/6 | pass |
 
 The aggregate comparator reported mismatches in the finite-pair basis, candidate signatures, and full-history endpoints, plus inconsistent decoded chronologies.
 
-Crucially, all replicas had the same:
+Crucially, all replicas had the same scientific protocol fingerprint, base parameter hash, tokenizer/codebook/data identity, exact stage-batch tensor hashes, software versions, PyTorch build hash, one-thread settings, and deterministic-algorithm flag. The two AMD replicas also differed from each other, so CPU model name alone was not a sufficient explanation.
 
-- scientific protocol fingerprint: `73f8f88b3ddb8ccd6b89791d597067f33da22582496c45cd92c28c11a0416f90`
+**Interpretation:** no Pythia-scale positive result was accepted. The first divergence occurred inside the learned finite-stage operator.
+
+## Portable numerical intervention
+
+A second adjudication changed **only numerical execution controls**, not scientific hyperparameters.
+
+Frozen additions:
+
+- `ATEN_CPU_CAPABILITY=default`
+- `MKL_CBWR=COMPATIBLE`
+- `MKL_DYNAMIC=FALSE`
+- `OMP_DYNAMIC=FALSE`
+- `OMP_NUM_THREADS=1`
+- `MKL_NUM_THREADS=1`
+- `OPENBLAS_NUM_THREADS=1`
+- MKLDNN disabled before model execution
+- one PyTorch intra-op thread
+- one PyTorch inter-op thread
+- `torch.use_deterministic_algorithms(True)`
+
+The runner hard-refused execution if the numerical-control environment did not match the lock.
+
+Workflow: `33219286064`.
+
+## Final portable result
+
+The portable run is **exactly reproducible across all three replicas**.
+
+The three replicas ran on different hosted CPU models, including AMD EPYC 7763 and AMD EPYC 9V74, but produced the same:
+
+- scientific fingerprint: `73f8f88b3ddb8ccd6b89791d597067f33da22582496c45cd92c28c11a0416f90`
+- numerical execution fingerprint: `deaad55af513e78d0c4c1d5636836bcb7d7325be64d8df0b196cd6a66b262d42`
 - base parameter hash: `cba585ef12f0a770686bffb9d1c1d00e11400106b46d943c1cae04fa7e0df2ce`
-- tokenizer fingerprint and codebook hash
-- stage A/B/C data hashes
-- exact stage-batch tensor hashes
-- Python/PyTorch/Transformers/tokenizer versions
-- PyTorch build-configuration hash
-- one-thread settings
-- deterministic-algorithm flag
+- finite-pair basis hash: `1afeaa53d3b98c32473fcdfc50c297e6f2db14226d9a5f868ef3aa5366f882c2`
+- bundle hash for all six full-history endpoints: `ca3e24c4139d87ec4004e78c26c229aa0cf00d86956c5ffd8b4163469622a9c7`
+- decoded result: **`3/6`**
 
-The two AMD replicas also differed from each other substantially, so CPU model name alone does not explain the divergence.
+The comparator failed only because every replica failed the frozen `6/6` scientific criterion. It did **not** report tensor-fingerprint disagreement.
 
-### Replica 1
+### Aggregate finite-pair diagnostics
 
-Singleton displacement norms:
-
-- A: `0.1664831`
-- B: `0.2116965`
-- C: `0.2160951`
-
-Decoded histories:
-
-- `ABC -> ACB`
-- `ACB -> ACB`
-- `BAC -> BCA`
-- `BCA -> BCA`
-- `CAB -> CBA`
-- `CBA -> CBA`
-
-Minimum signature separation: `0.2330237`.
-Minimum decode margin: `0.0015561`.
-Maximum higher-order ratio: `1.81098`.
-
-### Replica 2
+- correct histories: `3/6`
+- accuracy: `0.500`
+- minimum finite-pair signature separation: `0.2056144774`
+- minimum decode margin: `0.0150282830`
+- maximum triple+ remainder norm: `0.2054421455`
+- maximum `2 * ||r_high|| / delta_min`: `1.9983237374`
+- orientation ablation identifiable: **false**
+- orientation-ablation signature separation: `0.0`
 
 Singleton displacement norms:
 
-- A: `0.2164339`
-- B: `0.1595301`
-- C: `0.1991630`
+- A: `0.2062330991`
+- B: `0.1697814167`
+- C: `0.1847849786`
 
-Decoded histories:
+### Exact portable chronology result
 
-- `ABC -> ACB`
-- `ACB -> ACB`
-- `BAC -> BAC`
-- `BCA -> BAC`
-- `CAB -> CAB`
-- `CBA -> CAB`
+| Actual history | Decoded | Correct | Margin | Higher-order ratio |
+| --- | --- | :---: | ---: | ---: |
+| `ABC` | `ACB` | no | `0.0150283` | `1.69037` |
+| `ACB` | `ACB` | yes | `0.0198729` | `1.52104` |
+| `BAC` | `BAC` | yes | `0.0323356` | `1.69944` |
+| `BCA` | `BAC` | no | `0.0304868` | `1.99832` |
+| `CAB` | `CAB` | yes | `0.0423949` | `1.56819` |
+| `CBA` | `CAB` | no | `0.0374913` | `1.98057` |
 
-Minimum signature separation: `0.1870460`.
-Minimum decode margin: `0.0169723`.
-Maximum higher-order ratio: `2.27308`.
+The three wrong predictions are not arbitrary. Each preserves the true first stage and swaps only positions 2 and 3.
 
-### Replica 3
+Descriptive partial-order diagnostics on this single locked synthetic instance:
 
-Singleton displacement norms:
+- first-stage identity: `6/6`
+- correct pairwise precedence relations: `15/18 = 83.3%`
+- mean Kendall tau between true and decoded permutations: `2/3`
 
-- A: `0.0907289`
-- B: `0.0890678`
-- C: `0.0897069`
+These diagnostics were noticed after the full-order failure and therefore are **hypothesis-generating**, not confirmatory evidence. They must be tested on independently generated stage worlds / codebooks before being claimed.
 
-All six histories were recovered correctly.
-Minimum signature separation: `0.0559330`.
-Minimum decode margin: `0.0045323`.
-Maximum higher-order ratio: `1.92108`.
+## Scientific interpretation
 
-## Interpretation
+The portable result resolves the ambiguity:
 
-The first divergence occurs inside the learned finite-stage operator, before chronology decoding. This rules out the base checkpoint, tokenizer, generated data, concrete token batches, software package versions, thread count, and chronology-selection logic as sufficient explanations.
+> The base-checkpoint finite-pair truncation is insufficient to reconstruct the complete three-stage Pythia-14M chronology under the frozen 16-update protocol.
 
-The remaining leading hypothesis is host-dependent CPU numerical dispatch/backend behavior. PyTorch CPU kernels can select different ISA-specific implementations at runtime. The current run also had MKLDNN enabled. The observed difference is large enough to change the finite-pair basis and chronology ranking, not merely the final printed floating-point digits.
+This is a real negative result for the specific full-order pairwise decoder.
 
-This is therefore **not a successful Pythia-scale ChronoTrace result**. It is a failed reproducibility gate.
+It does **not** show that the endpoint contains no chronology information. The structured adjacent-swap errors, nonzero directed-pair signature separation, and 15/18 descriptive precedence accuracy motivate a sharper mechanism.
 
-## Next gate
+For a finite stage map `F_D`, define the state-dependent pair commutator
 
-Keep every scientific hyperparameter above unchanged and test a portable CPU numerical path:
+`C_jk(theta) = F_k(F_j(theta)) - F_j(F_k(theta))`.
 
-1. force `ATEN_CPU_CAPABILITY=default`, which PyTorch documents as selecting the oldest supported CPU vector instruction path;
-2. disable MKLDNN before model execution;
-3. retain the pinned package versions and single-thread settings;
-4. run three independent replicas again;
-5. require exact tensor-hash agreement and `6/6` recovery before any Pythia-31M chronology compute.
+Then the difference between histories that share a prefix A and swap the remaining B/C order is exactly
 
-The portable-kernel settings are chosen to remove the identified numerical-dispatch variable. They are not selected using chronology accuracy.
+`F_C(F_B(F_A(theta0))) - F_B(F_C(F_A(theta0))) = C_BC(F_A(theta0))`.
+
+The current finite-pair basis instead uses the B/C interaction measured at the **base checkpoint**, `C_BC(theta0)`. The difference
+
+`C_BC(F_A(theta0)) - C_BC(theta0)`
+
+is a prefix-conditioned third-order effect. This offers a direct mechanism for the observed pattern: pair interactions involving the earliest stage are measured near the state where they actually act, while the interaction between stages 2 and 3 can drift after the first stage changes the model.
+
+The next experiment should therefore test **state-conditioned interaction order**, not retune the existing pairwise decoder.
+
+## Scale decision
+
+Pythia-31M chronology remains blocked.
+
+Before scaling, the project must:
+
+1. formalize the interaction hierarchy and prefix-conditioned commutator theory;
+2. freeze independent 14M stage/data seeds before testing the newly observed first-stage / pairwise-precedence hypothesis;
+3. measure whether prefix-conditioned third-order information explains and resolves the tail-order ambiguity;
+4. keep full-order recovery, pairwise precedence, first-stage recovery, and higher-order residual as separate reported endpoints.
