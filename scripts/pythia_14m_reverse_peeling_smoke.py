@@ -205,14 +205,12 @@ def main() -> None:
     tolerance = float(protocol["inverse_relative_update_tolerance"])
     max_iterations = int(protocol["inverse_max_iterations"])
     inverse_results: dict[str, Any] = {}
-    predecessor_words: dict[str, tuple[tuple[str, ...], ...]] = {}
-    predecessor_vectors: dict[str, tuple[Any, ...]] = {}
 
     for candidate_last in candidate_last_stages:
         state = target.clone()
         update_trace: list[float] = []
         converged = False
-        for iteration in range(1, max_iterations + 1):
+        for _ in range(1, max_iterations + 1):
             gradient = gradient_at(candidate_last, state)
             updated = target + learning_rate * gradient
             update_norm = float(torch.linalg.vector_norm(updated - state))
@@ -247,8 +245,6 @@ def main() -> None:
         )
         distances = [float(torch.linalg.vector_norm(state - vector)) for vector in vectors]
         best_index = min(range(len(distances)), key=lambda index: (distances[index], words[index]))
-        predecessor_words[candidate_last] = words
-        predecessor_vectors[candidate_last] = vectors
         inverse_results[candidate_last] = {
             "converged": converged,
             "iterations": iterations,
