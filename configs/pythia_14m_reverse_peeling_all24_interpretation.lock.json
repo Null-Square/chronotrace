@@ -1,0 +1,43 @@
+{
+  "protocol_version": "pythia-14m-reverse-peeling-all24-interpretation-v1",
+  "freeze_status": "frozen_before_reverse_peeling_smoke_output",
+  "experiment_role": "spent_codebook_methodology_adjudication",
+  "purpose": "precommit how an all-24 exact reverse-peeling run will be interpreted if and only if the already-frozen one-history smoke passes",
+  "source_smoke_protocol": "configs/pythia_14m_reverse_peeling_smoke.lock.json",
+  "source_smoke_run_id": 33274469711,
+  "source_smoke_output_observed": false,
+  "confirmation_codebooks_observed": false,
+  "confirmation_codebooks_prohibited": [4294917749, 3885207466, 402469483, 2000073798],
+  "spent_pilot_codebook_seed": 1011473075,
+  "frozen_baselines": {
+    "direct_k3_full_order_correct_of_24": 3,
+    "direct_k2_full_order_correct_of_24": 0,
+    "recency_full_order_correct_of_24": 1,
+    "susceptibility_primary_full_order_correct_of_24": 1,
+    "chance_expected_full_order_correct_of_24": 1.0,
+    "chance_last_stage_probability": 0.25
+  },
+  "launch_precondition": "the one-history reverse-peeling smoke must have smoke_pass_all=true under its frozen protocol; otherwise the all-24 run is prohibited",
+  "all24_primary_support_requires_all": [
+    "true last-stage inverse converges for all 24 histories",
+    "full chronology recovery is at least 18/24",
+    "full chronology recovery is strictly greater than frozen direct K3 3/24",
+    "full chronology recovery is strictly greater than frozen recency 1/24",
+    "K3-wrong to peeling-correct repairs strictly exceed K3-correct to peeling-wrong regressions",
+    "at least 18/24 histories select the true last stage with positive residual margin"
+  ],
+  "interpretation_tiers": {
+    "strong": "all primary support conditions pass; proceed to polynomial relaxed peeling on spent data before any confirmation codebook",
+    "promising_not_strong": "full chronology is 12-17/24 with positive net repairs; continue only on spent data and diagnose failure strata",
+    "weak": "full chronology is 4-11/24; reverse peeling improves on K3 but is not reliable enough for confirmation",
+    "fail": "full chronology is at most 3/24, true-stage inversion is unstable, or net repairs are non-positive; abandon or redesign exact peeling"
+  },
+  "anti_tuning_rules": [
+    "do not change inverse tolerance, maximum iterations, learning rate, precision, stage seeds, target histories, residual definition, or predecessor decoder after observing smoke output",
+    "do not use held-out confirmation codebooks for debugging or threshold selection",
+    "do not promote a promising_not_strong result to primary support by adding post-hoc strata",
+    "do not claim scalable reconstruction from exact all-24 enumeration even if strong"
+  ],
+  "next_step_if_strong": "implement and test a polynomial-size K3 local-order convex relaxation on the same spent codebook, then compare relaxed candidate-last elimination against exact peeling",
+  "next_step_if_not_strong": "remain on the spent codebook and diagnose inversion versus reachable-set failures; do not launch confirmation"
+}
