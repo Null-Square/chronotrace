@@ -1,6 +1,6 @@
 {
   "protocol_version": "pythia-14m-four-stage-fp64-singleton-lr-v1",
-  "freeze_status": "frozen_before_four_stage_fp64_model_outputs",
+  "freeze_status": "schema_corrected_after_pre_model_failure_before_outputs",
   "purpose": "select an FP64 operating learning rate for the four-stage interaction-order pilot using singleton numerical behavior only",
   "model": "EleutherAI/pythia-14m-deduped",
   "revision": "step143000",
@@ -38,18 +38,23 @@
     "D": 4409,
     "rule": "reset the stage-specific seed before every singleton execution so stochasticity cannot depend on learning-rate traversal order"
   },
-  "portable_numerics": {
-    "ATEN_CPU_CAPABILITY": "default",
-    "MKL_CBWR": "COMPATIBLE",
-    "MKL_DYNAMIC": "FALSE",
-    "OMP_DYNAMIC": "FALSE",
-    "OMP_NUM_THREADS": "1",
-    "MKL_NUM_THREADS": "1",
-    "OPENBLAS_NUM_THREADS": "1",
-    "intraop_threads": 1,
-    "interop_threads": 1,
+  "portable_kernel_gate": {
+    "reason": "reuse the already validated portable CPU numerical controls for the FP64 four-stage calibration",
+    "scientific_hyperparameters_unchanged": true,
+    "selected_without_chronology_performance_optimization": true,
+    "aten_cpu_capability": "default",
     "mkldnn_enabled": false,
-    "deterministic_algorithms": true
+    "mkl_cbwr": "COMPATIBLE",
+    "mkl_dynamic": "FALSE",
+    "omp_dynamic": "FALSE",
+    "intraop_threads": 1,
+    "interop_threads": 1
+  },
+  "schema_correction": {
+    "failed_run_id": 33264904295,
+    "failure_point": "portable numerical configuration before tokenizer or model weights were loaded",
+    "scientific_outputs_observed": false,
+    "scientific_settings_changed": false
   },
   "next_step_if_selected": "run a non-confirmatory four-stage K2/K3 pilot on the same previously used codebook before freezing the confirmation protocol"
 }
