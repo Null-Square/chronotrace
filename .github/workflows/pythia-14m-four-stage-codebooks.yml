@@ -1,0 +1,49 @@
+name: Pythia 14M four-stage codebook derivation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/pythia-finite-pair-scale
+    paths:
+      - configs/pythia_14m_four_stage_codebooks.launch
+
+permissions:
+  contents: read
+
+env:
+  PYTHONHASHSEED: "0"
+  TOKENIZERS_PARALLELISM: "false"
+
+jobs:
+  derive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.16"
+          cache: pip
+      - name: Install pinned tokenizer stack
+        run: >-
+          python -m pip install
+          "transformers==5.16.1"
+          "tokenizers==0.23.1"
+          "huggingface-hub==1.29.0"
+          "safetensors==0.8.0"
+      - name: Install ChronoTrace
+        run: python -m pip install -e .
+      - name: Derive fresh tokenizer-only codebooks
+        run: >-
+          python scripts/derive_pythia_14m_four_stage_codebooks.py
+          --source-protocol configs/pythia_14m_t2.lock.json
+          --count 4
+          --max-candidates 256
+          --output pythia-14m-four-stage-codebooks.json
+      - name: Upload derivation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pythia-14m-four-stage-codebooks
+          path: pythia-14m-four-stage-codebooks.json
+          if-no-files-found: error
