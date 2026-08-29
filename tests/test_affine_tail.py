@@ -139,6 +139,6 @@ def test_single_interaction_bound_has_geometric_degree_scaling() -> None:
         max_increment_operator_norm=0.1,
     )
 
-    assert degree_two == 0.2
-    assert degree_three == 0.02
-    assert degree_four == 0.002
+    assert np.isclose(degree_two, 0.2)
+    assert np.isclose(degree_three, 0.02)
+    assert np.isclose(degree_four, 0.002)
