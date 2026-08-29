@@ -33,9 +33,13 @@ def parse_args() -> argparse.Namespace:
 
 def _loglog_slope(rows: list[dict[str, Any]]) -> float:
     points = [
-        (math.log(float(row["learning_rate"])), math.log(float(row["mean_commutator_norm"])))
+        (
+            math.log(float(row["learning_rate"])),
+            math.log(float(row["mean_commutator_norm"])),
+        )
         for row in rows
-        if float(row["learning_rate"]) > 0.0 and float(row["mean_commutator_norm"]) > 0.0
+        if float(row["learning_rate"]) > 0.0
+        and float(row["mean_commutator_norm"]) > 0.0
     ]
     if len(points) < 2:
         return float("nan")
@@ -79,7 +83,9 @@ def _cosine(torch: Any, left: Any, right: Any) -> float:
     right_norm = torch.linalg.vector_norm(right64)
     if float(left_norm) <= 0.0 or float(right_norm) <= 0.0:
         return float("nan")
-    return float(torch.dot(left64.reshape(-1), right64.reshape(-1)) / (left_norm * right_norm))
+    return float(
+        torch.dot(left64.reshape(-1), right64.reshape(-1)) / (left_norm * right_norm)
+    )
 
 
 def main() -> None:
@@ -127,6 +133,41 @@ def main() -> None:
     examples = {stage: build_scale_stage_examples(worlds, stage) for stage in stages}
     expected_base_hash = str(t2b["base_parameter_sha256"])
 
+    def make_stage_map(
+        stage_name: str,
+        *,
+        model_ref: Any,
+        learning_rate_value: float,
+        call_counts: dict[str, int],
+        gradient_norms: dict[str, float],
+        precision_name: str,
+    ):
+        def run(initial_vector: Any) -> Any:
+            torch.manual_seed(_STAGE_SEEDS[stage_name])
+            is_singleton_call = call_counts[stage_name] == 0
+            call_counts[stage_name] += 1
+            endpoint, metrics = execute_plain_sgd_stage(
+                torch,
+                model_ref,
+                tokenizer,
+                examples[stage_name],
+                learning_rate=learning_rate_value,
+                updates=1,
+                device=device,
+                initial_vector=initial_vector,
+                preserve_parameter_dtype=True,
+            )
+            if not metrics.finite:
+                raise FloatingPointError(
+                    f"non-finite {precision_name} stage {stage_name} "
+                    f"at eta={learning_rate_value}"
+                )
+            if is_singleton_call:
+                gradient_norms[stage_name] = metrics.max_gradient_norm
+            return endpoint
+
+        return run
+
     precision_rows: dict[str, list[dict[str, Any]]] = {}
     raw_commutators: dict[str, dict[float, dict[str, Any]]] = {}
     base_hashes: dict[str, str] = {}
@@ -159,34 +200,17 @@ def main() -> None:
         for learning_rate in rates:
             stage_calls = {stage: 0 for stage in stages}
             singleton_gradient_norms: dict[str, float] = {}
-
-            def stage_map(stage: str):
-                def run(vector: Any) -> Any:
-                    torch.manual_seed(_STAGE_SEEDS[stage])
-                    is_singleton_call = stage_calls[stage] == 0
-                    stage_calls[stage] += 1
-                    endpoint, metrics = execute_plain_sgd_stage(
-                        torch,
-                        model,
-                        tokenizer,
-                        examples[stage],
-                        learning_rate=learning_rate,
-                        updates=1,
-                        device=device,
-                        initial_vector=vector,
-                        preserve_parameter_dtype=True,
-                    )
-                    if not metrics.finite:
-                        raise FloatingPointError(
-                            f"non-finite {precision} stage {stage} at eta={learning_rate}"
-                        )
-                    if is_singleton_call:
-                        singleton_gradient_norms[stage] = metrics.max_gradient_norm
-                    return endpoint
-
-                return run
-
-            stage_maps = {stage: stage_map(stage) for stage in stages}
+            stage_maps = {
+                stage: make_stage_map(
+                    stage,
+                    model_ref=model,
+                    learning_rate_value=learning_rate,
+                    call_counts=stage_calls,
+                    gradient_norms=singleton_gradient_norms,
+                    precision_name=precision,
+                )
+                for stage in stages
+            }
             deltas, interactions = finite_pair_interactions(stage_maps, theta0)
             if sum(stage_calls.values()) != len(stages) ** 2:
                 raise RuntimeError("precision gate did not use exactly N^2 pair-basis stage calls")
@@ -232,15 +256,22 @@ def main() -> None:
             fp64 = raw_commutators["fp64"][learning_rate][pair]
             norm32 = float(torch.linalg.vector_norm(fp32.to(dtype=torch.float64)))
             norm64 = float(torch.linalg.vector_norm(fp64.to(dtype=torch.float64)))
-            relative_error = float(
-                torch.linalg.vector_norm(
-                    fp32.to(dtype=torch.float64) - fp64.to(dtype=torch.float64)
+            relative_error = (
+                float(
+                    torch.linalg.vector_norm(
+                        fp32.to(dtype=torch.float64) - fp64.to(dtype=torch.float64)
+                    )
                 )
-            ) / norm64 if norm64 > 0.0 else float("inf")
+                / norm64
+                if norm64 > 0.0
+                else float("inf")
+            )
             pair_rows[pair] = {
                 "fp32_norm": norm32,
                 "fp64_norm": norm64,
-                "fp32_over_fp64_norm": norm32 / norm64 if norm64 > 0.0 else float("inf"),
+                "fp32_over_fp64_norm": (
+                    norm32 / norm64 if norm64 > 0.0 else float("inf")
+                ),
                 "fp32_fp64_cosine": _cosine(torch, fp32, fp64),
                 "relative_vector_error_to_fp64": relative_error,
             }
