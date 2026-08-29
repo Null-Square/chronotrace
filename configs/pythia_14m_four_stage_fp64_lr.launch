@@ -1,0 +1,4 @@
+launch pythia-14m-four-stage-fp64-singleton-lr-v1
+pilot_codebook_seed=1011473075
+chronology_data_observed=false
+confirmation_codebooks_observed=false
