@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """Reverse-operator tools for training-history peeling.
 
 A one-step gradient update has the form
