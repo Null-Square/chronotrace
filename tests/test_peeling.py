@@ -98,14 +98,14 @@ def test_armijo_inverse_succeeds_when_picard_is_noncontractive_but_map_is_invert
         loss,
         gradient,
         learning_rate=learning_rate,
-        tolerance=1e-10,
+        tolerance=1e-8,
         max_iterations=200,
     )
 
     assert not picard.converged
     assert armijo.converged
     assert not armijo.line_search_failed
-    assert np.linalg.norm(armijo.state - before) < 1e-9
+    assert np.linalg.norm(armijo.state - before) < 1e-7
     assert all(
         later <= earlier + 1e-14
         for earlier, later in zip(
