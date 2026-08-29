@@ -215,6 +215,12 @@ def main() -> None:
     theta0 = flatten_parameters(torch, model, preserve_parameter_dtype=True)
     if theta0.dtype != torch.float64:
         raise TypeError("FP64 pilot base vector dtype drift")
+    fp64_hash = tensor_sha256(theta0)
+    expected_fp64_hash = str(protocol["base_parameter_sha256_fp64"])
+    if fp64_hash != expected_fp64_hash:
+        raise RuntimeError("pilot FP64 base differs from the frozen pilot lock")
+    if fp64_hash != str(calibration["base_parameter_sha256_fp64"]):
+        raise RuntimeError("pilot FP64 base differs from chronology-blind calibration")
     projected_hash = tensor_sha256(theta0.to(dtype=torch.float32))
     if projected_hash != str(protocol["base_parameter_sha256_fp32"]):
         raise RuntimeError("pilot base checkpoint differs from frozen Pythia weights")
@@ -324,7 +330,7 @@ def main() -> None:
         "pilot_codebook_seed": seed,
         "codebook_sha256": codebook.sha256,
         "dataset_sha256": dataset["sha256"],
-        "base_parameter_sha256_fp64": tensor_sha256(theta0),
+        "base_parameter_sha256_fp64": fp64_hash,
         "base_parameter_sha256_projected_fp32": projected_hash,
         "numerical_execution_fingerprint_sha256": numerical_fingerprint,
         "basis_stage_executions": expected_basis_calls,
