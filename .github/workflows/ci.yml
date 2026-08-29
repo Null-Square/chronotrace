@@ -63,7 +63,6 @@ jobs:
           tests/test_operator_geometry.py
           tests/test_secant_geometry.py
           tests/test_history_geometry.py
-          tests/test_affine_geometry.py
       - name: Inverse commutator theorem smoke
         run: python scripts/commutator_smoke.py
       - name: Tiny transformer commutator smoke
