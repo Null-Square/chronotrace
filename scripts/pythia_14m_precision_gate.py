@@ -168,10 +168,9 @@ def main() -> None:
 
         return run
 
-    precision_rows: dict[str, list[dict[str, Any]]] = {}
-    raw_commutators: dict[str, dict[float, dict[str, Any]]] = {}
+    models: dict[str, Any] = {}
+    base_vectors: dict[str, Any] = {}
     base_hashes: dict[str, str] = {}
-
     for precision in protocol["precisions"]:
         dtype = torch.float32 if precision == "fp32" else torch.float64
         model = AutoModelForCausalLM.from_pretrained(model_id, revision=revision)
@@ -194,10 +193,42 @@ def main() -> None:
         projected_base_hash = tensor_sha256(theta0.to(dtype=torch.float32))
         if projected_base_hash != expected_base_hash:
             raise RuntimeError(f"{precision} base checkpoint differs from frozen T2b weights")
+        models[precision] = model
+        base_vectors[precision] = theta0
 
-        rows: list[dict[str, Any]] = []
-        raw_commutators[precision] = {}
-        for learning_rate in rates:
+    fp32_lifted_to_fp64 = base_vectors["fp32"].to(dtype=torch.float64)
+    if not torch.equal(base_vectors["fp64"], fp32_lifted_to_fp64):
+        if base_vectors["fp64"].shape != fp32_lifted_to_fp64.shape:
+            detail = "shape mismatch"
+        else:
+            max_abs_difference = float(
+                torch.max(torch.abs(base_vectors["fp64"] - fp32_lifted_to_fp64))
+            )
+            detail = f"max_abs_difference={max_abs_difference:.17g}"
+        raise RuntimeError(
+            "precision gate requires FP64 to start from the exact float64 lift of "
+            f"the frozen FP32 base vector; {detail}"
+        )
+    base_cross_precision_check = {
+        "exact_fp32_lift_match": True,
+        "fp32_lifted_to_fp64_sha256": tensor_sha256(fp32_lifted_to_fp64),
+        "max_abs_difference": 0.0,
+    }
+    del fp32_lifted_to_fp64
+
+    precision_rows: dict[str, list[dict[str, Any]]] = {
+        precision: [] for precision in protocol["precisions"]
+    }
+    comparisons: list[dict[str, Any]] = []
+
+    # Stream one eta at a time so full commutator vectors are discarded after their
+    # same-eta FP32/FP64 comparison instead of retaining the entire numerical sweep.
+    for learning_rate in rates:
+        pair_vectors_by_precision: dict[str, dict[str, Any]] = {}
+        for precision in protocol["precisions"]:
+            dtype = torch.float32 if precision == "fp32" else torch.float64
+            model = models[precision]
+            theta0 = base_vectors[precision]
             stage_calls = {stage: 0 for stage in stages}
             singleton_gradient_norms: dict[str, float] = {}
             stage_maps = {
@@ -227,9 +258,9 @@ def main() -> None:
                 pair_vectors[name] = vector.detach().cpu()
                 pair_norms[name] = float(torch.linalg.vector_norm(vector))
 
-            raw_commutators[precision][learning_rate] = pair_vectors
+            pair_vectors_by_precision[precision] = pair_vectors
             mean_commutator_norm = sum(pair_norms.values()) / len(pair_norms)
-            rows.append(
+            precision_rows[precision].append(
                 {
                     "learning_rate": learning_rate,
                     "model_dtype": str(dtype),
@@ -246,23 +277,16 @@ def main() -> None:
                 }
             )
 
-        precision_rows[precision] = rows
-
-    comparisons: list[dict[str, Any]] = []
-    for learning_rate in rates:
         pair_rows: dict[str, Any] = {}
         for pair in ("AB", "AC", "BC"):
-            fp32 = raw_commutators["fp32"][learning_rate][pair]
-            fp64 = raw_commutators["fp64"][learning_rate][pair]
-            norm32 = float(torch.linalg.vector_norm(fp32.to(dtype=torch.float64)))
-            norm64 = float(torch.linalg.vector_norm(fp64.to(dtype=torch.float64)))
+            fp32 = pair_vectors_by_precision["fp32"][pair]
+            fp64 = pair_vectors_by_precision["fp64"][pair]
+            fp32_as_fp64 = fp32.to(dtype=torch.float64)
+            fp64_as_fp64 = fp64.to(dtype=torch.float64)
+            norm32 = float(torch.linalg.vector_norm(fp32_as_fp64))
+            norm64 = float(torch.linalg.vector_norm(fp64_as_fp64))
             relative_error = (
-                float(
-                    torch.linalg.vector_norm(
-                        fp32.to(dtype=torch.float64) - fp64.to(dtype=torch.float64)
-                    )
-                )
-                / norm64
+                float(torch.linalg.vector_norm(fp32_as_fp64 - fp64_as_fp64)) / norm64
                 if norm64 > 0.0
                 else float("inf")
             )
@@ -302,6 +326,7 @@ def main() -> None:
         "model": model_id,
         "revision": revision,
         "base_parameter_hashes_by_precision": base_hashes,
+        "base_cross_precision_check": base_cross_precision_check,
         "numerical_execution_fingerprint_sha256": numerical_fingerprint,
         "summary": summary,
         "precision_curves": precision_rows,
