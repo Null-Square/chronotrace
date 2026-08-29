@@ -2,3 +2,4 @@ launch pythia-14m-four-stage-fp64-k23-pilot-v1
 pilot_codebook_seed=1011473075
 confirmation_codebooks_observed=false
 scientific_settings=frozen
+retry_after_pre_model_schema_failure=33266006358
