@@ -1,5 +1,5 @@
 # ruff: noqa: I001
-"""Reverse-operator tools for training-history peeling.
+"""Reverse-operator and reachable-set tools for training-history peeling.
 
 A one-step gradient update has the form
 
@@ -18,9 +18,14 @@ equation is also the stationarity condition of the inverse potential
 whose gradient is ``x-y-eta*grad_loss(x)``. A line-search descent on this potential can
 therefore solve locally invertible cases in which Picard iteration is non-contractive.
 
-The helpers here deliberately separate inversion from chronology scoring. They make no
-assumption that a wrong last-stage candidate must be distinguishable; a zero residual tie
-is reported as non-identifiable rather than broken by floating-point order.
+When a finite predecessor codebook is already available, inversion is unnecessary. For a
+candidate predecessor ``z`` and candidate final stage ``j``, evaluate the forward residual
+
+    rho(z, j; y) = ||T_j(z) - y||.
+
+The true finite hypothesis has zero residual in exact arithmetic. This replaces an
+ill-conditioned root-finding problem with finite reachable-set membership. Exact or
+ tolerance-level ties are reported as non-identifiable rather than broken by ordering.
 """
 
 from __future__ import annotations
@@ -229,46 +234,26 @@ def invert_gradient_step_armijo(
     )
 
 
-def decode_last_stage_from_predecessor_sets(
-    inverted_states: Any,
-    predecessor_sets: Any,
+def _decode_stage_residuals(
+    residual_lists: dict[str, list[float]],
     *,
-    tie_tolerance: float = 0.0,
+    tie_tolerance: float,
 ) -> LastStageDecision:
-    """Choose the last stage by distance to its reachable predecessor set.
-
-    For candidate last stage ``j``, the score is
-
-        r_j = min_z || T_j^{-1}(y) - z ||_2,
-
-    where ``z`` ranges over the supplied predecessor states for all histories
-    not containing ``j``. Exact or tolerance-level ties are non-identifiable.
-    """
-
-    if set(inverted_states) != set(predecessor_sets):
-        raise ValueError("inverted state and predecessor stage keys must match")
-    if not inverted_states:
+    if not residual_lists:
         raise ValueError("at least one candidate last stage is required")
     if tie_tolerance < 0.0 or not np.isfinite(tie_tolerance):
         raise ValueError("tie_tolerance must be finite and non-negative")
 
     residuals: dict[str, float] = {}
     predecessor_indices: dict[str, int] = {}
-    for stage in sorted(inverted_states):
-        state = np.asarray(inverted_states[stage], dtype=np.float64)
-        candidates = tuple(predecessor_sets[stage])
-        if state.ndim != 1 or not np.isfinite(state).all():
-            raise ValueError("inverted states must be finite vectors")
-        if not candidates:
+    for stage in sorted(residual_lists):
+        values = residual_lists[stage]
+        if not values:
             raise ValueError("every last-stage candidate needs predecessor states")
-        distances = []
-        for candidate in candidates:
-            vector = np.asarray(candidate, dtype=np.float64)
-            if vector.shape != state.shape or not np.isfinite(vector).all():
-                raise ValueError("predecessor states must match inverted-state shape")
-            distances.append(float(np.linalg.norm(state - vector)))
-        index = int(np.argmin(distances))
-        residuals[stage] = distances[index]
+        if not all(np.isfinite(value) and value >= 0.0 for value in values):
+            raise ValueError("candidate residuals must be finite and non-negative")
+        index = int(np.argmin(values))
+        residuals[stage] = float(values[index])
         predecessor_indices[stage] = index
 
     ranking = sorted(residuals, key=lambda stage: (residuals[stage], stage))
@@ -286,3 +271,76 @@ def decode_last_stage_from_predecessor_sets(
         identifiable=identifiable,
         residuals=residuals,
     )
+
+
+def decode_last_stage_from_predecessor_sets(
+    inverted_states: Any,
+    predecessor_sets: Any,
+    *,
+    tie_tolerance: float = 0.0,
+) -> LastStageDecision:
+    """Choose the last stage by distance from an inverse state to predecessor sets.
+
+    For candidate last stage ``j``, the score is
+
+        r_j = min_z || T_j^{-1}(y) - z ||_2,
+
+    where ``z`` ranges over the supplied predecessor states for all histories
+    not containing ``j``.
+    """
+
+    if set(inverted_states) != set(predecessor_sets):
+        raise ValueError("inverted state and predecessor stage keys must match")
+
+    residual_lists: dict[str, list[float]] = {}
+    for stage in sorted(inverted_states):
+        state = np.asarray(inverted_states[stage], dtype=np.float64)
+        candidates = tuple(predecessor_sets[stage])
+        if state.ndim != 1 or not np.isfinite(state).all():
+            raise ValueError("inverted states must be finite vectors")
+        distances = []
+        for candidate in candidates:
+            vector = np.asarray(candidate, dtype=np.float64)
+            if vector.shape != state.shape or not np.isfinite(vector).all():
+                raise ValueError("predecessor states must match inverted-state shape")
+            distances.append(float(np.linalg.norm(state - vector)))
+        residual_lists[stage] = distances
+
+    return _decode_stage_residuals(residual_lists, tie_tolerance=tie_tolerance)
+
+
+def decode_last_stage_from_forward_reachable_sets(
+    target: Any,
+    reachable_sets: Any,
+    *,
+    tie_tolerance: float = 0.0,
+) -> LastStageDecision:
+    """Choose the final stage by direct finite reachable-set membership.
+
+    ``reachable_sets[j][k]`` is the endpoint obtained by applying candidate final stage
+    ``j`` to candidate predecessor ``k``. The score is
+
+        r_j = min_k || reachable_sets[j][k] - target ||_2.
+
+    No inverse solve is performed. If the true predecessor is in the supplied finite
+    codebook and the corresponding one-step map is evaluated exactly, its residual is
+    zero. A positive margin over all competing reachable endpoints certifies the finite
+    hypothesis under the supplied interface.
+    """
+
+    y = np.asarray(target, dtype=np.float64)
+    if y.ndim != 1 or y.size == 0 or not np.isfinite(y).all():
+        raise ValueError("target must be a finite non-empty vector")
+
+    residual_lists: dict[str, list[float]] = {}
+    for stage in sorted(reachable_sets):
+        endpoints = tuple(reachable_sets[stage])
+        distances = []
+        for endpoint in endpoints:
+            vector = np.asarray(endpoint, dtype=np.float64)
+            if vector.shape != y.shape or not np.isfinite(vector).all():
+                raise ValueError("reachable endpoints must match target shape")
+            distances.append(float(np.linalg.norm(vector - y)))
+        residual_lists[stage] = distances
+
+    return _decode_stage_residuals(residual_lists, tie_tolerance=tie_tolerance)
