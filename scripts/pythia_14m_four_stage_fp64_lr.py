@@ -12,7 +12,12 @@ from typing import Any
 from pythia_finite_pair_bridge import _configure_portable_numerics, _load_json
 
 from chronotrace.reproducibility import json_sha256, tensor_sha256
-from chronotrace.scale import StabilityMetric, StabilityRule, metric_passes_stability_rule
+from chronotrace.scale import (
+    StabilityMetric,
+    StabilityRule,
+    build_scale_worlds_from_codebook,
+    metric_passes_stability_rule,
+)
 from chronotrace.scale_four import build_four_stage_examples, four_stage_dataset_payload
 from chronotrace.scale_runner import execute_plain_sgd_stage, flatten_parameters
 from chronotrace.scale_tokens import build_token_codebook, tokenizer_fingerprint
@@ -82,11 +87,7 @@ def main() -> None:
         seed=seed,
     )
     dataset = four_stage_dataset_payload(tokenizer, codebook)
-    worlds = [
-        # Reuse the already-validated world rows without changing stage semantics.
-        item for item in __import__("chronotrace.scale", fromlist=["build_scale_worlds_from_codebook"])
-        .build_scale_worlds_from_codebook(codebook)
-    ]
+    worlds = build_scale_worlds_from_codebook(codebook)
     examples = {stage: build_four_stage_examples(worlds, stage) for stage in stages}
 
     model = AutoModelForCausalLM.from_pretrained(model_id, revision=revision)
