@@ -6,6 +6,7 @@ from chronotrace.geometry.history import (
     kendall_tau_for_orders,
     pairwise_precedence_accuracy,
     prefix_conditioned_commutator_diagnostic,
+    prefix_tail_decision_diagnostic,
 )
 from chronotrace.geometry.secant import (
     finite_pair_interactions,
@@ -138,6 +139,62 @@ def test_directional_contamination_is_exact_nearest_signature_boundary() -> None
         endpoint - (reference + alternative_signature)
     )
     assert (ratio < 1.0) == bool(true_error < alternative_error)
+
+
+def test_prefix_tail_decision_decomposition_matches_explicit_distances() -> None:
+    theta0, maps = _stage_system()
+    stages = ("A", "B", "C")
+    deltas, interactions = finite_pair_interactions(maps, theta0)
+    reference = finite_pair_symmetric_reference(
+        theta0,
+        deltas,
+        interactions,
+        stages=stages,
+    )
+    forward = ("A", "B", "C")
+    reverse = ("A", "C", "B")
+    actual = {
+        forward: _run(theta0, maps, forward),
+        reverse: _run(theta0, maps, reverse),
+    }
+    predicted = {
+        forward: finite_pair_predicted_endpoint(
+            forward,
+            reference,
+            interactions,
+            stages=stages,
+        ),
+        reverse: finite_pair_predicted_endpoint(
+            reverse,
+            reference,
+            interactions,
+            stages=stages,
+        ),
+    }
+
+    diagnostic = prefix_tail_decision_diagnostic(
+        actual,
+        predicted,
+        prefix=("A",),
+        first="B",
+        second="C",
+    )
+
+    forward_true_error_sq = torch.sum((actual[forward] - predicted[forward]) ** 2)
+    forward_swap_error_sq = torch.sum((actual[forward] - predicted[reverse]) ** 2)
+    reverse_true_error_sq = torch.sum((actual[reverse] - predicted[reverse]) ** 2)
+    reverse_swap_error_sq = torch.sum((actual[reverse] - predicted[forward]) ** 2)
+
+    assert (diagnostic.forward_boundary_score > 0.0) == bool(
+        forward_true_error_sq < forward_swap_error_sq
+    )
+    assert (diagnostic.reverse_boundary_score > 0.0) == bool(
+        reverse_true_error_sq < reverse_swap_error_sq
+    )
+    assert diagnostic.both_tail_orders_recoverable == bool(
+        diagnostic.alignment_coefficient
+        > abs(diagnostic.midpoint_bias_coefficient)
+    )
 
 
 def test_partial_order_metrics_match_adjacent_tail_swap() -> None:
