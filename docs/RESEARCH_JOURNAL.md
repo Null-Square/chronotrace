@@ -189,6 +189,36 @@ Numerics:
 
 ---
 
+## 2026-08-29 — J011 — T1 directly supports prefix-conditioned third-order geometry on the frozen 14M instance
+
+**Question.** Do the exact third-order residual and prefix-conditioned commutator explain the structured `3/6` failure already observed in J010?
+
+**Frozen before the run.** T1 was diagnostic-only. It was required to reproduce the exact portable finite-pair basis and all six exact endpoint hashes from run `33219286064`. No decoder, threshold, model, data, optimizer, learning rate, stage length, or success rule could change. Before seeing T1, the theory predicted that a failed history should cross its tail-swap decision boundary when the directional contamination ratio `chi` exceeds `1`, and that the tail-pair commutator should drift materially after conditioning on the first stage.
+
+**Evidence.** Workflow `33243747235`; artifact ID `9712269414`; `docs/results/pythia_14m_theory_diagnostic.md`.
+
+**Identity check.** The finite-pair basis and all six endpoints exactly match J010. Therefore this is mechanistic analysis of the same frozen instance, not independent generalization evidence.
+
+**Directional result.** The three wrong histories are exactly the three tail-swap cases with `chi > 1`:
+
+- `ABC -> ACB`: `chi = 1.118318`
+- `BCA -> BAC`: `chi = 1.172054`
+- `CBA -> CAB`: `chi = 1.231791`
+
+Every correctly decoded history remains below the exact boundary against all competitors; its maximum `chi` is at most `0.843755`.
+
+**State-conditioning result.** Conditioning on the first stage nearly replaces the relevant tail commutator rather than weakly perturbing it. For prefixes A/B/C, relative commutator drift is approximately `0.998`, `1.010`, and `1.020`; base/conditioned cosine is only `0.103`, `0.031`, and `0.052`. The conditioned commutator norms shrink from base norms `0.206–0.260` to `0.038–0.063`.
+
+**Interpretation.** T1 strongly supports the specific state-conditioned interaction mechanism on the motivating instance. The pairwise decoder fails not merely because an omitted term is large, but because the exact third-order residual is aligned strongly enough with a specific tail-swap chronology direction to cross the nearest-signature boundary.
+
+**What this does not imply.** The hypothesis was generated from J010, so T1 cannot establish that the mechanism repeats across independent worlds/codebooks, stage lengths, model sizes, optimizers, or natural corpora.
+
+**Decision.** Keep the state-conditioned interaction theory. Keep 31M blocked. Move to an independent Pythia-14M interaction-order map whose codebook seeds and stage-length sweep are frozen before chronology results are observed.
+
+**Next falsifier.** T2 must test whether the relationship between stage length, prefix-conditioned commutator drift, directional contamination, full-order recovery, first-stage recovery, pairwise precedence, and Kendall tau repeats across fresh tokenizer-safe synthetic instances. No T2 parameter may be selected using chronology performance.
+
+---
+
 ## Journal checkpoint — current state
 
 Accepted controlled positives:
@@ -196,15 +226,17 @@ Accepted controlled positives:
 - inverse one-step commutator scaling law;
 - causal-transformer realization;
 - multi-update macro-stage recovery through 64 updates on the controlled transformer;
-- exact finite-pair recovery through 256 updates on the controlled transformer.
+- exact finite-pair recovery through 256 updates on the controlled transformer;
+- on the frozen Pythia-14M J010 instance, exact directional contamination and prefix-conditioned commutator drift explain the structured pairwise-decoder failures.
 
 Accepted negatives / constraints:
 
 - v1 order classification is capability-confounded;
 - shuffled common-tail washout does not create robust endpoint equivalence;
-- Pythia-14M base-anchored finite-pair truncation does **not** recover full 3-stage order at the frozen scale protocol;
-- portable numerical execution is required before interpreting small endpoint-distance differences.
+- Pythia-14M base-anchored finite-pair truncation does **not** recover full 3-stage order at the frozen 16-update scale protocol;
+- portable numerical execution is required before interpreting small endpoint-distance differences;
+- T1 is explanatory evidence on the same instance, not generalization.
 
 Current live research question:
 
-> Is training chronology encoded hierarchically through **state-conditioned interaction order**, where base pair interactions recover coarse precedence and prefix-conditioned / higher-order interactions are required for deeper chronology?
+> Across independent model/data instances, is training chronology encoded hierarchically through **state-conditioned interaction order**, where lower-order interactions recover coarse precedence and prefix-conditioned / higher-order interactions are required for deeper chronology?
