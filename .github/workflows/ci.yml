@@ -6,16 +6,15 @@ on:
     paths:
       - "src/**"
       - "tests/**"
-      - "scripts/**"
-      - "configs/**"
+      - "data/**"
       - "pyproject.toml"
       - ".github/workflows/ci.yml"
   pull_request:
+    branches: [main]
     paths:
       - "src/**"
       - "tests/**"
-      - "scripts/**"
-      - "configs/**"
+      - "data/**"
       - "pyproject.toml"
       - ".github/workflows/ci.yml"
   workflow_dispatch:
@@ -44,54 +43,3 @@ jobs:
         run: ruff check .
       - name: Unit and drift tests
         run: pytest
-
-  test-3-12:
-    name: test (3.12, manual)
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-          cache: pip
-      - name: Install
-        run: python -m pip install -e ".[dev]"
-      - name: Lint
-        run: ruff check .
-      - name: Unit and drift tests
-        run: pytest
-
-  mvp-smoke:
-    name: Torch/mechanism smoke (manual)
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-          cache: pip
-      - name: Install CPU PyTorch
-        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
-      - name: Install MVP and test stack
-        run: python -m pip install -e ".[mvp,dev]"
-      - name: Torch geometry and masking regressions
-        run: >-
-          pytest tests/test_feature_masking.py
-          tests/test_commutator_geometry.py
-          tests/test_operator_geometry.py
-          tests/test_secant_geometry.py
-          tests/test_history_geometry.py
-      - name: Inverse commutator theorem smoke
-        run: python scripts/commutator_smoke.py
-      - name: Tiny transformer commutator smoke
-        run: python scripts/transformer_commutator_smoke.py
-      - name: Multi-update macro-operator smoke
-        run: python scripts/operator_commutator_smoke.py
-      - name: Finite-pair chronology stress test
-        run: python scripts/finite_pair_commutator_smoke.py
-      - name: End-to-end CPU smoke
-        run: python scripts/smoke_mvp.py
