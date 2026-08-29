@@ -19,10 +19,10 @@ Measuring all ordered words through degree K requires
 
     sum_{r=1..K} P(N, r)
 
-stage-map executions when prefix endpoints are cached. This module provides a simple
-in-memory measurement helper for controlled experiments and tests. Large-model runners
-may instead construct the same basis from streamed or projected endpoint observations via
-``ordered_interaction_basis_from_endpoints``.
+stage-map executions. The compact measurement path stores only the interaction tensors:
+every prefix endpoint is reconstructed exactly from already-measured lower-order
+interactions before the next stage is applied. This avoids retaining a second full table
+of prefix endpoints in large-model runs.
 """
 
 from __future__ import annotations
@@ -92,7 +92,7 @@ def _validate_degree(degree: int, stage_count: int) -> int:
 
 
 def ordered_probe_count(stage_count: int, max_degree: int) -> int:
-    """Return ``sum(P(N,r), r=1..K)`` stage executions for a cached-prefix basis."""
+    """Return ``sum(P(N,r), r=1..K)`` stage executions for the ordered basis."""
 
     count = int(stage_count)
     if count < 2:
@@ -132,6 +132,34 @@ def _expected_words(stages: Sequence[str], max_degree: int) -> set[tuple[str, ..
     }
 
 
+def _interaction_from_endpoint(
+    endpoint: Any,
+    base: Any,
+    word: tuple[str, ...],
+    interactions: Mapping[tuple[str, ...], Any],
+) -> Any:
+    interaction = endpoint - base
+    if len(word) > 1:
+        for subsequence in ordered_subsequences(word, max_degree=len(word) - 1):
+            interaction = interaction - interactions[subsequence]
+    return interaction
+
+
+def _word_prediction_from_interactions(
+    word: Sequence[str],
+    base: Any,
+    interactions: Mapping[tuple[str, ...], Any],
+    *,
+    degree: int,
+) -> Any:
+    prediction = base.clone()
+    for subsequence in ordered_subsequences(word, max_degree=degree):
+        if subsequence not in interactions:
+            raise ValueError(f"interaction basis is missing ordered word {subsequence!r}")
+        prediction = prediction + interactions[subsequence]
+    return prediction
+
+
 def ordered_interaction_basis_from_endpoints(
     base: Any,
     endpoints: Mapping[tuple[str, ...], Any],
@@ -165,11 +193,12 @@ def ordered_interaction_basis_from_endpoints(
             if endpoint.shape != base.shape:
                 raise ValueError("endpoint observation shape differs from base")
             endpoint_table[word] = endpoint
-            interaction = endpoint - base
-            if size > 1:
-                for subsequence in ordered_subsequences(word, max_degree=size - 1):
-                    interaction = interaction - interactions[subsequence]
-            interactions[word] = interaction
+            interactions[word] = _interaction_from_endpoint(
+                endpoint,
+                base,
+                word,
+                interactions,
+            )
 
     executions = int(stage_executions)
     if executions < 0:
@@ -190,12 +219,11 @@ def measure_ordered_interaction_basis(
     *,
     max_degree: int,
 ) -> OrderedInteractionBasis:
-    """Measure every ordered word through ``max_degree`` with cached prefixes.
+    """Measure every ordered word through ``max_degree`` with cached full prefixes.
 
     This convenience implementation stores every full endpoint through degree K. It is
-    appropriate for controlled models and unit tests. Large-model experiments should
-    stream or project endpoint observations and then call
-    ``ordered_interaction_basis_from_endpoints``.
+    useful for controlled models and tests where direct endpoint reconstruction should be
+    audited. Large-model experiments should normally use the compact variant below.
     """
 
     stages = _validate_stages(tuple(stage_maps))
@@ -225,25 +253,96 @@ def measure_ordered_interaction_basis(
     )
 
 
+def measure_ordered_interaction_basis_compact(
+    stage_maps: Mapping[str, Callable[[Any], Any]],
+    base: Any,
+    *,
+    max_degree: int,
+) -> OrderedInteractionBasis:
+    """Measure an ordered basis while retaining only interaction tensors.
+
+    For each word, the endpoint of its prefix is reconstructed exactly from the already
+    measured lower-order interactions. The final stage is then applied once and the new
+    interaction is extracted immediately. This preserves the same probe count as cached
+    prefix measurement while avoiding a second full tensor table of prefix endpoints.
+    """
+
+    stages = _validate_stages(tuple(stage_maps))
+    degree = _validate_degree(max_degree, len(stages))
+    interactions: dict[tuple[str, ...], Any] = {}
+    executions = 0
+
+    for size in range(1, degree + 1):
+        for word in permutations(stages, size):
+            prefix = word[:-1]
+            initial = _word_prediction_from_interactions(
+                prefix,
+                base,
+                interactions,
+                degree=len(prefix),
+            )
+            endpoint = stage_maps[word[-1]](initial)
+            executions += 1
+            if endpoint.shape != base.shape:
+                raise ValueError("stage map changed the observation shape")
+            interactions[word] = _interaction_from_endpoint(
+                endpoint,
+                base,
+                word,
+                interactions,
+            )
+
+    expected = ordered_probe_count(len(stages), degree)
+    if executions != expected:
+        raise RuntimeError(f"measured {executions} stage executions, expected {expected}")
+    return OrderedInteractionBasis(
+        stages=stages,
+        max_degree=degree,
+        base=base,
+        endpoints={},
+        interactions=interactions,
+        stage_executions=executions,
+    )
+
+
+def ordered_interaction_word_prediction(
+    word: Sequence[str],
+    basis: OrderedInteractionBasis,
+    *,
+    degree: int | None = None,
+) -> Any:
+    """Reconstruct or truncate any distinct-stage ordered word from the basis."""
+
+    values = tuple(word)
+    if len(values) != len(set(values)):
+        raise ValueError("ordered words must not repeat stages")
+    if any(stage not in basis.stages for stage in values):
+        raise ValueError("ordered word contains a stage outside the basis")
+    chosen_degree = min(len(values), basis.max_degree) if degree is None else int(degree)
+    if not values:
+        return basis.base.clone()
+    if chosen_degree < 1 or chosen_degree > basis.max_degree:
+        raise ValueError("degree must be between 1 and basis.max_degree")
+    return _word_prediction_from_interactions(
+        values,
+        basis.base,
+        basis.interactions,
+        degree=chosen_degree,
+    )
+
+
 def ordered_interaction_prediction(
     permutation: Sequence[str],
     basis: OrderedInteractionBasis,
     *,
     degree: int | None = None,
 ) -> Any:
-    """Return the endpoint predicted by truncating the exact interaction hierarchy."""
+    """Return a complete chronology prediction under one interaction truncation."""
 
     candidate = tuple(permutation)
     if len(candidate) != len(basis.stages) or set(candidate) != set(basis.stages):
         raise ValueError("permutation must contain every basis stage exactly once")
-    chosen_degree = basis.max_degree if degree is None else int(degree)
-    if chosen_degree < 1 or chosen_degree > basis.max_degree:
-        raise ValueError("degree must be between 1 and basis.max_degree")
-
-    prediction = basis.base.clone()
-    for subsequence in ordered_subsequences(candidate, max_degree=chosen_degree):
-        prediction = prediction + basis.interactions[subsequence]
-    return prediction
+    return ordered_interaction_word_prediction(candidate, basis, degree=degree)
 
 
 def _candidate_orders(
