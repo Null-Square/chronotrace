@@ -54,6 +54,18 @@ def main() -> None:
             raise RuntimeError(f"unexpected or duplicate precision seed {seed}")
         if payload["protocol_sha256"] != protocol_sha:
             raise RuntimeError(f"precision protocol hash mismatch for seed {seed}")
+
+        base_check = payload.get("base_cross_precision_check")
+        if not isinstance(base_check, dict) or base_check.get("exact_fp32_lift_match") is not True:
+            raise RuntimeError(
+                f"precision seed {seed} lacks the exact FP32-to-FP64 base replay check"
+            )
+        fp64_hash = payload["base_parameter_hashes_by_precision"]["fp64"]
+        if fp64_hash != base_check.get("fp32_lifted_to_fp64_sha256"):
+            raise RuntimeError(
+                f"precision seed {seed} did not preserve the exact cross-precision base vector"
+            )
+
         for precision in ("fp32", "fp64"):
             rates = tuple(
                 float(row["learning_rate"])
