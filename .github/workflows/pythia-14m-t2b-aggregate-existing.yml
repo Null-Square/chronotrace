@@ -1,10 +1,11 @@
 name: Aggregate archived Pythia 14M T2b artifacts
 
 on:
-  push:
-    branches: [experiment/pythia-finite-pair-scale]
-    paths:
-      - .github/workflows/pythia-14m-t2b-aggregate-existing.yml
+  workflow_dispatch:
+
+concurrency:
+  group: pythia-14m-t2b-aggregate-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
