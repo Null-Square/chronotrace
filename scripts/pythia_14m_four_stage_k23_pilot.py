@@ -18,7 +18,8 @@ from chronotrace.geometry.error_table import (
     decode_error_table,
     decode_precedence_error_table,
     decode_prefix_error_table,
-    ordered_interaction_candidate_errors,
+    ordered_interaction_quadratic_error_tables,
+    prepare_ordered_interaction_quadratic_scorer,
 )
 from chronotrace.geometry.interactions import (
     measure_ordered_interaction_basis_compact,
@@ -89,13 +90,12 @@ def _summarize_degree(rows: list[dict[str, Any]], degree: int) -> dict[str, Any]
 
 
 def _degree_row(
-    endpoint: Any,
+    errors: dict[tuple[str, ...], float],
     basis: Any,
     history: tuple[str, ...],
     *,
     degree: int,
 ) -> dict[str, Any]:
-    errors = ordered_interaction_candidate_errors(endpoint, basis, degree=degree)
     full = decode_error_table(errors)
     prefix: dict[str, Any] = {}
     for depth in (1, 2, 3):
@@ -129,19 +129,17 @@ def _degree_row(
             "margin": decision.margin,
         }
 
-    true_error = float(errors[history])
-    result = {
+    return {
         "prediction": "".join(full.permutation),
         "full_correct": full.permutation == history,
         "best_error": full.best_error,
         "runner_up_error": full.runner_up_error,
         "full_margin": full.margin,
-        "true_candidate_error": true_error,
+        "true_candidate_error": float(errors[history]),
         "prefix": prefix,
         "precedence": precedence,
+        "degree": degree,
     }
-    del errors
-    return result
 
 
 def main() -> None:
@@ -263,6 +261,10 @@ def main() -> None:
     if any(value.dtype != torch.float64 for value in basis.interactions.values()):
         raise TypeError("four-stage interaction basis contains non-FP64 tensors")
 
+    scorer = prepare_ordered_interaction_quadratic_scorer(
+        basis,
+        degrees=(2, 3),
+    )
     interaction_hashes = {
         "".join(word): tensor_sha256(value)
         for word, value in sorted(basis.interactions.items())
@@ -276,12 +278,14 @@ def main() -> None:
             endpoint = stage_maps[stage](endpoint)
         truth = "".join(history)
         target_hashes[truth] = tensor_sha256(endpoint)
+        error_tables = ordered_interaction_quadratic_error_tables(endpoint, basis, scorer)
         row = {
             "truth": truth,
-            "k2": _degree_row(endpoint, basis, history, degree=2),
-            "k3": _degree_row(endpoint, basis, history, degree=3),
+            "k2": _degree_row(error_tables[2], basis, history, degree=2),
+            "k3": _degree_row(error_tables[3], basis, history, degree=3),
         }
         rows.append(row)
+        del error_tables
         del endpoint
         gc.collect()
 
@@ -322,6 +326,7 @@ def main() -> None:
         "protocol_sha256": json_sha256(protocol),
         "experiment_role": protocol["experiment_role"],
         "confirmation_codebooks_observed": False,
+        "candidate_scoring": "exact_quadratic_form_equivalent_to_full_parameter_l2",
         "model": model_id,
         "revision": revision,
         "precision": "fp64",
