@@ -85,7 +85,11 @@ def validate_four_stage_codebook(tokenizer: Any, codebook: Any) -> None:
     )
     for zone in codebook.zone:
         for prefix, suffix in prompt_contexts:
-            expected = _encode(tokenizer, prefix) + list(zone.token_ids) + _encode(tokenizer, suffix)
+            expected = (
+                _encode(tokenizer, prefix)
+                + list(zone.token_ids)
+                + _encode(tokenizer, suffix)
+            )
             if _encode(tokenizer, prefix + zone.text + suffix) != expected:
                 raise ValueError("zone identifier has token-boundary drift in stage D")
 
