@@ -1,0 +1,126 @@
+{
+  "protocol_version": "pythia-14m-four-stage-fp64-k23-confirmation-v1",
+  "freeze_status": "frozen_before_any_confirmation_model_output",
+  "purpose": "held-out replication of whether exact degree-3 training interactions add chronology information beyond degree-2 on four-stage Pythia-14M, with marginal stage-loss recency as a separately frozen falsifier",
+  "source_pilot_selection": "configs/pythia_14m_four_stage_k23_pilot.selection.json",
+  "source_pilot_selection_blob_sha": "4cd73388c4f750952b3610611e63d531f1d808cc",
+  "source_codebooks": "configs/pythia_14m_four_stage_codebooks.lock.json",
+  "source_codebooks_blob_sha": "0735813f7c6b84fa82ae58ec6a0ca0368b5e88e7",
+  "interpretation_protocol": "configs/pythia_14m_four_stage_confirmation_interpretation.lock.json",
+  "model": "EleutherAI/pythia-14m-deduped",
+  "revision": "step143000",
+  "precision": "fp64",
+  "base_parameter_sha256_fp64": "f7973f1dd58380b5d8b0e10f54e3c45714c1fed90083922c8e69cb0af47b9b86",
+  "base_parameter_sha256_fp32": "cba585ef12f0a770686bffb9d1c1d00e11400106b46d943c1cae04fa7e0df2ce",
+  "tokenizer_fingerprint": "c08d95c22b6ea19a127c2e46b72a5229543eee2d35949b80334388b5ff89e51a",
+  "codebook_count_per_kind": 16,
+  "learning_rate": 0.0001,
+  "learning_rate_source": "chronology-blind four-stage FP64 singleton calibration run 33265789914",
+  "updates_per_stage": 1,
+  "optimizer": "full-batch plain SGD, momentum=0, weight_decay=0",
+  "stages": ["A", "B", "C", "D"],
+  "stage_semantics": {
+    "A": "alias_to_entity",
+    "B": "entity_to_signal",
+    "C": "signal_to_zone",
+    "D": "zone_to_alias"
+  },
+  "interaction_degrees": [1, 2, 3],
+  "measured_interaction_max_degree": 3,
+  "degree_1_policy": "report mathematical permutation non-identifiability because singleton-only prediction is invariant to stage order; do not break ties numerically",
+  "candidate_scoring": "exact quadratic form equivalent to full-parameter Euclidean L2",
+  "quadratic_spotcheck": "for the first history of each seed, compare direct full-vector and quadratic L2 for the true and top-ranked K2/K3 candidates; require rel_tol=1e-8 and abs_tol=1e-12",
+  "basis_stage_executions": 40,
+  "validation_histories": 24,
+  "validation_stage_executions": 96,
+  "total_stage_executions_per_seed": 136,
+  "validation_policy": "evaluate all 24 A/B/C/D permutations; no history selection",
+  "recency_baseline": {
+    "name": "B2_marginal_stage_loss_recency",
+    "definition": "evaluate final completion loss separately on A/B/C/D at each endpoint and predict oldest-to-newest by descending loss",
+    "exact_equal_loss": "non_identifiable",
+    "interaction_probes_used": false
+  },
+  "stage_randomness": {
+    "A": 1101,
+    "B": 2203,
+    "C": 3307,
+    "D": 4409,
+    "rule": "reset stage-specific seed on every stage-map invocation"
+  },
+  "portable_kernel_gate": {
+    "aten_cpu_capability": "default",
+    "mkldnn_enabled": false,
+    "mkl_cbwr": "COMPATIBLE",
+    "mkl_dynamic": "FALSE",
+    "omp_dynamic": "FALSE",
+    "intraop_threads": 1,
+    "interop_threads": 1
+  },
+  "confirmation_codebooks": [
+    {
+      "index": 0,
+      "seed": 4294917749,
+      "codebook_sha256": "e6f411a9ffc667155ddd21324328bac0060b0fdd5cc91fc2fd343c57178f966c",
+      "dataset_sha256": {
+        "worlds": "faf06357ea9e0527e7508118d3415bd796c5f0d53359fa7763f769b9793e1a42",
+        "stage_a": "0fc5099908d7d920ee2d09bededed107f4978654d2eaaf99addf837cb16eb5c5",
+        "stage_b": "b8b4de088de97d7da5323030f7c76038bbe6fa1f6b2307b427ea07556a403bd0",
+        "stage_c": "51c5c955a2e69975f53dbdfb508f289b13ef0647d616073061a41e9aa630904c",
+        "stage_d": "26b6631e0a0a269c82c6c33292c33a3214e5f5129dbb62d65f341cb8431adc9c"
+      }
+    },
+    {
+      "index": 1,
+      "seed": 3885207466,
+      "codebook_sha256": "bed7280f77a51d132900d4c5509d6b37d7c176158d02ad99e811801c228fbf71",
+      "dataset_sha256": {
+        "worlds": "f0288541c11897532e89edbc6c0cce64d5a09c384e541ff3cc7e833242d84e38",
+        "stage_a": "ac0f28f46e4c67bb3c8aa2d86097f17ffd30ed2361b79d888d52941687b7102c",
+        "stage_b": "b94fada0122e8cf05a9d5908450ad111efe15e6f270647d7acea2e95a47a2d9b",
+        "stage_c": "ae7f228aaaa670d523aec1a9675966e2392b8f73eb1b091e27c412238496fe79",
+        "stage_d": "e7dfbc2321920eb572f75e5985d6c858a3c934abab41956c4b78bc627be7f9a8"
+      }
+    },
+    {
+      "index": 2,
+      "seed": 402469483,
+      "codebook_sha256": "70d2073d21bb17d5d9e0582c5d1b34be30dce52387ebf4cbfe15b5f0a705eff2",
+      "dataset_sha256": {
+        "worlds": "e3394e1d848b0f240a23f8e37c6e837b13783c5870e64d5ec26b2ea50de2cd5a",
+        "stage_a": "1c1612d3923e13130f34d7e67f68b5d6bd189fcc02593000edb3dc78aa51434c",
+        "stage_b": "3c2dcda6cd68683f0e490d1c221f295cc6543bba881bf77c44b21199ad5c15fd",
+        "stage_c": "8b0d71733c041dc5b6c38d782bf85268c1abbfb0515ff923c746d4c03cd95726",
+        "stage_d": "9831d6865997094d75c681c81c20c89496a7db7d36277ada51cfa25983095b45"
+      }
+    },
+    {
+      "index": 3,
+      "seed": 2000073798,
+      "codebook_sha256": "334d6788b877bde814e4ad2a56ffe62f1d40672ca94f28f41517dd3f8ba0079c",
+      "dataset_sha256": {
+        "worlds": "bfe2b174daba4d6321b6345d04553f9f5cbe508a0fb069602865ade1a48fa944",
+        "stage_a": "1ce627cc377b24d03a2db3ba305815656a882befc8045aaa41c8fa2c6a274f57",
+        "stage_b": "6c8606f1fc21950323637c55c9d67e606c6bcf6195ea71a50a527f8e2d15ce41",
+        "stage_c": "e2edc0c192ff54a15d13569917e22d2c8269d346122a7cc17573ce56b706d16d",
+        "stage_d": "808b5702128d041716150685d5ce0bfb1371a8d4a2a0355dfe4442a64474249c"
+      }
+    }
+  ],
+  "selection_rule": "use all four codebooks in frozen index order; replacement or outcome-based selection prohibited",
+  "reported_metrics": [
+    "K2_and_K3_full_order",
+    "K2_and_K3_prefix_depth_1_2_3",
+    "K2_and_K3_pairwise_precedence",
+    "K2_and_K3_full_order_margins",
+    "K2_and_K3_true_candidate_errors",
+    "fixed_terminal_stage_strata",
+    "K2_wrong_K3_correct_and_reverse",
+    "K3_over_K2_true_error_ratio",
+    "B2_recency_full_order_prefix_precedence_terminal_and_loss_gaps",
+    "K1_non_identifiability_control"
+  ],
+  "confirmation_model_outputs_observed": false,
+  "all_four_required": true,
+  "next_step": "validate runner and aggregate logic in CI, then launch all four confirmation seeds without any protocol modification"
+}
