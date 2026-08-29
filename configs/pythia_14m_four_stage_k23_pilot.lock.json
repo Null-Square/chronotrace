@@ -1,6 +1,6 @@
 {
   "protocol_version": "pythia-14m-four-stage-fp64-k23-pilot-v1",
-  "freeze_status": "frozen_after_chronology_blind_lr_selection_before_pilot_outputs",
+  "freeze_status": "schema_corrected_after_pre_model_failure_before_pilot_outputs",
   "experiment_role": "non_confirmatory_methodology_pilot",
   "purpose": "test whether exact ordered interactions through K=3 provide a meaningful improvement over K=2 on four-stage Pythia chronology before any held-out confirmation codebook is observed",
   "calibration_result": "configs/pythia_14m_four_stage_fp64_lr.selection.json",
@@ -8,8 +8,10 @@
   "model": "EleutherAI/pythia-14m-deduped",
   "revision": "step143000",
   "precision": "fp64",
+  "base_parameter_sha256_fp64": "f7973f1dd58380b5d8b0e10f54e3c45714c1fed90083922c8e69cb0af47b9b86",
   "base_parameter_sha256_fp32": "cba585ef12f0a770686bffb9d1c1d00e11400106b46d943c1cae04fa7e0df2ce",
   "tokenizer_fingerprint": "c08d95c22b6ea19a127c2e46b72a5229543eee2d35949b80334388b5ff89e51a",
+  "codebook_count_per_kind": 16,
   "learning_rate": 0.0001,
   "updates_per_stage": 1,
   "stages": ["A", "B", "C", "D"],
@@ -60,6 +62,15 @@
     "K2_correct_K3_wrong_count",
     "K3_over_K2_true_error_ratio"
   ],
+  "schema_correction": {
+    "failed_run_id": 33266006358,
+    "failure_point": "tokenizer-safe codebook construction before model weights were loaded",
+    "failure": "missing codebook_count_per_kind field in the lock",
+    "scientific_outputs_observed": false,
+    "model_weights_loaded": false,
+    "confirmation_codebooks_observed": false,
+    "scientific_settings_changed": false
+  },
   "interpretation_scope": "methodology pilot only; outcomes may be used to repair the method or freeze the later confirmation protocol but may not be counted as held-out confirmation evidence",
   "next_step_if_methodology_is_sound": "freeze the complete four-codebook confirmation protocol before observing any model output from those codebooks"
 }
