@@ -41,7 +41,7 @@ def _load(path: str | Path) -> dict[str, Any]:
 
 
 def _candidate_seed(index: int) -> int:
-    digest = hashlib.sha256(f"{_NAMESPACE}:{index}".encode("utf-8")).digest()
+    digest = hashlib.sha256(f"{_NAMESPACE}:{index}".encode()).digest()
     return int.from_bytes(digest[:4], byteorder="big", signed=False)
 
 
