@@ -13,7 +13,10 @@ from dataclasses import dataclass
 from itertools import permutations
 from typing import Any
 
-from chronotrace.geometry.interactions import OrderedInteractionBasis, ordered_interaction_prediction
+from chronotrace.geometry.interactions import (
+    OrderedInteractionBasis,
+    ordered_interaction_prediction,
+)
 
 
 @dataclass(frozen=True)
