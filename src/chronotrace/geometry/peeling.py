@@ -17,8 +17,8 @@ floating-point order.
 
 from __future__ import annotations
 
+import collections.abc
 from dataclasses import dataclass
-from collections.abc import Callable, Mapping, Sequence
 
 import numpy as np
 
@@ -47,7 +47,7 @@ class LastStageDecision:
 
 def invert_gradient_step_fixed_point(
     target: Array,
-    gradient: Callable[[Array], Array],
+    gradient: collections.abc.Callable[[Array], Array],
     *,
     learning_rate: float,
     tolerance: float = 1e-12,
@@ -86,8 +86,8 @@ def invert_gradient_step_fixed_point(
 
 
 def decode_last_stage_from_predecessor_sets(
-    inverted_states: Mapping[str, Array],
-    predecessor_sets: Mapping[str, Sequence[Array]],
+    inverted_states: collections.abc.Mapping[str, Array],
+    predecessor_sets: collections.abc.Mapping[str, collections.abc.Sequence[Array]],
     *,
     tie_tolerance: float = 0.0,
 ) -> LastStageDecision:
