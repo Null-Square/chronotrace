@@ -1,0 +1,13 @@
+protocol=pythia-14m-forward-reachable-all24-v1
+source_smoke_run=33279118644
+source_smoke_artifact=9722492236
+source_k23_run=33267599644
+spent_codebook_seed=1011473075
+candidate_hypotheses=24
+candidate_gradient_evaluations=24
+basis_stage_executions=40
+target_trie_stage_executions=64
+pairwise_metric=full_parameter_fp64_l2
+certificate=s_h_minus_2e_h_positive
+confirmation_codebooks_observed=false
+launch_role=all24_spent_codebook_separation_map
