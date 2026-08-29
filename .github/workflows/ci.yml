@@ -3,15 +3,21 @@ name: CI
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "paper/**"
-      - "README.md"
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "scripts/**"
+      - "configs/**"
+      - "pyproject.toml"
+      - ".github/workflows/ci.yml"
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "paper/**"
-      - "README.md"
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "scripts/**"
+      - "configs/**"
+      - "pyproject.toml"
+      - ".github/workflows/ci.yml"
   workflow_dispatch:
 
 concurrency:
@@ -25,6 +31,7 @@ jobs:
   test:
     name: test (3.11)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -39,9 +46,10 @@ jobs:
         run: pytest
 
   test-3-12:
-    name: test (3.12)
-    if: github.event_name != 'pull_request'
+    name: test (3.12, manual)
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -56,9 +64,8 @@ jobs:
         run: pytest
 
   mvp-smoke:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    name: Torch/mechanism smoke (manual)
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
