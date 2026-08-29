@@ -9,3 +9,5 @@ candidate_hypotheses=24
 candidate_gradient_evaluations=24
 confirmation_codebooks_observed=false
 launch_role=one_shot_forward_reachable_methodology_smoke
+attempt=2
+test_fix=use_numeric_comparison_for_binary_float_margin
