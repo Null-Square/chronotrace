@@ -43,3 +43,7 @@ jobs:
         run: ruff check .
       - name: Unit and drift tests
         run: pytest
+      - name: Optimized-mode tests
+        env:
+          PYTHONOPTIMIZE: "1"
+        run: pytest
