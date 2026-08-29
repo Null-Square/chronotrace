@@ -25,6 +25,35 @@ class PrefixCommutatorDiagnostic:
     base_conditioned_cosine: float
 
 
+@dataclass(frozen=True)
+class PrefixTailDecisionDiagnostic:
+    """Exact tail-swap decision decomposition after a shared prefix.
+
+    For two histories ``prefix+first+second`` and ``prefix+second+first``, let ``d0``
+    be the separation of their lower-order predictions, ``dc`` the separation of their
+    actual endpoints, and ``b`` the actual-minus-predicted midpoint shift. Then
+
+        alignment = <dc, d0> / ||d0||^2
+        midpoint_bias = 2 <b, d0> / ||d0||^2
+
+    The actual forward endpoint prefers the forward lower-order prediction over the
+    reverse one iff ``alignment + midpoint_bias > 0``. The reverse endpoint prefers the
+    reverse prediction iff ``alignment - midpoint_bias > 0``. Both tail orders are
+    therefore simultaneously recoverable iff ``alignment > abs(midpoint_bias)``.
+    """
+
+    prefix: tuple[str, ...]
+    first: str
+    second: str
+    base_direction_norm: float
+    conditioned_direction_norm: float
+    alignment_coefficient: float
+    midpoint_bias_coefficient: float
+    forward_boundary_score: float
+    reverse_boundary_score: float
+    both_tail_orders_recoverable: bool
+
+
 def _require_torch() -> Any:
     try:
         import torch
@@ -129,6 +158,78 @@ def prefix_conditioned_commutator_diagnostic(
         drift_norm=drift_norm,
         relative_drift=relative_drift,
         base_conditioned_cosine=cosine,
+    )
+
+
+def prefix_tail_decision_diagnostic(
+    history_endpoints: Mapping[tuple[str, ...], Any],
+    predicted_endpoints: Mapping[tuple[str, ...], Any],
+    *,
+    prefix: Sequence[str],
+    first: str,
+    second: str,
+) -> PrefixTailDecisionDiagnostic:
+    """Decompose a shared-prefix tail-swap decision into alignment and midpoint bias.
+
+    This identity is exact for the two candidate histories and does not assume small
+    updates. It is useful because commutator rotation/shrinkage and a common higher-order
+    midpoint shift are distinct reasons a base-anchored pair decoder can lose the tail.
+    """
+
+    torch = _require_torch()
+    prefix_tuple = tuple(prefix)
+    if first == second or first in prefix_tuple or second in prefix_tuple:
+        raise ValueError("prefix and compared stages must be distinct")
+
+    forward_history = prefix_tuple + (first, second)
+    reverse_history = prefix_tuple + (second, first)
+    required = (forward_history, reverse_history)
+    if any(history not in history_endpoints for history in required):
+        raise ValueError("both actual prefix-conditioned endpoints are required")
+    if any(history not in predicted_endpoints for history in required):
+        raise ValueError("both lower-order predicted endpoints are required")
+
+    actual_forward = history_endpoints[forward_history]
+    actual_reverse = history_endpoints[reverse_history]
+    predicted_forward = predicted_endpoints[forward_history]
+    predicted_reverse = predicted_endpoints[reverse_history]
+
+    base_direction = predicted_forward - predicted_reverse
+    conditioned_direction = actual_forward - actual_reverse
+    actual_midpoint = 0.5 * (actual_forward + actual_reverse)
+    predicted_midpoint = 0.5 * (predicted_forward + predicted_reverse)
+    midpoint_shift = actual_midpoint - predicted_midpoint
+
+    denominator = torch.dot(base_direction.reshape(-1), base_direction.reshape(-1))
+    if float(denominator) <= 0.0:
+        raise ValueError("tail-swap lower-order predictions must be distinct")
+
+    alignment = torch.dot(
+        conditioned_direction.reshape(-1),
+        base_direction.reshape(-1),
+    ) / denominator
+    midpoint_bias = 2.0 * torch.dot(
+        midpoint_shift.reshape(-1),
+        base_direction.reshape(-1),
+    ) / denominator
+    alignment_value = float(alignment)
+    midpoint_bias_value = float(midpoint_bias)
+    forward_score = alignment_value + midpoint_bias_value
+    reverse_score = alignment_value - midpoint_bias_value
+
+    return PrefixTailDecisionDiagnostic(
+        prefix=prefix_tuple,
+        first=first,
+        second=second,
+        base_direction_norm=float(torch.linalg.vector_norm(base_direction)),
+        conditioned_direction_norm=float(torch.linalg.vector_norm(conditioned_direction)),
+        alignment_coefficient=alignment_value,
+        midpoint_bias_coefficient=midpoint_bias_value,
+        forward_boundary_score=forward_score,
+        reverse_boundary_score=reverse_score,
+        both_tail_orders_recoverable=bool(
+            alignment_value > abs(midpoint_bias_value)
+        ),
     )
 
 
