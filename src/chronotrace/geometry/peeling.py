@@ -10,10 +10,17 @@ inverse state is the unique fixed point of
 
     x = y + eta * grad_loss(x).
 
-The helpers here deliberately separate inversion from chronology scoring.  They
-make no assumption that a wrong last-stage candidate must be distinguishable;
-a zero residual tie is reported as non-identifiable rather than broken by
-floating-point order.
+Raw fixed-point iteration needs the stronger contraction condition. The same inverse
+equation is also the stationarity condition of the inverse potential
+
+    Psi_y(x) = 0.5 * ||x-y||^2 - eta * loss(x),
+
+whose gradient is ``x-y-eta*grad_loss(x)``. A line-search descent on this potential can
+therefore solve locally invertible cases in which Picard iteration is non-contractive.
+
+The helpers here deliberately separate inversion from chronology scoring. They make no
+assumption that a wrong last-stage candidate must be distinguishable; a zero residual tie
+is reported as non-identifiable rather than broken by floating-point order.
 """
 
 from __future__ import annotations
@@ -33,6 +40,20 @@ class InverseStepResult:
     converged: bool
     iterations: int
     fixed_point_residual: float
+
+
+@dataclass(frozen=True)
+class InverseDescentResult:
+    """Evidence from line-search descent on the inverse potential."""
+
+    state: Array
+    converged: bool
+    iterations: int
+    residual_norm: float
+    line_search_failed: bool
+    objective_trace: tuple[float, ...]
+    residual_trace: tuple[float, ...]
+    accepted_step_trace: tuple[float, ...]
 
 
 @dataclass(frozen=True)
@@ -57,7 +78,7 @@ def invert_gradient_step_fixed_point(
     """Invert ``y = x - eta * gradient(x)`` by fixed-point iteration.
 
     The update ``x_{k+1} = y + eta * gradient(x_k)`` is a contraction whenever
-    the gradient is L-Lipschitz and ``eta * L < 1``.  Callers must verify that
+    the gradient is L-Lipschitz and ``eta * L < 1``. Callers must verify that
     regime for their scientific setting; this routine reports convergence but
     does not infer a global Lipschitz constant from samples.
     """
@@ -74,6 +95,7 @@ def invert_gradient_step_fixed_point(
         raise ValueError("max_iterations must be positive")
 
     state = y.copy()
+    residual = float("inf")
     for iteration in range(1, max_iterations + 1):
         grad = np.asarray(gradient(state), dtype=np.float64)
         if grad.shape != state.shape or not np.isfinite(grad).all():
@@ -84,6 +106,127 @@ def invert_gradient_step_fixed_point(
         if residual <= tolerance:
             return InverseStepResult(state, True, iteration, residual)
     return InverseStepResult(state, False, max_iterations, residual)
+
+
+def invert_gradient_step_armijo(
+    target: Array,
+    loss: Any,
+    gradient: Any,
+    *,
+    learning_rate: float,
+    tolerance: float = 1e-10,
+    max_iterations: int = 200,
+    initial_step: float = 1.0,
+    armijo_constant: float = 1e-4,
+    shrink_factor: float = 0.5,
+    minimum_step: float = 2.0**-20,
+) -> InverseDescentResult:
+    """Solve one inverse SGD step by Armijo descent on the inverse potential.
+
+    The optimized scalar is
+
+        Psi_y(x) = 0.5 ||x-y||^2 - eta L(x),
+
+    with gradient ``F(x)=x-y-eta*grad L(x)``. Thus a converged stationary point is a
+    preimage of ``y`` under the one-step gradient map. Unlike Picard iteration, this
+    method does not require ``eta*H`` itself to be a contraction. It is still a local
+    solver: non-convex inverse potentials can have multiple stationary points.
+    """
+
+    y = np.asarray(target, dtype=np.float64)
+    if y.ndim != 1 or y.size == 0 or not np.isfinite(y).all():
+        raise ValueError("target must be a finite non-empty vector")
+    eta = float(learning_rate)
+    if not np.isfinite(eta) or eta <= 0.0:
+        raise ValueError("learning_rate must be finite and positive")
+    if tolerance <= 0.0 or not np.isfinite(tolerance):
+        raise ValueError("tolerance must be finite and positive")
+    if max_iterations < 1:
+        raise ValueError("max_iterations must be positive")
+    if not np.isfinite(initial_step) or initial_step <= 0.0:
+        raise ValueError("initial_step must be finite and positive")
+    if not 0.0 < armijo_constant < 1.0:
+        raise ValueError("armijo_constant must lie in (0, 1)")
+    if not 0.0 < shrink_factor < 1.0:
+        raise ValueError("shrink_factor must lie in (0, 1)")
+    if not np.isfinite(minimum_step) or minimum_step <= 0.0:
+        raise ValueError("minimum_step must be finite and positive")
+
+    def objective(state: Array) -> float:
+        displacement = state - y
+        value = 0.5 * float(np.dot(displacement, displacement)) - eta * float(loss(state))
+        if not np.isfinite(value):
+            raise FloatingPointError("inverse potential became non-finite")
+        return value
+
+    state = y.copy()
+    objective_value = objective(state)
+    objectives = [objective_value]
+    residuals: list[float] = []
+    accepted_steps: list[float] = []
+
+    for iteration in range(max_iterations + 1):
+        grad_loss = np.asarray(gradient(state), dtype=np.float64)
+        if grad_loss.shape != state.shape or not np.isfinite(grad_loss).all():
+            raise ValueError("gradient returned an invalid vector")
+        residual_vector = state - y - eta * grad_loss
+        residual_norm = float(np.linalg.norm(residual_vector))
+        if not np.isfinite(residual_norm):
+            raise FloatingPointError("inverse residual became non-finite")
+        residuals.append(residual_norm)
+        if residual_norm <= tolerance:
+            return InverseDescentResult(
+                state=state,
+                converged=True,
+                iterations=iteration,
+                residual_norm=residual_norm,
+                line_search_failed=False,
+                objective_trace=tuple(objectives),
+                residual_trace=tuple(residuals),
+                accepted_step_trace=tuple(accepted_steps),
+            )
+        if iteration == max_iterations:
+            break
+
+        direction = -residual_vector
+        directional_derivative = -residual_norm**2
+        step = float(initial_step)
+        accepted = False
+        while step >= minimum_step:
+            trial = state + step * direction
+            trial_objective = objective(trial)
+            if trial_objective <= (
+                objective_value + armijo_constant * step * directional_derivative
+            ):
+                state = trial
+                objective_value = trial_objective
+                objectives.append(objective_value)
+                accepted_steps.append(step)
+                accepted = True
+                break
+            step *= shrink_factor
+        if not accepted:
+            return InverseDescentResult(
+                state=state,
+                converged=False,
+                iterations=iteration,
+                residual_norm=residual_norm,
+                line_search_failed=True,
+                objective_trace=tuple(objectives),
+                residual_trace=tuple(residuals),
+                accepted_step_trace=tuple(accepted_steps),
+            )
+
+    return InverseDescentResult(
+        state=state,
+        converged=False,
+        iterations=max_iterations,
+        residual_norm=residuals[-1],
+        line_search_failed=False,
+        objective_trace=tuple(objectives),
+        residual_trace=tuple(residuals),
+        accepted_step_trace=tuple(accepted_steps),
+    )
 
 
 def decode_last_stage_from_predecessor_sets(
@@ -99,7 +242,7 @@ def decode_last_stage_from_predecessor_sets(
         r_j = min_z || T_j^{-1}(y) - z ||_2,
 
     where ``z`` ranges over the supplied predecessor states for all histories
-    not containing ``j``.  Exact or tolerance-level ties are non-identifiable.
+    not containing ``j``. Exact or tolerance-level ties are non-identifiable.
     """
 
     if set(inverted_states) != set(predecessor_sets):
