@@ -3,7 +3,16 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "paper/**"
+      - "README.md"
   pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "paper/**"
+      - "README.md"
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -32,6 +41,9 @@ jobs:
         run: pytest
 
   mvp-smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -51,6 +63,7 @@ jobs:
           tests/test_operator_geometry.py
           tests/test_secant_geometry.py
           tests/test_history_geometry.py
+          tests/test_affine_geometry.py
       - name: Inverse commutator theorem smoke
         run: python scripts/commutator_smoke.py
       - name: Tiny transformer commutator smoke
