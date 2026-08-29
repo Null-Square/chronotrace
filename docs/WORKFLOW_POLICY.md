@@ -6,14 +6,15 @@ Purpose: preserve fast correctness checks during development without spending mo
 
 ## Automatic checks
 
-Pull requests run only the cheap `CI` test matrix:
+Pull requests run only one cheap Python 3.11 lane:
 
-- Python 3.11 and 3.12;
 - package install with `[dev]` only;
 - Ruff;
 - lightweight unit and protocol-drift tests.
 
-Documentation-only changes under `docs/**`, `paper/**`, or `README.md` do not start CI.
+Python 3.12 compatibility is checked after code lands on `main` or by explicit manual dispatch, not on every PR commit.
+
+A PR whose changed-file set is entirely under `docs/**`, `paper/**`, or `README.md` is ignored by CI. Note that GitHub path filters are evaluated against the PR's overall changed-file set, so a documentation commit inside an already mixed code+docs PR can still start the cheap PR lane.
 
 Concurrency cancels superseded CI runs on the same ref.
 
