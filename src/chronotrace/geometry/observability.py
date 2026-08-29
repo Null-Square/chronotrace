@@ -2,14 +2,15 @@
 
 The core object is a response matrix whose rows are candidate training histories and
 whose columns are allowed forensic probe coordinates.  The module deliberately makes
-only finite-dimensional linear-algebra claims: it does not assume that a low-rank
-response family exists for real models, nor that a chosen observation interface retains
-all information in the trainer state.
+only finite-dimensional claims: it does not assume that a low-rank response family
+exists for real models, nor that a chosen observation interface retains all information
+in the trainer state.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import combinations
 from typing import Any
 
 import numpy as np
@@ -22,6 +23,15 @@ class ProbeBasis:
     columns: tuple[int, ...]
     rank: int
     selected: np.ndarray
+
+
+@dataclass(frozen=True)
+class DistinguishingProbeSet:
+    """A smallest tested subset of physical response coordinates preserving distinctions."""
+
+    columns: tuple[int, ...]
+    selected: np.ndarray
+    full_indistinguishable_pairs: tuple[tuple[int, int], ...]
 
 
 @dataclass(frozen=True)
@@ -69,6 +79,10 @@ def independent_probe_basis(
     Therefore any equality between two rows on the selected columns implies equality on
     every original response coordinate: every omitted column is a linear combination of
     the selected columns.
+
+    This is a linear-span certificate, not a minimum-physical-probe certificate.  A
+    single physical column can already distinguish every finite candidate even when the
+    matrix rank is larger than one.
     """
 
     matrix = _matrix(responses)
@@ -106,6 +120,49 @@ def indistinguishable_pairs(
             if float(np.linalg.norm(matrix[first] - matrix[second])) <= threshold:
                 pairs.append((first, second))
     return tuple(pairs)
+
+
+def minimum_distinguishing_probe_subset(
+    responses: Any,
+    *,
+    atol: float = 0.0,
+    max_columns: int = 16,
+) -> DistinguishingProbeSet:
+    """Find an exact smallest subset of physical coordinates preserving distinctions.
+
+    The search is exhaustive in increasing subset size and is therefore exact for the
+    supplied finite response family.  It preserves the full family's indistinguishability
+    relation at the requested Euclidean tolerance.  Complexity is exponential in the
+    number of physical columns, so callers must keep the probe family small.
+
+    Unlike matrix rank, this quantity directly answers how many *existing physical
+    response coordinates* are sufficient for the same finite candidate distinctions.
+    """
+
+    matrix = _matrix(responses)
+    threshold = float(atol)
+    if threshold < 0:
+        raise ValueError("atol must be non-negative")
+    column_count = matrix.shape[1]
+    limit = int(max_columns)
+    if limit < 1:
+        raise ValueError("max_columns must be positive")
+    if column_count > limit:
+        raise ValueError(
+            f"exact distinguishing-probe search has {column_count} columns, "
+            f"above max_columns={limit}"
+        )
+    full_pairs = indistinguishable_pairs(matrix, atol=threshold)
+    for size in range(1, column_count + 1):
+        for columns in combinations(range(column_count), size):
+            selected = matrix[:, columns]
+            if indistinguishable_pairs(selected, atol=threshold) == full_pairs:
+                return DistinguishingProbeSet(
+                    columns=tuple(columns),
+                    selected=selected.copy(),
+                    full_indistinguishable_pairs=full_pairs,
+                )
+    raise RuntimeError("full response family did not preserve its own distinctions")
 
 
 def separation_certificate(responses: Any) -> SeparationCertificate:
