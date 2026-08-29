@@ -4,12 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
 from typing import Any
-
-from chronotrace.reproducibility import json_sha256
 
 
 def parse_args() -> argparse.Namespace:
@@ -22,6 +21,11 @@ def parse_args() -> argparse.Namespace:
 
 def _load(path: str | Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _json_sha256(payload: Any) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _pearson(x: list[float], y: list[float]) -> float:
@@ -42,7 +46,7 @@ def _pearson(x: list[float], y: list[float]) -> float:
 def main() -> None:
     args = parse_args()
     protocol = _load(args.protocol)
-    expected_protocol_hash = json_sha256(protocol)
+    expected_protocol_hash = _json_sha256(protocol)
     expected_seeds = tuple(
         int(value) for value in protocol["codebook_seed_derivation"]["seeds"]
     )
