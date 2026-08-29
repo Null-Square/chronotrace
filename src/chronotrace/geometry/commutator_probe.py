@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
 import numpy as np
 
 
-StateMap = Callable[[Any], Any]
+StateMap = Any
 
 
 def finite_commutator_vector(state: Any, first: StateMap, second: StateMap) -> np.ndarray:
