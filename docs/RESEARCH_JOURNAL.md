@@ -240,3 +240,101 @@ Accepted negatives / constraints:
 Current live research question:
 
 > Across independent model/data instances, is training chronology encoded hierarchically through **state-conditioned interaction order**, where lower-order interactions recover coarse precedence and prefix-conditioned / higher-order interactions are required for deeper chronology?
+
+---
+
+## 2026-08-29 — J012 — Correction: chi is a decision identity; midpoint bias is the sharper T1 mechanism
+
+**Why this entry exists.** J011 treated the exact directional contamination threshold `chi = 1` as if its agreement with correct/incorrect cases were substantive support for the mechanism. A later derivation showed that this was too strong.
+
+**Correction.** For a fixed true pairwise signature and competitor, `chi < 1` is algebraically equivalent to the nearest-signature decision preferring the true candidate. Therefore the observation “failed histories have `chi > 1`” is a **diagnostic restatement of the decision boundary**, not independent empirical validation.
+
+The useful information from chi is which competing chronology direction receives the strongest contamination. On the frozen 14M instance, that direction is the observed same-prefix tail swap for all three failures.
+
+**Pre-result refinement.** Before reading the new replay output, `docs/PREFIX_CONDITIONED_DECOMPOSITION.md` separated each shared-prefix pair into:
+
+- conditioned tail-separation alignment with the base pair direction;
+- a common third-order midpoint bias.
+
+Both tail orders are simultaneously recoverable against each other iff
+
+`alignment > |midpoint_bias|`.
+
+**Evidence.** Midpoint-decomposition replay workflow `33245010517`; artifact `9712666884`. The replay again exactly matched the portable finite-pair basis and all six endpoint hashes.
+
+**Result.** For prefixes A/B/C respectively:
+
+- alignment: `0.019095`, `0.005551`, `0.013423`;
+- midpoint bias: `-0.137284`, `+0.177508`, `+0.245139`;
+- forward/reverse boundary scores:
+  - A/BC: `-0.118189`, `+0.156379`;
+  - B/AC: `+0.183059`, `-0.171957`;
+  - C/AB: `+0.258562`, `-0.231716`.
+
+The conditioned tail separation retains only a tiny positive projection along the static pair direction, while the common midpoint bias is about `7.2x`, `32.0x`, and `18.3x` larger in magnitude. Its sign selects exactly the surviving tail order in each prefix pair.
+
+**Revised interpretation.** On this instance, the static pair decoder fails primarily because useful conditioned tail separation nearly collapses while a much larger third-order midpoint drift pushes both endpoints toward one static-pair candidate. It is not best described as a simple commutator reversal.
+
+**Epistemic limit.** The midpoint/alignment formulas are exact decompositions of the already-observed endpoints. They explain this instance; they do not by themselves demonstrate generalization or prediction.
+
+**Decision.** Keep T2 unchanged. Treat the independent structure of errors and partial chronology across fresh codebooks as the real falsifier. Keep 31M blocked.
+
+---
+
+## 2026-08-29 — J013 — Literature update narrows the novelty boundary around training memory and tomography
+
+**Question.** Does the newer state-dependent / optimizer-memory framing collide with existing 2026 work?
+
+**Search outcome.** Yes, materially.
+
+Newly reviewed neighboring work includes:
+
+- Sevetlidis & Pavlidis, **“Process-Tensor Tomography of SGD: Measuring Non-Markovian Memory via Back-Flow of Distinguishability”** (AISTATS 2026; arXiv:2601.16563). It models training as a multi-time process from controlled interventions to observables, measures training memory/non-Markovianity, and uses optimizer-state reset as a causal break.
+- Sevetlidis & Pavlidis, **“Training Memory in Deep Neural Networks: Mechanisms, Evidence, and Measurement Gaps”** (arXiv:2601.21624). It already organizes optimizer state, data order, nonconvex path, and auxiliary state as training-memory mechanisms.
+- Xu, **“Stored in Optimizer State, Valued by Later Training”** (arXiv:2608.20442). It treats parameters and optimizer moments as a full trainer state, identifies first-moment transport, and shows later routes assign different behavioral value to stored ancestry.
+- Guo, **“Delayed Optimizer-State Transport Shapes Short-Horizon Training Decisions”** (arXiv:2608.24593). It directly studies optimizer-state transport interacting with future minibatch paths.
+
+**Consequences.** The following are no longer defensible as ChronoTrace novelty claims:
+
+- training has memory;
+- training can be described as a multi-time process;
+- “tomography” applied to training memory;
+- optimizer moments carry history;
+- future continuation changes the effect/value of earlier perturbations;
+- a taxonomy of optimizer/data/path state as memory channels.
+
+**Branding correction.** “Training-History Tomography” should be deemphasized as an umbrella phrase because “Process-Tensor Tomography of SGD” already occupies closely adjacent terminology.
+
+**Remaining candidate gap.** The strongest still-defensible target is narrower:
+
+> post-hoc reconstruction or partial-order identification of an **unknown semantic macro-stage chronology** from a finished model, together with the interaction degree and observation/access regime required for that inverse problem.
+
+The process-tensor paper is highly adjacent but positions itself as a measurement/non-Markovianity witness under known interventions. Searches of its available full text for “recover”, “infer”, “unknown”, and “chronology” did not reveal a centered unknown-permutation reconstruction task. This distinction is promising but is not proof of firstness.
+
+**Decision.** Update `docs/LITERATURE_MAP.md`, the repository README, and theory language. Future Adam experiments can study how optimizer memory changes **inverse chronology identifiability**, but cannot claim optimizer memory itself as new.
+
+**Next novelty falsifier.** Continue searching specifically for endpoint-only or simulator-assisted reconstruction of unknown task/stage order, partial chronology, interaction-order inversion, or path-signature inversion of training trajectories.
+
+---
+
+## Journal checkpoint — after T1 refinement and literature update
+
+What is currently supported:
+
+- controlled reset-SGD chronology begins through noncommutative interaction geometry;
+- finite stage operators require progressively richer interaction models as locality is lost;
+- the portable Pythia-14M 16-update instance retains strong coarse chronology but defeats the static pair model on tail order;
+- on that instance, prefix conditioning nearly collapses useful tail alignment while a larger third-order midpoint drift selects one tail candidate per prefix.
+
+What remains unconfirmed:
+
+- whether this coarse-to-fine / midpoint-dominance structure repeats on independent codebooks;
+- whether a fixed low interaction order can reconstruct larger chronology spaces efficiently;
+- whether the same information is observable behaviorally rather than through weights;
+- how realistic optimizer/schedule channels change inverse identifiability.
+
+Current independent falsifier:
+
+> **T2 — four fresh mechanically derived Pythia-14M codebooks × stage lengths `{1,2,4,8,16,32}`, with all conditions reported under a frozen no-selection rule.**
+
+31M remains blocked until T2 is interpreted.
