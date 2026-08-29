@@ -1,10 +1,11 @@
 name: Pythia scale LR gate
 
 on:
-  push:
-    branches: [experiment/pythia-finite-pair-scale]
-    paths:
-      - .github/workflows/pythia-scale-lr.yml
+  workflow_dispatch:
+
+concurrency:
+  group: pythia-scale-lr-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
