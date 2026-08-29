@@ -4,6 +4,7 @@ import numpy as np
 
 from chronotrace.geometry.peeling import (
     decode_last_stage_from_predecessor_sets,
+    invert_gradient_step_armijo,
     invert_gradient_step_fixed_point,
 )
 
@@ -70,6 +71,46 @@ def test_fixed_point_inversion_recovers_quadratic_gradient_step() -> None:
     assert result.converged
     assert result.iterations <= 30
     assert np.linalg.norm(result.state - before) < 1e-10
+
+
+def test_armijo_inverse_succeeds_when_picard_is_noncontractive_but_map_is_invertible() -> None:
+    hessian = np.diag([-2.0, 0.5])
+    offset = np.array([0.3, -0.2])
+    learning_rate = 0.75
+    before = np.array([0.8, -0.4])
+
+    def loss(state):
+        return 0.5 * state @ hessian @ state + offset @ state
+
+    def gradient(state):
+        return hessian @ state + offset
+
+    target = before - learning_rate * gradient(before)
+    picard = invert_gradient_step_fixed_point(
+        target,
+        gradient,
+        learning_rate=learning_rate,
+        tolerance=1e-10,
+        max_iterations=40,
+    )
+    armijo = invert_gradient_step_armijo(
+        target,
+        loss,
+        gradient,
+        learning_rate=learning_rate,
+        tolerance=1e-10,
+        max_iterations=200,
+    )
+
+    assert not picard.converged
+    assert armijo.converged
+    assert not armijo.line_search_failed
+    assert np.linalg.norm(armijo.state - before) < 1e-9
+    assert all(
+        later <= earlier + 1e-14
+        for earlier, later in zip(armijo.objective_trace, armijo.objective_trace[1:])
+    )
+    assert min(armijo.accepted_step_trace) < 1.0
 
 
 def test_reverse_peeling_rescues_histories_missed_by_degree_three_forward_decode() -> None:
