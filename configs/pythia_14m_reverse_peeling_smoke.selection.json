@@ -1,0 +1,59 @@
+{
+  "selection_version": "pythia-14m-reverse-peeling-smoke-selection-v1",
+  "source_run_id": 33274469711,
+  "source_artifact_id": 9721377079,
+  "source_artifact_digest": "sha256:c57967bd79de637b54231cc6f6928c0ab9c7e3942688be5dfac8c372e68e81c4",
+  "source_result_raw_sha256": "40f70bc6aaaa69b70208a20c2e8b22cdfa3524534269db1538fd23b18aefdfe6",
+  "source_result_canonical_sha256": "c502def67266483b0e8787ad2c290ac4fdec616e151b7acc9e80aee9fe22efc4",
+  "protocol_sha256": "4b7c192a73c41ce5aee145d9e9c07de853703b93a1a8e72c0b9b20cc08e9d09b",
+  "source_k23_protocol_sha256": "dfb2751c39b767c5024eb627eb597240b5f5aca3c248cbbd26f51f3d80d14536",
+  "confirmation_codebooks_observed": false,
+  "target_endpoint_replay_exact": true,
+  "smoke_pass_all": false,
+  "failed_frozen_checks": [
+    "all_candidate_inverses_converged"
+  ],
+  "passed_frozen_checks": [
+    "target_endpoint_replay_exact",
+    "all_forward_inverse_errors_finite",
+    "true_final_stage_selected",
+    "true_predecessor_selected",
+    "positive_final_stage_margin"
+  ],
+  "decision": {
+    "selected_last_stage": "D",
+    "selected_predecessor": "ABC",
+    "best_residual": 0.05717787366631017,
+    "runner_up_residual": 0.06021418968804737,
+    "margin": 0.0030363160217371996,
+    "ranking": ["D", "C", "A", "B"],
+    "identifiable_under_nonconverged_iterates": true
+  },
+  "inverse_summary": {
+    "candidate_count": 4,
+    "converged_count": 0,
+    "max_iterations_each": 100,
+    "inverse_gradient_evaluations": 404,
+    "final_relative_updates": {
+      "A": 0.00005592436401955491,
+      "B": 0.00004381403750995224,
+      "C": 0.000050406592465401586,
+      "D": 0.000026940214185288804
+    },
+    "minimum_observed_relative_updates": {
+      "A": 0.000005805537973499568,
+      "B": 0.000005470115169078591,
+      "C": 0.000008537175387253702,
+      "D": 0.0000070476607590734335
+    },
+    "forward_inverse_relative_errors_at_iteration_100": {
+      "A": 0.00005341716888672401,
+      "B": 0.000044154142313041645,
+      "C": 0.00002877682770448353,
+      "D": 0.00002950985885483534
+    }
+  },
+  "scientific_interpretation": "The frozen smoke fails because naive Picard fixed-point inversion is not contractive to the precommitted tolerance on any candidate stage. The nonconverged iterates nevertheless rank the true final stage D first and its exact K3 predecessor ABC first with positive margin. This is diagnostic evidence that predecessor geometry remains promising, but it is not a passing reverse-inversion result and cannot authorize the all-24 run.",
+  "all24_launch_authorized": false,
+  "next_step": "Remain on the spent pilot codebook and diagnose local invertibility versus Picard-solver failure with a solver-independent Jacobian/Hessian or line-search inverse diagnostic before changing the inversion method. Do not launch all-24 or touch confirmation codebooks."
+}
