@@ -33,6 +33,12 @@ jobs:
     timeout-minutes: 300
     steps:
       - uses: actions/checkout@v6
+      - name: Stop superseded pilot without model execution
+        run: |
+          if grep -qx 'cancel_only=true' configs/pythia_14m_four_stage_k23_pilot.launch; then
+            echo 'Cancel-only marker present; no tokenizer or model execution.'
+            exit 1
+          fi
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11.16"
