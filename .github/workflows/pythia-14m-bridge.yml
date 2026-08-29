@@ -1,10 +1,11 @@
 name: Pythia 14M portable reproducibility gate
 
 on:
-  push:
-    branches: [experiment/pythia-finite-pair-scale]
-    paths:
-      - .github/workflows/pythia-14m-bridge.yml
+  workflow_dispatch:
+
+concurrency:
+  group: pythia-14m-bridge-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
