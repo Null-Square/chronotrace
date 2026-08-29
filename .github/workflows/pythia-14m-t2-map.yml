@@ -1,0 +1,107 @@
+name: Pythia 14M T2 interaction map
+
+on:
+  push:
+    branches: [experiment/pythia-finite-pair-scale]
+    paths:
+      - .github/workflows/pythia-14m-t2-map.yml
+      - configs/pythia_14m_t2.lock.json
+      - scripts/pythia_14m_t2_map.py
+      - scripts/aggregate_pythia_14m_t2.py
+      - src/chronotrace/geometry/history.py
+      - src/chronotrace/geometry/secant.py
+      - src/chronotrace/scale.py
+      - src/chronotrace/scale_runner.py
+      - src/chronotrace/scale_tokens.py
+
+permissions:
+  contents: read
+
+env:
+  PYTHONHASHSEED: "0"
+  ATEN_CPU_CAPABILITY: default
+  MKL_CBWR: COMPATIBLE
+  MKL_DYNAMIC: "FALSE"
+  OMP_DYNAMIC: "FALSE"
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  NUMEXPR_NUM_THREADS: "1"
+  TOKENIZERS_PARALLELISM: "false"
+
+jobs:
+  map:
+    name: seed-${{ matrix.codebook_seed }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        codebook_seed:
+          - 1011473075
+          - 2229356454
+          - 2700450505
+          - 119806841
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.16"
+          cache: pip
+      - name: Install pinned CPU PyTorch
+        run: >-
+          python -m pip install
+          --index-url https://download.pytorch.org/whl/cpu
+          "torch==2.13.0+cpu"
+      - name: Install pinned scale stack
+        run: >-
+          python -m pip install
+          "transformers==5.16.1"
+          "tokenizers==0.23.1"
+          "huggingface-hub==1.29.0"
+          "safetensors==0.8.0"
+      - name: Install ChronoTrace
+        run: python -m pip install -e ".[mvp]"
+      - name: Run frozen T2 seed map
+        run: >-
+          python scripts/pythia_14m_t2_map.py
+          --protocol configs/pythia_14m_t2.lock.json
+          --codebook-seed ${{ matrix.codebook_seed }}
+          --output t2-${{ matrix.codebook_seed }}.json
+          --threads 1
+      - name: Upload T2 seed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pythia-14m-t2-${{ matrix.codebook_seed }}
+          path: t2-${{ matrix.codebook_seed }}.json
+          if-no-files-found: error
+
+  aggregate:
+    name: aggregate-preregistered-map
+    needs: map
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.16"
+      - name: Download all T2 seed evidence
+        uses: actions/download-artifact@v5
+        with:
+          pattern: pythia-14m-t2-*
+          path: t2-slices
+          merge-multiple: true
+      - name: Aggregate without selection
+        run: >-
+          python scripts/aggregate_pythia_14m_t2.py
+          --protocol configs/pythia_14m_t2.lock.json
+          --input-dir t2-slices
+          --output pythia-14m-t2-aggregate.json
+      - name: Upload aggregate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pythia-14m-t2-aggregate
+          path: pythia-14m-t2-aggregate.json
+          if-no-files-found: error
