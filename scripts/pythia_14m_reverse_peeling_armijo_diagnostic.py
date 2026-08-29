@@ -287,7 +287,7 @@ def main() -> None:
     final_objective = inverse_potential(state, final_loss)
     objective_monotone = all(
         later <= earlier + 1e-12 * max(1.0, abs(earlier), abs(later))
-        for earlier, later in zip(objective_trace, objective_trace[1:], strict=True)
+        for earlier, later in zip(objective_trace, objective_trace[1:], strict=False)
     )
 
     checks = {
@@ -351,7 +351,16 @@ def main() -> None:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"solver_viability_pass_all": result["solver_viability_pass_all"], "solver": result["solver"]}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "solver_viability_pass_all": result["solver_viability_pass_all"],
+                "solver": result["solver"],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":
