@@ -5,8 +5,10 @@ import pytest
 from chronotrace.geometry.interactions import (
     decode_ordered_interaction_permutation,
     measure_ordered_interaction_basis,
+    measure_ordered_interaction_basis_compact,
     ordered_interaction_identifiability,
     ordered_interaction_prediction,
+    ordered_interaction_word_prediction,
     ordered_probe_count,
     ordered_subsequences,
 )
@@ -136,10 +138,30 @@ def test_measured_words_reconstruct_exactly_from_mobius_interactions() -> None:
         torch.testing.assert_close(reconstructed, observed, rtol=0.0, atol=1e-11)
 
 
+def test_compact_measurement_matches_cached_basis_without_storing_endpoints() -> None:
+    theta0, stage_maps = _four_stage_system()
+    cached = measure_ordered_interaction_basis(stage_maps, theta0, max_degree=3)
+    compact = measure_ordered_interaction_basis_compact(stage_maps, theta0, max_degree=3)
+
+    assert compact.endpoints == {}
+    assert compact.stage_executions == cached.stage_executions == 40
+    assert set(compact.interactions) == set(cached.interactions)
+    for word, interaction in cached.interactions.items():
+        torch.testing.assert_close(
+            compact.interactions[word],
+            interaction,
+            rtol=0.0,
+            atol=1e-11,
+        )
+    for word, observed in cached.endpoints.items():
+        reconstructed = ordered_interaction_word_prediction(word, compact)
+        torch.testing.assert_close(reconstructed, observed, rtol=0.0, atol=1e-11)
+
+
 def test_degree_three_resolves_a_four_stage_degree_two_failure_regime() -> None:
     theta0, stage_maps = _four_stage_system()
     stages = tuple(stage_maps)
-    basis = measure_ordered_interaction_basis(stage_maps, theta0, max_degree=3)
+    basis = measure_ordered_interaction_basis_compact(stage_maps, theta0, max_degree=3)
     degree_two_correct = 0
     degree_three_correct = 0
 
@@ -154,5 +176,6 @@ def test_degree_three_resolves_a_four_stage_degree_two_failure_regime() -> None:
         degree_two_correct += int(degree_two.permutation == history)
         degree_three_correct += int(degree_three.permutation == history)
 
-    assert degree_two_correct < len(tuple(permutations(stages)))
-    assert degree_three_correct == len(tuple(permutations(stages)))
+    total = len(tuple(permutations(stages)))
+    assert degree_two_correct < total
+    assert degree_three_correct == total
