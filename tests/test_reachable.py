@@ -1,6 +1,9 @@
 import numpy as np
 
-from chronotrace.geometry.reachable import certify_reachable_distance_table
+from chronotrace.geometry.reachable import (
+    certify_reachable_distance_table,
+    chunked_l2_distance,
+)
 
 
 def _distance_table(points):
@@ -11,6 +14,36 @@ def _distance_table(points):
         }
         for left in points
     }
+
+
+def test_chunked_l2_matches_direct_fp64_distance() -> None:
+    rng = np.random.default_rng(1701)
+    left = rng.normal(size=10_003).astype(np.float64)
+    right = rng.normal(size=10_003).astype(np.float64)
+
+    observed = chunked_l2_distance(left, right, chunk_size=257)
+    expected = float(np.linalg.norm(left - right))
+
+    assert np.isclose(observed, expected, rtol=1e-13, atol=1e-13)
+
+
+def test_chunked_l2_supports_memory_mapped_arrays(tmp_path) -> None:
+    left_path = tmp_path / "left.npy"
+    right_path = tmp_path / "right.npy"
+    left = np.linspace(-1.0, 1.0, 4097, dtype=np.float64)
+    right = np.cos(left)
+    np.save(left_path, left)
+    np.save(right_path, right)
+
+    left_map = np.load(left_path, mmap_mode="r")
+    right_map = np.load(right_path, mmap_mode="r")
+
+    assert np.isclose(
+        chunked_l2_distance(left_map, right_map, chunk_size=113),
+        np.linalg.norm(left - right),
+        rtol=1e-13,
+        atol=1e-13,
+    )
 
 
 def test_reachable_separation_certificate_proves_nearest_history() -> None:
