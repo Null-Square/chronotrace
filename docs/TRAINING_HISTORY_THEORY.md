@@ -1,10 +1,10 @@
 # Training-History Theory
 
-Status: working theory document. This file should evolve by explicit additions/corrections, not by silently deleting failed mechanisms.
+Status: canonical working theory document as of 2026-08-29. Earlier hypotheses are retained through the append-only research journal; corrections here reflect the current best interpretation rather than silently rewriting experimental history.
 
 ## 1. The inverse problem
 
-Let a training stage `D` be a complete update operator. In the simplest reset-SGD setting it acts on weights:
+Let a candidate training stage `D` be a complete update operator. In the simplest reset-SGD setting it acts on weights:
 
 `F_D : theta -> theta'`.
 
@@ -14,58 +14,69 @@ For a candidate chronology `pi = (pi_1, ..., pi_N)`, the endpoint is
 
 ChronoTrace asks the inverse question:
 
-> Given an observed endpoint and candidate stage procedures, what information about `pi` is identifiable?
+> Given an observed finished model, candidate training stages, and an explicitly stated access/observation regime, what information about the unknown chronology `pi` is identifiable?
 
-The key fact is noncommutativity:
+The broad fact that sequential updates need not commute is not the contribution:
 
 `F_B(F_A(theta)) != F_A(F_B(theta))`
 
 in general.
 
-Forward sequential-learning work asks how this changes performance or which order should be chosen. ChronoTrace asks whether the noncommutative residue can be inverted after training.
+Forward curriculum/data-order work asks how order changes learning. ChronoTrace asks whether the order-sensitive residue can be inverted into an unknown total order or partial order after training.
+
+The current mechanism experiments operate in the **white-box simulator regime**: the base checkpoint, candidate stages, training rule, and replay procedure are known; final weights are observable; chronology is unknown. This is not yet a black-box provenance claim. See `docs/THEORY_ACCESS_AND_TRACE_CHANNELS.md`.
 
 ## 2. Real training is an extended-state dynamical system
 
-A realistic optimizer is not a map over weights alone. A more faithful state is
+A realistic optimizer is not a map over weights alone. A more faithful trainer state is
 
 `z_t = (theta_t, m_t, v_t, q_t, rng_t, data_t, scaler_t, ...)`,
 
-where, depending on the training stack:
+where, depending on the stack:
 
 - `theta`: model weights;
-- `m,v`: optimizer moment state;
-- `q`: scheduler / global-step state;
-- `rng`: dropout, sampling, augmentation and distributed randomness;
-- `data`: data-stream position / shuffle state;
+- `m,v`: momentum / Adam moment state;
+- `q`: scheduler and global-step state;
+- `rng`: dropout, sampling, augmentation, distributed randomness;
+- `data`: stream position / shuffle state;
 - `scaler`: mixed-precision loss-scale state.
 
-A single update is therefore `U_t(z_t, batch_t)`, and a macro stage is a composition of many such updates.
+A macro stage is a composition of many updates on this extended state. A released checkpoint normally exposes only a projection such as
 
-The checkpoint normally exposes only a projection `P(z)=theta`. Thus the realistic inverse problem is
+`P(z)=theta`.
+
+The realistic endpoint is therefore
 
 `theta_final = P(F_{pi_N} o ... o F_{pi_1}(z_0))`.
 
-This gives two distinct questions:
+This immediately separates three questions:
 
-1. **state chronology:** is the full extended state path identifiable?
-2. **weight chronology:** after projecting away optimizer/RNG/scheduler state, is enough history still encoded in weights?
+1. **full-state chronology:** are histories distinct in complete trainer state?
+2. **weight chronology:** does enough history survive projection into weights?
+3. **behavioral chronology:** does enough survive a further projection from weights into query responses?
 
-The current ChronoTrace mechanism experiments deliberately reset optimizer state and use deterministic SGD so that any recovered chronology comes from the geometry of the weights, not hidden Adam memory.
+Information cannot increase under these deterministic projections. Schematically,
 
-### Representative Pythia pretraining is much richer than the current bridge
+`I(history; behavior) <= I(history; weights) <= I(history; full trainer state)`.
 
-The official Pythia-14M training config uses Adam with `beta1=0.9`, `beta2=0.95`, `eps=1e-8`, learning rate `1e-3`, weight decay `0.1`, gradient clipping `1.0`, cosine decay, `1%` warmup, FP16, and `143000` training iterations with a roughly 2M-token global batch. The public Pythia suite saw about 300B training tokens.
+The present reset/plain-SGD experiments deliberately remove optimizer/schedule/stochastic carry-over so that recovered chronology is attributable to weight geometry rather than hidden Adam state or an explicit training clock.
+
+### Representative Pythia pretraining is much richer than the bridge
+
+The public Pythia-14M recipe uses Adam (`beta1=0.9`, `beta2=0.95`, `eps=1e-8`), LR `1e-3`, weight decay `0.1`, clipping `1.0`, cosine decay, `1%` warmup, FP16, and `143000` training iterations with a roughly 2M-token global batch. The Pythia suite saw roughly 300B tokens.
 
 Sources:
 
-- EleutherAI Pythia repository: https://github.com/EleutherAI/pythia
-- Pythia-14M config: https://github.com/EleutherAI/pythia/blob/main/models/14M/pythia-14m.yml
+- https://github.com/EleutherAI/pythia
+- https://github.com/EleutherAI/pythia/blob/main/models/14M/pythia-14m.yml
 
-By contrast, the first ChronoTrace scale bridge uses FP32, deterministic full batches, plain SGD, no momentum/weight decay, learning rate `1e-4`, and only 16 updates per stage. This is intentional mechanism isolation, but it is not yet a realistic pretraining pipeline.
+The current bridge instead uses FP32, deterministic full batches, constant-rate plain SGD, no momentum/weight decay, and short controlled stages. This is intentional mechanism isolation, not a realistic pretraining simulation.
 
-For Adam, persistent moments create an additional chronology channel. With Pythia's `beta1=0.9`, the contribution of an old gradient to the first moment halves after about 6.6 optimizer steps. With `beta2=0.95`, the corresponding second-moment half-life is about 13.5 steps. If moments persist across a stage boundary, the early updates of the next stage directly depend on the previous stage even at identical weights. ChronoTrace must eventually separate this **optimizer-memory trace** from the **weight-geometry trace** studied now.
+## 3. Distinct chronology channels have different leading orders
 
-## 3. Local mechanism: Lie brackets
+A central correction to the early theory is that “training chronology” is not one mechanism. Real training mixes several channels with different leading-order behavior.
+
+### 3.1 Geometric noncommutativity — second order under reset constant-step SGD
 
 For one small gradient update per stage,
 
@@ -79,23 +90,84 @@ and similarly for B. Expanding at `theta_0`,
 
 Therefore
 
-`theta_AB - theta_BA = eta^2 (H_B g_A - H_A g_B) + O(eta^3)`.
+`theta_AB - theta_BA = eta^2(H_B g_A - H_A g_B) + O(eta^3)`.
 
-The first-order learning displacement is order-independent. Chronology begins in an antisymmetric second-order term.
+Under these controls the first-order displacement is order-independent. Chronology begins at `O(eta^2)` through an antisymmetric Lie-bracket-like term.
 
-This is consistent with standard Baker-Campbell-Hausdorff / splitting-method theory, where compositions of noncommuting flows contain pair commutators and then nested higher-order commutators. It is also adjacent to Sweeney (2026), who uses Lie-bracket geometry in the **forward** direction to predict beneficial sequential-learning order:
+This is the channel isolated by the current mechanism program.
 
-- https://arxiv.org/abs/2606.24993
+### 3.2 Training-clock / schedule asymmetry — chronology can appear at first order
 
-The Lie bracket itself is therefore not the novelty claim.
+Suppose position 1 and position 2 use different learning rates `eta_1` and `eta_2`. Ignoring state-dependence beyond first order,
 
-## 4. Exact finite interaction hierarchy
+`theta_AB = theta_0 - eta_1 g_A - eta_2 g_B + O(eta^2)`
 
-The local BCH view suggests a stronger nonperturbative decomposition for complete finite training stages.
+`theta_BA = theta_0 - eta_1 g_B - eta_2 g_A + O(eta^2)`.
 
-Fix a total order `pi` over a stage set `U`. For a subset `S subseteq U`, let `E_pi(S)` be the endpoint obtained by executing only the stages in S, preserving their relative order in pi. Define `E_pi(empty)=theta_0`.
+Thus
 
-Define the interaction associated with S by Boolean-lattice Mobius inversion:
+`theta_AB - theta_BA = (eta_2-eta_1)(g_A-g_B) + O(eta^2)`.
+
+Warmup, cosine decay, stage-position regularization, or any global-step-dependent rule can therefore create an `O(eta)` time-stamp-like chronology signal.
+
+### 3.3 Optimizer memory — persistent momentum can also create first-order chronology
+
+For simple momentum,
+
+`v_t = mu v_{t-1} + g_t`
+
+`theta_t = theta_{t-1} - eta v_t`,
+
+with `v_0=0`, a first-order expansion gives
+
+`theta_AB - theta_BA = -eta mu(g_A-g_B) + O(eta^2)`.
+
+So optimizer memory can write chronology into the weights themselves even if optimizer state is discarded before forensic inspection.
+
+Adam is more nonlinear because it carries first and second moments, normalization and bias corrections, but the same qualitative issue holds. Consequently, a positive realistic-Adam chronology result must not be mislabeled as pure geometric path memory.
+
+### 3.4 Stochastic-stream state
+
+Batch order, shuffling, dropout, distributed reduction order, mixed-precision state, and other randomness can either:
+
+- be independently reset/matched across histories, acting mainly as noise; or
+- be carried through stage boundaries, becoming a genuine chronology channel.
+
+These cases require separate interventions.
+
+### 3.5 Mechanism taxonomy
+
+A useful working hierarchy is:
+
+| Mechanism | Representative source | Simplified leading chronology order |
+|---|---|---|
+| training clock | LR/global-step differs by position | `O(eta)` |
+| optimizer memory | persistent momentum/Adam | `O(eta)` in simple momentum example |
+| geometric noncommutativity | constant-step reset SGD | `O(eta^2)` |
+| prefix-conditioned interaction | earlier stage changes later pair geometry | degree 3 |
+| deeper path interaction | nested state-conditioned effects | degree 4+ |
+
+The order here is mechanistic/asymptotic, not a guaranteed ranking of empirical magnitude.
+
+## 4. Local mechanism: Lie brackets
+
+The small-step relation
+
+`theta_AB - theta_BA = eta^2(H_B g_A - H_A g_B) + O(eta^3)`
+
+is consistent with Baker-Campbell-Hausdorff, splitting-method, Magnus and chronological-calculus theory, where ordered compositions of noncommuting flows contain commutators and nested commutators.
+
+The mathematics itself is classical, and recent sequential-learning work also uses Lie-bracket geometry in the forward direction. The Lie bracket is therefore not the ChronoTrace novelty claim.
+
+What matters here is the **inverse use** of order-sensitive interactions to distinguish an unknown chronology.
+
+## 5. Exact finite interaction hierarchy
+
+The local expansion is insufficient for long finite stages. ChronoTrace therefore uses a nonperturbative interaction decomposition.
+
+Fix a total order `pi` over a stage set `U`. For subset `S subseteq U`, let `E_pi(S)` be the endpoint obtained by executing only stages in `S` while preserving their relative order in `pi`, with `E_pi(empty)=theta_0`.
+
+Define by Boolean-lattice Möbius inversion
 
 `Phi_pi(S) = sum_{T subseteq S} (-1)^(|S|-|T|) E_pi(T)`.
 
@@ -103,76 +175,126 @@ Then exactly,
 
 `E_pi(U) = sum_{S subseteq U} Phi_pi(S)`.
 
-This is not an approximation. The approximation appears only when the expansion is truncated by interaction order.
+No approximation occurs until the interaction expansion is truncated by degree.
 
-### Order 1: singleton stage effects
+### Degree 1 — singleton effects
 
-`Phi({A}) = F_A(theta_0) - theta_0 = Delta_A`.
+`Phi({A}) = F_A(theta_0)-theta_0 = Delta_A`.
 
-### Order 2: directed finite pair interactions
+### Degree 2 — directed finite pair interactions
 
-If A occurs before B,
+If A precedes B,
 
 `Phi(A,B) = F_B(F_A(theta_0)) - F_A(theta_0) - F_B(theta_0) + theta_0`.
 
-This is exactly the current finite-pair interaction `I_{B<-A}`.
+This is the finite directed pair interaction used by the current static pair decoder.
 
-### Order 3: prefix-conditioned / triple interaction
+### Degree 3 — exact three-stage interaction
 
-For order `A,B,C`,
+For exactly three stages A/B/C, the residual after subtracting the base, all singleton effects, and all chronology-selected pair effects is the **exact degree-3 interaction**. It is not “third and higher”; there are no higher stage-subset degrees in a three-stage system.
 
-`Phi(A,B,C)`
+This correction matters because the portable Pythia-14M failure can be analyzed exactly rather than attributed to an unspecified approximation error.
 
-is the exact residual left after subtracting the base checkpoint, all singleton effects, and all three directed pair interactions selected by that chronology.
+## 6. Training-History Interaction Order
 
-Thus the current Pythia failure is not an unspecified modeling error. It is direct evidence that the omitted third-order term is comparable to the separation among pairwise chronology signatures.
+This hierarchy motivates the working quantity
 
-### Probe complexity
+`K*(pi, epsilon)`
 
-If all ordered interactions through fixed order K are measured and lower-order prefixes are cached, the number of stage-map extensions scales as
+= the smallest interaction degree K whose truncated representation distinguishes the relevant chronology to the required robustness/error tolerance.
 
-`sum_{r=1..K} P(N,r) = O(N^K)`
+Possible regimes:
 
-for fixed K, where `P(N,r)=N!/(N-r)!`.
+- `K=2`: static pair interactions are sufficient;
+- `K=3`: later pair order depends materially on the earlier prefix;
+- large K: chronology is strongly nonlocal and low-order inversion may be impractical;
+- unidentifiable after observation projection: no retained degree separates the candidate histories through the permitted interface.
 
-Examples:
+The current paper direction is stronger if it characterizes this boundary rather than simply reporting one chronology-classification accuracy.
 
-- K=1: `O(N)` singleton probes;
-- K=2: `N + N(N-1) = N^2` stage executions;
-- K=3: `N + N(N-1) + N(N-1)(N-2) = O(N^3)`;
-- exhaustive full-history validation: `N * N!` stage executions if every complete chronology is replayed independently.
+## 7. Prefix-conditioned interactions
 
-This motivates **training-history interaction order**: the minimum K for which an order-K interaction model can reliably identify the chronology.
-
-## 5. The key missing object: prefix-conditioned commutators
-
-Define the exact finite commutator of stages B and C at an arbitrary model state theta:
+Define the exact finite commutator of B and C at arbitrary state `theta`:
 
 `C_BC(theta) = F_C(F_B(theta)) - F_B(F_C(theta))`.
 
-Now compare two histories that share first stage A:
+For two histories sharing first stage A,
 
 `ABC = F_C(F_B(F_A(theta_0)))`
 
-`ACB = F_B(F_C(F_A(theta_0)))`.
+`ACB = F_B(F_C(F_A(theta_0)))`,
 
-Their difference is exactly
+so exactly
 
 `E_ABC - E_ACB = C_BC(F_A(theta_0))`.
 
-This identity is central.
+A base-anchored static pair decoder instead uses `C_BC(theta_0)`.
 
-The current finite-pair decoder measures `C_BC(theta_0)`, not `C_BC(F_A(theta_0))`.
-
-Define the **prefix-conditioned commutator drift**
+Define the prefix-conditioned commutator drift
 
 `T_{A;BC} = C_BC(F_A(theta_0)) - C_BC(theta_0)`.
 
-`T_{A;BC}` is a third-order interaction: it measures how learning A changes the later B/C order effect.
+This drift is an order-3 object: earlier learning changes the geometry of later order.
 
-### Why this matches the 14M failure pattern
+The portable Pythia-14M result first suggested this because every 3/6 error preserved the first stage and swapped only positions 2 and 3. T1 then directly measured that the relevant conditioned tail commutators were dramatically smaller and nearly orthogonal to their base versions.
 
-The portable Pythia-14M decoder produced:
+That observation is mechanistically useful, but the sharper decomposition below explains the asymmetric one-tail-survives pattern.
+
+## 8. Exact shared-prefix midpoint/separation decomposition
+
+Consider two histories sharing a prefix `p` and differing only in tail order `ij` versus `ji`.
+
+Let
+
+`P_pij`, `P_pji`
+
+be the static finite-pair predictions and
+
+`E_pij`, `E_pji`
+
+be the actual endpoints.
+
+Define the static pair direction
+
+`d0 = P_pij - P_pji`,
+
+the actual conditioned separation
+
+`dc = E_pij - E_pji`,
+
+and the common midpoint shift
+
+`b = (E_pij+E_pji)/2 - (P_pij+P_pji)/2`.
+
+Normalize their projections onto the static pair axis:
+
+`alignment = <dc,d0> / ||d0||^2`
+
+`midpoint_bias = 2<b,d0> / ||d0||^2`.
+
+Then exactly:
+
+- forward history `pij` is closer to its own static-pair prediction than `pji` iff
+  `alignment + midpoint_bias > 0`;
+- reverse history `pji` is closer to its own prediction iff
+  `alignment - midpoint_bias > 0`.
+
+Therefore both tail orders are simultaneously recoverable against each other iff
+
+`alignment > |midpoint_bias|`.
+
+Define
+
+`tail_robustness = alignment - |midpoint_bias|`.
+
+This separates two distinct ways a lower-order model can fail:
+
+1. the conditioned order-sensitive separation can rotate/shrink/reverse;
+2. a common higher-order midpoint drift can push both histories toward the same lower-order candidate.
+
+## 9. What T1 actually showed on the frozen Pythia-14M instance
+
+Portable Pythia-14M at 16 updates/stage reproducibly produced:
 
 - `ABC -> ACB`
 - `ACB -> ACB`
@@ -181,201 +303,222 @@ The portable Pythia-14M decoder produced:
 - `CAB -> CAB`
 - `CBA -> CAB`.
 
-Every error preserves stage 1 and swaps only stages 2 and 3.
+Descriptively:
 
-For a pair such as `ABC` versus `ACB`, the two histories have the same A/B and A/C precedence edges. They differ only in B/C precedence. Therefore a decoder that gets the earliest stage right but substitutes the base-state `C_BC(theta_0)` for the conditioned `C_BC(F_A(theta_0))` has exactly the observed failure mode.
+- exact order: `3/6`;
+- first stage: `6/6`;
+- pairwise precedence: `15/18 = 83.3%`;
+- mean Kendall tau: `2/3`.
 
-This is currently a mechanistic hypothesis generated by one locked instance. It must be tested directly before being treated as an explanation.
+### 9.1 Conditioned commutator collapse/rotation
 
-## 6. Static tournament versus state-dependent tournament
+For prefixes A/B/C respectively:
 
-A base pairwise decoder treats the candidate stages as a static directed tournament: each pair has one order vector measured at `theta_0`.
+| Prefix | base norm | conditioned norm | base/conditioned cosine | relative drift |
+|---|---:|---:|---:|---:|
+| A | 0.205614 | 0.037957 | 0.103456 | 0.997954 |
+| B | 0.259722 | 0.046565 | 0.030969 | 1.010468 |
+| C | 0.244604 | 0.062985 | 0.052139 | 1.019547 |
 
-The more realistic object is a **state-dependent chronology tournament**:
+Thus the tail interaction measured at the conditioned state is much smaller and almost orthogonal to its base-state version.
 
-`C_ij(theta)`.
+### 9.2 Midpoint bias dominates the remaining aligned signal
 
-As training proceeds, theta changes, so the preferred / identifiable orientation of later pairs can rotate, shrink, grow, or reverse.
+The exact midpoint replay measured:
 
-Chronology is therefore a path through a field of pair interactions, not a ranking read from one static matrix.
+| Prefix | Tail | alignment | midpoint bias | forward score | reverse score |
+|---|---|---:|---:|---:|---:|
+| A | BC | 0.019095 | -0.137284 | -0.118189 | +0.156379 |
+| B | AC | 0.005551 | +0.177508 | +0.183059 | -0.171957 |
+| C | AB | 0.013423 | +0.245139 | +0.258562 | -0.231716 |
 
-A useful drift quantity is
+The actual conditioned separation retains a tiny **positive** projection on the original pair direction; it does not simply reverse. But the common third-order midpoint bias is roughly 7.2x, 32.0x and 18.3x larger than that aligned signal.
 
-`rho_{A;BC} = ||C_BC(F_A(theta_0)) - C_BC(theta_0)|| / ||C_BC(theta_0)||`.
+Its sign selects exactly which member of each prefix pair survives:
 
-If the commutator field is locally Lipschitz with constant `L_BC`, then
+- A prefix: `ACB` survives, `ABC` loses;
+- B prefix: `BAC` survives, `BCA` loses;
+- C prefix: `CAB` survives, `CBA` loses.
 
-`||T_{A;BC}|| <= L_BC ||F_A(theta_0)-theta_0||`.
+The best current description of this frozen instance is therefore:
 
-This predicts a principled transition: base-anchored pairwise reconstruction should degrade as prefix displacement grows relative to pair-signature separation and commutator stability.
+> useful conditioned tail-order separation nearly collapses, while a much larger exact third-order midpoint drift pushes both endpoints toward one static-pair candidate.
 
-## 7. Decoder correctness depends on residual direction, not only residual norm
+This is an exact geometric diagnosis of one motivating instance, not independent generalization evidence.
 
-Let the order-K prediction for the true chronology pi be
+## 10. Correction: directional contamination is diagnostic, not independent evidence
 
-`theta_hat_pi = reference + s_pi`
+For true lower-order signature `s_pi`, competitor `s_sigma`, and omitted residual `r_pi`, let
 
-and the real endpoint be
+`d = s_pi - s_sigma`.
 
-`theta_pi = theta_hat_pi + r_pi`,
+Nearest-signature decoding prefers the true history iff
 
-where `r_pi` is the omitted higher-order residual.
+`2<r_pi,d> + ||d||^2 > 0`.
 
-For a competing chronology sigma, define
+Equivalently,
 
-`d_{pi,sigma} = s_pi - s_sigma`.
+`chi_(pi,sigma) = -2<r_pi,d> / ||d||^2 < 1`.
 
-Nearest-signature decoding prefers pi over sigma exactly when
+Earlier interpretation treated the fact that failed histories had `chi > 1` as strong support. This was too strong: `chi < 1` is algebraically equivalent to the two-candidate nearest-signature decision itself.
 
-`||r_pi||^2 < ||r_pi + d_{pi,sigma}||^2`,
+Thus `chi` is useful for **directional accounting**—which competitor direction the omitted term contaminates—but its match to the observed winner is not independent empirical validation.
 
-which simplifies to
+The nontrivial independent questions are whether fresh instances repeatedly show structured same-prefix errors, coarse chronology surviving exact-order failure, and systematic state-conditioned interaction changes.
 
-`2 <r_pi, d_{pi,sigma}> + ||d_{pi,sigma}||^2 > 0`.
+## 11. Norm certificates versus directional geometry
 
-Equivalently define the **directional contamination ratio**
+A sufficient but conservative robustness condition is
 
-`chi_{pi,sigma} = -2 <r_pi, d_{pi,sigma}> / ||d_{pi,sigma}||^2`.
+`2||r_pi|| / ||d|| < 1`.
 
-The exact pairwise decision remains correct against sigma iff
+It can fail even when decoding succeeds because a large residual may be mostly orthogonal to the competing chronology direction. This occurred in the controlled tiny transformer: the norm certificate failed at long stages while finite-pair reconstruction remained 6/6.
 
-`chi_{pi,sigma} < 1`.
+Consequently result files should distinguish:
 
-This is stronger than the current norm-only sufficient bound
+- higher-order residual norm;
+- chronology-signature separation;
+- residual direction;
+- exact or decomposed decision geometry.
 
-`2 ||r_pi|| / ||d_{pi,sigma}|| < 1`,
+Global relative parameter displacement is also a poor locality proxy in high dimensions: the 14M endpoint moved only about `1e-4` of the base parameter norm while degree-3 residuals were already comparable to chronology-signature separation.
 
-which follows from Cauchy-Schwarz but can be very conservative.
+## 12. Probe complexity is not inference complexity
 
-This explains an important earlier observation: on the tiny transformer the norm bound exceeded 1 at long stages while finite-pair decoding still achieved 6/6. The omitted residual was large but not sufficiently aligned with the nearest wrong chronology direction. On Pythia-14M, the residual is apparently aligned with specific tail-swap directions strongly enough to cross their decision boundaries.
+If all ordered interactions through fixed degree K are measured, stage-map probe count scales as
 
-Future result files should report both:
+`sum_{r=1..K} P(N,r) = O(N^K)`
 
-- norm-based residual/separation ratio;
-- exact directional contamination against every competing chronology.
+for fixed K.
 
-## 8. What the current numbers say
+Examples:
 
-Portable Pythia-14M, 16 updates/stage:
+- K=1: `O(N)`;
+- K=2: `O(N^2)`;
+- K=3: `O(N^3)`.
 
-- base parameter norm: `1234.92688`
-- singleton displacement norms:
-  - A `0.2062331`
-  - B `0.1697814`
-  - C `0.1847850`
-- finite-pair minimum signature separation: `0.2056145`
-- maximum triple+ remainder norm: `0.2054421`
-- maximum norm certificate ratio: `1.99832`
-- full-order recovery: `3/6`
-- descriptive pairwise precedence accuracy: `15/18 = 83.3%`
-- descriptive first-stage recovery: `6/6`
-- descriptive mean Kendall tau: `2/3`.
+This is **probe complexity**, not automatically chronology-decoding complexity.
 
-The relative parameter movement is tiny (`~1e-4` of the base norm), yet the triple+ remainder is approximately the same absolute scale as the minimum chronology-signature separation. This warns against using global relative weight displacement as a proxy for interaction locality in a high-dimensional model.
+There are still `N!` total orders, and finding the best globally consistent permutation from pair/higher-order evidence can remain combinatorial. ChronoTrace must therefore report separately:
 
-The relevant dimensionless quantities should compare **interaction order to chronology separation**, not displacement to total parameter norm.
+1. cost to construct the interaction representation;
+2. cost to infer a consistent total/partial order from it.
 
-## 9. Training-history trace channels
+A future practical decoder may use prefix beams, branch-and-bound, constrained ranking, partial-order output, or higher-order probes only on ambiguous branches. No polynomial worst-case decoding claim is currently justified.
 
-The eventual theory should distinguish at least four mechanisms:
+Three stages are especially weak for efficiency claims: measuring conditioned degree-3 interactions nearly touches complete histories. Meaningful low-order-versus-factorial scaling should use `N >= 4`.
 
-### A. Geometric trace
+## 13. Behavioral observability and Order Witnesses
 
-Noncommutativity of weight-update fields / finite stage maps. This is the channel isolated by the current reset-SGD experiments.
+Weight-space identifiability does not imply black-box identifiability.
 
-### B. Optimizer-memory trace
+For a scalar behavioral statistic `f_q(theta)` and a small chronology direction
 
-Persistent momentum / Adam first- and second-moment state makes the next stage depend explicitly on previous gradients, even at identical weights.
+`Delta_order = theta_pi - theta_sigma`,
 
-### C. Schedule/time trace
+locally
 
-Learning-rate schedules, weight-decay schedules, curriculum position, and global step make the same data stage a different operator depending on when it occurs.
+`f_q(theta_pi)-f_q(theta_sigma) ~= grad f_q(theta)^T Delta_order`.
 
-### D. Stochastic trace
+This gives a mechanistic interpretation of an Order Witness:
 
-Data shuffling, sampling, dropout, mixed-precision rounding, distributed reductions, and other randomness create a distribution over stage operators rather than one deterministic map.
+> a query whose behavioral sensitivity has a large projection onto a chronology-sensitive parameter direction relative to noise.
 
-A scientifically clean program should add these channels one at a time. A positive result under persistent Adam state should not be mislabeled as a pure weight-geometry result.
+A schematic witness score is
 
-## 10. Theory-driven next experiments
+`|grad f_q^T Delta_order| / sigma_q`.
 
-Do not move directly to 31M.
+Ordinary benchmarks can be chronology-blind even when weights are identifiable because their observation gradients may lie nearly orthogonal to the chronology subspace.
 
-### T1 — Diagnostic replay of the same frozen 14M instance
+This is the bridge from the current R1 white-box simulator experiments toward eventual black-box provenance.
 
-Purpose: test the mechanism, not improve accuracy.
+## 14. Literature boundary
 
-Record the vectors necessary to compute:
+Several neighboring claims are already occupied and must be cited rather than presented as ChronoTrace novelty:
 
-- exact triple Mobius interaction for each A/B/C order;
-- `C_BC(theta_0)` and `C_BC(F_A(theta_0))`, plus corresponding conditional commutators for every first-stage choice;
-- prefix-conditioned commutator drift norms and angles;
-- exact `chi_{pi,sigma}` directional contamination for every true/competing order;
-- per-edge precedence margins.
+- data/task order affects optimization;
+- training order can leave persistent traces;
+- training can exhibit memory/non-Markovian behavior;
+- optimizer state carries prior gradients;
+- future training can transform the behavioral value of earlier state;
+- training can be modeled as a multi-time/tomographic process.
 
-Prediction: the three failed histories should cross the decision boundary primarily on the single tail-pair edge, and the corresponding conditioned commutator should differ materially from the base commutator.
+Especially relevant 2026 work includes:
 
-This replay uses the same frozen instance and is **diagnostic only**; it cannot establish generalization.
+- Sevetlidis & Pavlidis, **Process-Tensor Tomography of SGD** (AISTATS 2026; arXiv:2601.16563);
+- Sevetlidis & Pavlidis, **Training Memory in Deep Neural Networks** (arXiv:2601.21624);
+- Xu, **Stored in Optimizer State, Valued by Later Training** (arXiv:2608.20442);
+- Guo, **Delayed Optimizer-State Transport Shapes Short-Horizon Training Decisions** (arXiv:2608.24593);
+- Kuditipudi et al., **Blackbox Model Provenance via Palimpsestic Membership Inference** (NeurIPS 2025).
 
-### T2 — Independent 14M interaction-order map
+Accordingly, **“Training-History Tomography” should not be treated as a distinctive project umbrella**.
 
-Before generating results, freeze several independent world/codebook seeds and a stage-length sweep chosen to map a transition rather than maximize accuracy.
+The still-defensible candidate gap is narrower:
 
-Suggested stage lengths: `{1,2,4,8,16,32}` with the already frozen chronology-blind SGD rate unless a separate stability-only rule requires otherwise.
+> **post-hoc reconstruction or partial-order identification of an unknown semantic macro-stage chronology from a finished model, together with the interaction degree and access/observation regime required for that inverse problem.**
 
-Report separately:
+This remains a candidate novelty boundary, not proof of firstness.
 
-- exact full-order recovery;
-- first-stage recovery;
-- pairwise precedence accuracy;
-- Kendall tau;
-- minimum pair-signature separation;
-- prefix-conditioned commutator drift;
-- norm residual ratio;
-- directional contamination ratio.
+## 15. Current theory-driven experiment program
 
-Prediction: lower interaction order should be sufficient in the small-displacement regime, while prefix-conditioned / third-order effects should become necessary as the stage operator moves farther from the base state.
+### T1 — complete: diagnose the frozen 14M failure
 
-### T3 — Four-stage test of polynomial interaction order
+T1 and the midpoint replay are complete. They exactly reproduced the portable 14M basis/endpoints and established the instance-specific geometry described above.
 
-Three stages are insufficient to demonstrate an efficient third-order decoder, because measuring all ordered triples already touches all `3!` complete histories.
+Evidence:
 
-The first meaningful test of an order-3 reconstruction basis should use at least four stages:
+- original T1 run `33243747235`;
+- midpoint replay `33245010517`;
+- `docs/results/pythia_14m_theory_diagnostic.md`.
 
-- full histories: `4! = 24` for held-out ground truth;
-- interactions through order 2: `4 + 12 = 16` stage-map extensions;
-- through order 3: `4 + 12 + 24 = 40` stage-map extensions;
-- naive full replay: `4 * 24 = 96` stage executions.
+T1 is explanatory evidence on the same instance that generated the hypothesis, not confirmation.
 
-The point is not the modest 4-stage savings. It is to test whether a fixed interaction order can reconstruct a factorial chronology space and to measure where the hierarchy breaks.
+### T2 — frozen independent Pythia-14M interaction map
 
-### T4 — Only then add realistic optimizer state
+T2 is the current independent falsifier.
 
-If the geometric hierarchy generalizes, introduce persistent Adam state as a separate experiment. The training operator should then act on the extended state `z=(theta,m,v,q,...)`, while evaluation can compare:
+Frozen before outcomes:
 
-- full-state access;
-- weights-only access;
-- optimizer-reset versus optimizer-persistent stage boundaries.
+- four mechanically derived tokenizer-safe codebooks;
+- stage lengths `{1,2,4,8,16,32}`;
+- all six A/B/C permutations;
+- same portable 14M checkpoint and `1e-4` chronology-blind plain-SGD rate;
+- no performance-based condition selection;
+- full-order, first-stage, pairwise-precedence, Kendall, commutator and midpoint/separation metrics reported for every condition.
 
-This will reveal whether realistic training history is encoded mainly through weights, optimizer memory, or both.
+Key independent question:
 
-## 11. Current novelty boundary
+> Does coarse chronology systematically survive after exact total-order recovery degrades, with failures concentrated in same-prefix tail ambiguity and accompanied by state-conditioned interaction collapse/midpoint dominance?
 
-Known / adjacent:
+See `configs/pythia_14m_t2.lock.json` and `docs/experiments/PYTHIA_14M_T2_PROTOCOL.md`.
 
-- training order affects optimization and stability;
-- curriculum / task ordering can be optimized;
-- local Lie brackets predict forward order effects;
-- model lineage and example-order fingerprints can be detected in other provenance settings.
+### T3 — contingent: four-stage interaction-order test
 
-Representative nearby work:
+Only if T2 supports a repeatable hierarchy should the next mechanism experiment use at least four stages.
 
-- Sweeney, 2026, *The Geometry of Sequential Learning: Lie-Bracket Prediction of Transfer Order*: https://arxiv.org/abs/2606.24993
-- Dherin et al., 2025, *Training in reverse: How iteration order influences convergence and stability in deep learning*: https://research.google/pubs/training-in-reverse-how-iteration-order-influences-convergence-and-stability-in-deep-learning/
-- Li & Hiratani, 2025, *Optimal Task Order for Continual Learning of Multiple Tasks*: https://proceedings.mlr.press/v267/li25z.html
+The purpose is to test whether a degree-3 representation can constrain a `4!` chronology space without merely replaying the complete three-stage histories that define the degree-3 terms.
 
-The candidate ChronoTrace contribution is narrower:
+T3 must report both probe cost and inference cost and should include partial-order metrics, not only exact permutation accuracy.
 
-> **inverse training-history reconstruction from a finished endpoint, together with an interaction-order theory that characterizes when singleton, pairwise, prefix-conditioned, and higher-order stage effects are sufficient for chronology identifiability.**
+### T4 — later: factor realistic chronology channels
 
-This remains a provisional novelty statement. A publication-stage literature audit is still required.
+Only after the geometric hierarchy is understood should the program introduce realistic training channels factorially:
+
+- optimizer reset vs persistent momentum/Adam;
+- constant LR vs warmup/decay;
+- matched/reset vs continuously carried stochastic state;
+- weights-only vs behavioral observation.
+
+The scientific question is not whether those channels contain memory—the literature already establishes that they can—but **how each channel changes inverse chronology identifiability and provenance survivability**.
+
+## 16. Current falsifiable research claim
+
+The strongest claim justified as a hypothesis today is:
+
+> In controlled sequential language-model training, chronology information is represented hierarchically: low-order interactions can preserve coarse precedence while finer order requires state-conditioned higher-order interactions. The minimum required interaction degree depends on how nonlocal the training stages become and on the observation interface.
+
+T2 is designed to falsify the first independent part of that statement.
+
+If T2 does not reproduce structured coarse-to-fine chronology across fresh codebooks, the state-conditioned hierarchy must be revised before any model-size scale-up.
+
+Pythia-31M remains blocked until T2 is interpreted.
