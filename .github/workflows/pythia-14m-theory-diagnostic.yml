@@ -1,19 +1,11 @@
 name: Pythia 14M theory diagnostic
 
 on:
-  push:
-    branches: [experiment/pythia-finite-pair-scale]
-    paths:
-      - .github/workflows/pythia-14m-theory-diagnostic.yml
-      - scripts/pythia_14m_theory_diagnostic.py
-      - scripts/pythia_finite_pair_bridge.py
-      - src/chronotrace/geometry/history.py
-      - src/chronotrace/geometry/secant.py
-      - src/chronotrace/scale.py
-      - src/chronotrace/scale_runner.py
-      - src/chronotrace/scale_tokens.py
-      - configs/pythia_scale.lock.json
-      - configs/pythia_scale_codebook.json
+  workflow_dispatch:
+
+concurrency:
+  group: pythia-14m-theory-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
