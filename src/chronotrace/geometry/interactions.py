@@ -258,13 +258,18 @@ def measure_ordered_interaction_basis_compact(
     base: Any,
     *,
     max_degree: int,
+    endpoint_observer: Callable[[tuple[str, ...], Any], None] | None = None,
 ) -> OrderedInteractionBasis:
     """Measure an ordered basis while retaining only interaction tensors.
 
-    For each word, the endpoint of its prefix is reconstructed exactly from the already
-    measured lower-order interactions. The final stage is then applied once and the new
-    interaction is extracted immediately. This preserves the same probe count as cached
-    prefix measurement while avoiding a second full tensor table of prefix endpoints.
+    For each word, the endpoint of its prefix is reconstructed from the already measured
+    lower-order interactions. The final stage is then applied once and the new interaction
+    is extracted immediately. This preserves the same probe count as cached prefix
+    measurement while avoiding a second full tensor table of prefix endpoints.
+
+    ``endpoint_observer`` is an optional side-effect hook invoked with each exact measured
+    endpoint before interaction extraction. It does not alter the basis or probe count and
+    allows callers to persist selected measured endpoints outside model memory.
     """
 
     stages = _validate_stages(tuple(stage_maps))
@@ -285,6 +290,8 @@ def measure_ordered_interaction_basis_compact(
             executions += 1
             if endpoint.shape != base.shape:
                 raise ValueError("stage map changed the observation shape")
+            if endpoint_observer is not None:
+                endpoint_observer(word, endpoint)
             interactions[word] = _interaction_from_endpoint(
                 endpoint,
                 base,
