@@ -1,0 +1,77 @@
+{
+  "methodology_version": "chronotrace-pairwise-multi-witness-certificate-v1",
+  "freeze_status": "frozen_before_any_heldout_confirmation_output",
+  "freeze_reason": "stop methodology iteration and transition to confirmatory validation",
+  "method_head_commit": "f610731cd25c67d27df8715887deabfc5145111b",
+  "method_ci_run": 33328870033,
+  "method_ci_conclusion": "success",
+  "spent_analysis": "configs/pythia_14m_projected_k4_pairwise_multi_witness.analysis.json",
+  "spent_analysis_commit": "1286d29e9c15682e242f4ea9c86a717201003289",
+  "spent_source_run_id": 33327336769,
+  "spent_source_artifact_id": 9736705289,
+  "spent_source_result_sha256": "168f0dc7d01a9568459ad586ad31147cba7cb22a29d1fbde5b7cd757b2013cc9",
+  "spent_full_chronology_certified": true,
+  "spent_minimum_wrong_relation_distance_lower_bound": 0.0006986368053447773,
+  "model": "EleutherAI/pythia-14m-deduped",
+  "revision": "step143000",
+  "precision": "fp64",
+  "learning_rate": 0.0001,
+  "updates_per_stage": 1,
+  "stages": ["A", "B", "C", "D"],
+  "interaction_measurement": {
+    "k3_basis_degree": 3,
+    "k3_basis_stage_executions": 40,
+    "k3_measurement_path": "streaming_exact_direct_prefix",
+    "target_replay_stage_executions": 4,
+    "k4_active_lift_stage_executions": 24,
+    "total_stage_executions_per_confirmation_case": 68,
+    "k4_retention": "four scalar witness projections per complete chronology; no K4 model-space interaction tensors retained"
+  },
+  "witness_bank": {
+    "count": 4,
+    "labels": ["A", "B", "C", "D"],
+    "construction": "for each candidate final stage j, form the six degree-three full-history predictions ending in j, project the target onto their convex hull, and normalize target-minus-projection to obtain u_j",
+    "freeze_rule": "all four witnesses must be fully constructed and unit-norm checked using only K3 information before the first K4 active-lift output",
+    "single_witness_failure_is_not_a_method_failure": "the frozen method uses the entire pre-K4 witness bank through an infinity-norm certificate; it does not select one witness after K4 output"
+  },
+  "certificate": {
+    "hierarchy": "nonnegative K-local order marginals with simplex and adjacent-level marginal consistency",
+    "terminal_confirmation_degree": 4,
+    "terminal_hierarchy_dimension": 64,
+    "property_queries": "for every unordered stage pair {i,j}, solve the proof-safe multi-witness infinity-norm LP on the class with the wrong precedence orientation",
+    "distance_proxy": "max_j |<u_j, target-candidate>|",
+    "euclidean_soundness": "because every u_j is unit norm, max_j absolute witness projection is no larger than Euclidean residual norm",
+    "solver": "scipy.optimize.linprog highs proposes primal and dual values; the reported bound clips and L1-normalizes inequality duals, recomputes reduced costs, applies one simplex-minimum correction per local subset, and subtracts a floating-point guard",
+    "certificate_guard": 1e-10,
+    "elimination_guard": 0.000001,
+    "wrong_relation_rule": "wrong precedence is certified impossible only if the proof-safe Euclidean distance lower bound exceeds the elimination guard",
+    "true_relation_sanity": "the class containing the target chronology must have Euclidean distance lower bound at most the elimination guard",
+    "full_chronology_rule": "full chronology is certified iff exactly one orientation survives for every unordered stage pair and the surviving orientations form one total order",
+    "pair_query_count": 6
+  },
+  "theory_scope": {
+    "terminal_exactness": "at K=N=4, the hierarchy contains the full permutation simplex, so the property LP is exact in the retained witness-projection geometry and there is no omitted interaction tail",
+    "fixed_k_scaling": "the hierarchy coordinate count is sum_{r<=K} P(N,r), polynomial in N for fixed K, and the number of pairwise property queries is O(N^2)",
+    "exactness_below_terminal_level": "for K<N, the certificate is exact for the degree-K interaction model; promotion to an exact true-endpoint claim requires an explicit omitted-interaction bound or increasing K",
+    "information_barrier": "without additional regularity assumptions, unseen K+1 interactions cannot be universally bounded from degree-K observations alone; the hierarchy is therefore instance-adaptive rather than a universal fixed-K exact decoder",
+    "paper_complexity_measure": "interaction certificate depth K-star is the smallest interaction level at which the requested chronology properties are certified under the applicable tail rule"
+  },
+  "confirmation_codebooks_observed_before_freeze": false,
+  "heldout_confirmation_cases": [
+    {"seed": 4294917749, "target_history": "ABCD"},
+    {"seed": 3885207466, "target_history": "BADC"},
+    {"seed": 402469483, "target_history": "CDAB"},
+    {"seed": 2000073798, "target_history": "DCBA"}
+  ],
+  "confirmation_case_assignment_rule": "target histories were fixed before any heldout codebook output and cover four distinct final stages while varying pairwise order structure",
+  "heldout_confirmation_launch_authorized": true,
+  "confirmation_success_rule": {
+    "per_case_success": "all six wrong pairwise relations are certified impossible, all six true relation classes pass the target-feasibility sanity check, and the surviving relations reconstruct the frozen target history",
+    "strong_success": "4 of 4 heldout cases satisfy per-case success",
+    "partial_success": "3 of 4 heldout cases satisfy per-case success",
+    "scientific_negative": "2 or fewer heldout cases satisfy per-case success while all runs are otherwise valid",
+    "invalid": "any source/provenance drift, exact target replay failure, witness freeze violation, projected reconstruction failure, proof-safe certificate inequality failure, or true target class exclusion"
+  },
+  "method_change_policy": "no witness construction, interaction degree, pairwise query definition, solver correction, thresholds, target histories, or success criteria may be changed after this lock based on confirmation outputs",
+  "next_step": "implement a confirmation-only runner that instantiates this frozen method for all four heldout cases, pass cheap CI, then launch the four-case confirmation suite without intermediate adaptation"
+}
