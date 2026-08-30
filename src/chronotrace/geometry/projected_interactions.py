@@ -1,14 +1,14 @@
 """Scalar witness projections of ordered interaction bases.
 
 Linearity allows Möbius interaction algebra to be performed after projection onto a fixed
-certificate direction.  A newly measured order-K endpoint therefore needs only one scalar
+certificate direction. A newly measured order-K endpoint therefore needs only one scalar
 projection per witness direction; the full order-K interaction tensor can be discarded.
 """
 
 from __future__ import annotations
 
 import math
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 from chronotrace.geometry.interactions import ordered_subsequences
 

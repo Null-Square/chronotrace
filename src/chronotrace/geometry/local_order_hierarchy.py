@@ -13,9 +13,10 @@ are induced from it, so the hierarchy is exact (although factorial at that termi
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from itertools import combinations, permutations
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 import numpy as np
 
