@@ -19,13 +19,13 @@ class _Vector:
     def shape(self) -> tuple[int, ...]:
         return self.values.shape
 
-    def clone(self) -> "_Vector":
+    def clone(self) -> _Vector:
         return _Vector(self.values.copy())
 
-    def __add__(self, other: "_Vector") -> "_Vector":
+    def __add__(self, other: _Vector) -> _Vector:
         return _Vector(self.values + other.values)
 
-    def __sub__(self, other: "_Vector") -> "_Vector":
+    def __sub__(self, other: _Vector) -> _Vector:
         return _Vector(self.values - other.values)
 
 
