@@ -10,6 +10,7 @@ import json
 import math
 from itertools import permutations
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 import numpy as np
@@ -21,7 +22,7 @@ from chronotrace.geometry.convex_quadratic import (
     project_quadratic_simplex,
 )
 from chronotrace.geometry.interactions import (
-    measure_ordered_interaction_basis_compact,
+    measure_ordered_interaction_basis_streaming_exact,
     ordered_interaction_word_prediction,
     ordered_probe_count,
 )
@@ -40,6 +41,11 @@ from chronotrace.scale import build_scale_worlds_from_codebook
 from chronotrace.scale_four import build_four_stage_examples, four_stage_dataset_payload
 from chronotrace.scale_runner import execute_plain_sgd_stage, flatten_parameters
 from chronotrace.scale_tokens import build_token_codebook, tokenizer_fingerprint
+
+
+IMPLEMENTATION_AMENDMENT = Path(
+    "configs/pythia_14m_projected_k4_survivor_diagnostic.implementation_amendment.json"
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -119,6 +125,7 @@ def main() -> None:
     protocol = _load_json(args.protocol)
     source_k3_protocol = _load_json(args.source_k3_protocol)
     source_k3_selection = _load_json(args.source_k3_selection)
+    amendment = _load_json(IMPLEMENTATION_AMENDMENT)
 
     if protocol["freeze_status"] != "frozen_before_any_projected_k4_pythia_output":
         raise ValueError("projected K4 protocol is not frozen")
@@ -128,6 +135,16 @@ def main() -> None:
         raise RuntimeError("projected K4 protocol unexpectedly authorizes held-out confirmation")
     if protocol.get("confirmation_codebooks_observed") is not False:
         raise RuntimeError("projected K4 protocol touched confirmation codebooks")
+    if amendment.get("status") != "frozen_after_invalid_unreported_attempt_before_any_retry_output":
+        raise RuntimeError("projected K4 implementation amendment is not frozen")
+    if amendment.get("source_protocol_version") != protocol["protocol_version"]:
+        raise RuntimeError("projected K4 implementation amendment protocol drift")
+    if amendment.get("scientific_decision_rule_changed") is not False:
+        raise RuntimeError("projected K4 implementation amendment changed the decision rule")
+    if amendment.get("heldout_confirmation_launch_authorized") is not False:
+        raise RuntimeError("projected K4 implementation amendment authorizes held-out confirmation")
+    if int(amendment["total_expected_stage_executions"]) != int(protocol["total_expected_stage_executions"]):
+        raise RuntimeError("projected K4 implementation amendment changed stage budget")
     if source_k3_protocol.get("confirmation_codebooks_observed") is not False:
         raise RuntimeError("source K3 protocol touched confirmation codebooks")
     if source_k3_selection.get("confirmation_codebooks_observed") is not False:
@@ -242,8 +259,29 @@ def main() -> None:
         return run
 
     stage_maps = {stage: make_stage_map(stage) for stage in stages}
-    basis = measure_ordered_interaction_basis_compact(stage_maps, theta0, max_degree=3)
+    prefix_cache = TemporaryDirectory(prefix="chronotrace-k3-prefix-")
+    prefix_cache_dir = Path(prefix_cache.name)
+    cached_prefixes: set[tuple[str, ...]] = set()
+
+    def cache_exact_degree_three_prefix(word: tuple[str, ...], endpoint: Any) -> None:
+        if len(word) != 3:
+            return
+        path = prefix_cache_dir / ("".join(word) + ".pt")
+        if path.exists():
+            raise RuntimeError("duplicate exact K3 prefix cache entry")
+        torch.save(endpoint, path)
+        cached_prefixes.add(word)
+
+    basis = measure_ordered_interaction_basis_streaming_exact(
+        stage_maps,
+        theta0,
+        max_degree=3,
+        endpoint_observer=cache_exact_degree_three_prefix,
+    )
     expected_k3_calls = ordered_probe_count(len(stages), 3)
+    expected_degree_three_prefixes = {word[:3] for word in degree4_words}
+    if cached_prefixes != expected_degree_three_prefixes:
+        raise RuntimeError("exact K3 prefix cache coverage drift")
     if expected_k3_calls != int(protocol["k3_basis_stage_executions"]):
         raise RuntimeError("frozen K3 basis execution count drift")
     if basis.stage_executions != expected_k3_calls or stage_calls != expected_k3_calls:
@@ -326,8 +364,14 @@ def main() -> None:
 
     for word in degree4_words:
         prefix = word[:-1]
-        initial = ordered_interaction_word_prediction(prefix, basis, degree=3)
+        prefix_path = prefix_cache_dir / ("".join(prefix) + ".pt")
+        if not prefix_path.exists():
+            raise RuntimeError("missing exact K3 prefix cache entry during active lift")
+        initial = torch.load(prefix_path, map_location=device, weights_only=True)
+        if initial.dtype != torch.float64 or initial.shape != theta0.shape:
+            raise RuntimeError("cached exact K3 prefix tensor drift")
         endpoint = stage_maps[word[-1]](initial)
+        prefix_path.unlink()
         label = "".join(word)
         direct_endpoint_errors[label] = float(torch.linalg.vector_norm(target - endpoint))
         if word == target_history:
@@ -354,6 +398,10 @@ def main() -> None:
         del endpoint
         del initial
 
+    prefix_cache_consumed = not any(prefix_cache_dir.iterdir())
+    prefix_cache.cleanup()
+    if not prefix_cache_consumed:
+        raise RuntimeError("exact K3 prefix cache was not fully consumed")
     if not active_lift_target_hash_match:
         raise RuntimeError("ABCD K3-prefix active lift did not reproduce the target endpoint")
     if projected_reconstruction_residual_max > projection_abs_tol:
@@ -464,6 +512,8 @@ def main() -> None:
     checks = {
         "source_k3_partial_pruning_reproduced": tuple(source_k3_selection["surviving_last_stages"]) == ("C", "D"),
         "target_endpoint_replay_exact": target_hash == str(protocol["target_endpoint_sha256"]),
+        "exact_degree_three_prefix_cache_complete": len(cached_prefixes) == int(protocol["degree4_word_count"]),
+        "exact_degree_three_prefix_cache_consumed": prefix_cache_consumed,
         "witnesses_frozen_before_any_k4_output": witness_freeze_stage_calls == expected_before_k4,
         "all_k3_witnesses_unit_norm": all(
             abs(float(witness_k3[stage]["unit_norm"]) - 1.0) <= witness_unit_tolerance
@@ -502,10 +552,13 @@ def main() -> None:
     result = {
         "protocol": protocol,
         "protocol_sha256": json_sha256(protocol),
+        "implementation_amendment": amendment,
+        "implementation_amendment_sha256": json_sha256(amendment),
         "source_k3_convex_protocol_sha256": json_sha256(source_k3_protocol),
         "source_k3_convex_selection_sha256": json_sha256(source_k3_selection),
         "numerical_fingerprint": numerical_fingerprint,
         "target_endpoint_sha256": target_hash,
+        "k3_measurement_path": "streaming_exact_direct_prefix",
         "stage_executions": stage_calls,
         "witness_freeze_stage_executions": witness_freeze_stage_calls,
         "witness_k3": witness_k3,
