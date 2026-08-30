@@ -1,0 +1,15 @@
+protocol=pythia-14m-k3-affine-last-stage-diagnostic-v1
+protocol_commit=b77b85a1b3e779cbc2426ef9e67334cd9611cf9b
+order_affine_core_ci_run=33296391150
+order_affine_core_ci_conclusion=success
+runner_commit=8b799c29c41329b9253613ae6e53af2e584466e6
+workflow_commit=ac0eddf404df6e21d2a1afd6d4710e1090033263
+source_all24_run=33279636756
+source_all24_artifact=9722715813
+spent_codebook_seed=1011473075
+target_history=ABCD
+feasible_upper_bound_history=BACD
+primary_full_permutation_evaluations=0
+coordinate_dimension=30
+confirmation_codebooks_observed=false
+launch_role=non_confirmatory_scalability_diagnostic
