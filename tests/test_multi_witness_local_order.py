@@ -77,7 +77,10 @@ def test_fixed_k_multi_witness_relaxation_is_conservative() -> None:
         coefficients,
         last_stage="D",
     )
-    exact_proxy_distance = min(float(np.max(np.abs(scores[:, index]))) for index in range(scores.shape[1]))
+    exact_proxy_distance = min(
+        float(np.max(np.abs(scores[:, index])))
+        for index in range(scores.shape[1])
+    )
     local = solve_local_order_multi_witness_lp(
         hierarchy,
         constants,
