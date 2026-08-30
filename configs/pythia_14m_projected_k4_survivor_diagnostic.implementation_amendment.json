@@ -1,0 +1,32 @@
+{
+  "amendment_version": "pythia-14m-projected-k4-survivor-implementation-amendment-v1",
+  "status": "frozen_after_invalid_unreported_attempt_before_any_retry_output",
+  "source_protocol": "configs/pythia_14m_projected_k4_survivor_diagnostic.lock.json",
+  "source_protocol_version": "pythia-14m-projected-k4-survivor-diagnostic-v1",
+  "reason": "the v1 runner used algebraic FP64 Mobius prefix reconstruction inside compact K3 measurement and again before the final active lift; exact-arithmetic identities do not imply bitwise equality after those floating-point add/subtract paths",
+  "invalid_attempt_record": "configs/pythia_14m_projected_k4_survivor_diagnostic.invalid_attempts.json",
+  "invalid_attempt_with_model_run_id": 33323819378,
+  "invalid_attempt_with_model_job_id": 99290329962,
+  "invalid_attempt_failure": "ABCD K3-prefix active lift did not reproduce the frozen target hash",
+  "invalid_attempt_scientific_metrics_emitted": false,
+  "invalid_attempt_artifact_emitted": false,
+  "invalid_attempt_c_or_d_scores_logged": false,
+  "scientific_decision_rule_changed": false,
+  "survivor_set_changed": false,
+  "witness_definition_changed": false,
+  "thresholds_changed": false,
+  "heldout_policy_changed": false,
+  "stage_execution_budget_changed": false,
+  "total_expected_stage_executions": 68,
+  "repair": {
+    "k3_measurement": "streaming direct-prefix measurement through degree three, retaining only one exact endpoint level in memory while building the same ordered-interaction coordinates",
+    "degree3_prefix_retention": "write exactly the 24 measured degree-three FP64 prefix endpoints to ephemeral local disk, after which they are loaded one at a time only after all K3 witnesses are frozen",
+    "degree4_active_lift": "apply the missing final stage once to the exact cached degree-three prefix endpoint; retain only the already-frozen scalar witness projections and direct scalar endpoint error; delete the cached prefix after use",
+    "degree4_tensor_retention": false
+  },
+  "mandatory_pre_k4_gate": "all four recomputed K3 convex witness lower bounds must reproduce the frozen source K3 selection within the original projection_numeric_abs_tol/projection_numeric_rel_tol; otherwise abort before interpreting K4 outputs",
+  "mandatory_exactness_gate": "the ABCD exact-prefix active lift must reproduce the frozen target endpoint hash exactly; no numerical relaxation of this criterion is authorized",
+  "confirmation_codebooks_observed": false,
+  "heldout_confirmation_launch_authorized": false,
+  "retry_authorized_only_after_cheap_ci": true
+}
