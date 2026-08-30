@@ -1,0 +1,37 @@
+{
+  "record_version": "pythia-14m-projected-k4-survivor-invalid-attempts-v1",
+  "protocol": "configs/pythia_14m_projected_k4_survivor_diagnostic.lock.json",
+  "experiment_role": "non_confirmatory_spent_survivor_active_lift_diagnostic",
+  "confirmation_codebooks_observed": false,
+  "heldout_confirmation_launch_authorized": false,
+  "attempts": [
+    {
+      "run_id": 33323546560,
+      "job_id": 99289590738,
+      "head_sha": "2cc214f47616cb18b4e49a72ba654fa6f15e173a",
+      "status": "invalid_pre_model_configuration_failure",
+      "failure": "portable numerical initializer received the K3 convex lock instead of the frozen K23 lock containing portable_kernel_gate",
+      "model_weights_loaded": false,
+      "stage_executions": 0,
+      "scientific_metrics_emitted": false,
+      "artifact_emitted": false,
+      "scientific_outputs_observed": false
+    },
+    {
+      "run_id": 33323819378,
+      "job_id": 99290329962,
+      "head_sha": "bddfbe51636971de1738da8ae5210e67c914d4bc",
+      "status": "invalid_exact_prefix_implementation_failure",
+      "failure": "ABCD K3-prefix active lift failed the frozen bitwise target hash check because the runner reapplied the final stage to an FP64 Mobius-reconstructed prefix rather than the exact measured degree-three prefix endpoint",
+      "model_weights_loaded": true,
+      "planned_stage_executions_completed_before_failure": 68,
+      "scientific_metrics_computed_in_process": true,
+      "scientific_metrics_emitted": false,
+      "artifact_emitted": false,
+      "scientific_metrics_observed_by_researcher": false,
+      "c_or_d_scores_logged": false,
+      "decision_rule_changed_after_failure": false,
+      "repair_scope": "implementation only: preserve the frozen exact active-lift semantics by temporarily caching exact measured degree-three prefix endpoints; do not change witness construction, thresholds, survivor set, stage count, or certificate rule"
+    }
+  ]
+}
