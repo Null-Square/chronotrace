@@ -141,3 +141,41 @@ def test_multi_witness_certificate_survives_redundant_witnesses() -> None:
         certificate_guard=1e-12,
     )
     assert local.euclidean_distance_lower_bound > 0.399999999
+
+
+def test_precedence_property_certificate_rejects_wrong_orientation() -> None:
+    hierarchy = build_local_order_hierarchy(("A", "B", "C"), max_degree=3)
+    constants = np.zeros(2, dtype=np.float64)
+    coefficients = np.zeros((2, hierarchy.dimension), dtype=np.float64)
+
+    wrong_histories = [
+        history
+        for history in permutations(hierarchy.stages)
+        if history.index("B") < history.index("A")
+    ]
+    wrong_scores = (
+        np.asarray([1.0, -0.2], dtype=np.float64),
+        np.asarray([-0.2, 1.0], dtype=np.float64),
+    )
+    for index, history in enumerate(wrong_histories):
+        score = wrong_scores[index % len(wrong_scores)]
+        coordinate = hierarchy.coordinate_index[history]
+        coefficients[:, coordinate] = score
+
+    wrong = solve_local_order_multi_witness_lp(
+        hierarchy,
+        constants,
+        coefficients,
+        precedences=(("B", "A"),),
+        certificate_guard=1e-12,
+    )
+    true = solve_local_order_multi_witness_lp(
+        hierarchy,
+        constants,
+        coefficients,
+        precedences=(("A", "B"),),
+        certificate_guard=1e-12,
+    )
+
+    assert wrong.euclidean_distance_lower_bound > 0.399999999
+    assert true.euclidean_distance_lower_bound == 0.0
