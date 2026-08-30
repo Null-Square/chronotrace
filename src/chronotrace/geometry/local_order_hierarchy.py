@@ -159,6 +159,41 @@ def build_local_order_equalities(hierarchy: LocalOrderHierarchy) -> LinearEquali
     return LinearEqualities(matrix=matrix, rhs=np.asarray(rhs, dtype=np.float64))
 
 
+def build_precedence_equalities(
+    hierarchy: LocalOrderHierarchy,
+    precedences: tuple[tuple[str, str], ...] | list[tuple[str, str]],
+) -> LinearEqualities:
+    """Require selected pairwise precedence relations in the local-order relaxation."""
+
+    if hierarchy.max_degree < 2:
+        raise ValueError("precedence constraints require degree at least two")
+    normalized: list[tuple[str, str]] = []
+    for before, after in precedences:
+        relation = (str(before), str(after))
+        if relation[0] == relation[1]:
+            raise ValueError("precedence relation must contain two distinct stages")
+        if any(stage not in hierarchy.stages for stage in relation):
+            raise ValueError("precedence relation contains a stage outside the hierarchy")
+        normalized.append(relation)
+    if len(normalized) != len(set(normalized)):
+        raise ValueError("precedence relations must be unique")
+
+    rows: list[np.ndarray] = []
+    for relation in normalized:
+        row = np.zeros(hierarchy.dimension, dtype=np.float64)
+        row[hierarchy.coordinate_index[relation]] = 1.0
+        rows.append(row)
+    if not rows:
+        return LinearEqualities(
+            matrix=np.zeros((0, hierarchy.dimension), dtype=np.float64),
+            rhs=np.zeros(0, dtype=np.float64),
+        )
+    return LinearEqualities(
+        matrix=np.stack(rows),
+        rhs=np.ones(len(rows), dtype=np.float64),
+    )
+
+
 def build_last_stage_equalities(
     hierarchy: LocalOrderHierarchy,
     last_stage: str,
@@ -168,21 +203,8 @@ def build_last_stage_equalities(
     stage = str(last_stage)
     if stage not in hierarchy.stages:
         raise ValueError("last_stage is outside the hierarchy")
-    if hierarchy.max_degree < 2:
-        raise ValueError("last-stage constraints require degree at least two")
-
-    rows: list[np.ndarray] = []
-    for other in hierarchy.stages:
-        if other == stage:
-            continue
-        desired = (other, stage)
-        row = np.zeros(hierarchy.dimension, dtype=np.float64)
-        row[hierarchy.coordinate_index[desired]] = 1.0
-        rows.append(row)
-    return LinearEqualities(
-        matrix=np.stack(rows),
-        rhs=np.ones(len(rows), dtype=np.float64),
-    )
+    precedences = tuple((other, stage) for other in hierarchy.stages if other != stage)
+    return build_precedence_equalities(hierarchy, precedences)
 
 
 def validate_local_order_weights(
