@@ -12,6 +12,8 @@
   "spent_source_result_sha256": "168f0dc7d01a9568459ad586ad31147cba7cb22a29d1fbde5b7cd757b2013cc9",
   "spent_full_chronology_certified": true,
   "spent_minimum_wrong_relation_distance_lower_bound": 0.0006986368053447773,
+  "environment_source_k3_protocol": "configs/pythia_14m_k3_convex_last_stage_diagnostic.lock.json",
+  "environment_source_k23_protocol": "configs/pythia_14m_four_stage_k23_pilot.lock.json",
   "model": "EleutherAI/pythia-14m-deduped",
   "revision": "step143000",
   "precision": "fp64",
@@ -25,13 +27,18 @@
     "target_replay_stage_executions": 4,
     "k4_active_lift_stage_executions": 24,
     "total_stage_executions_per_confirmation_case": 68,
-    "k4_retention": "four scalar witness projections per complete chronology; no K4 model-space interaction tensors retained"
+    "k4_retention": "four scalar witness projections per complete chronology; no K4 model-space interaction tensors retained",
+    "projected_reconstruction_abs_tolerance": 1e-08,
+    "projected_reconstruction_rel_tolerance": 1e-08,
+    "target_active_lift_replay": "bitwise tensor SHA256 equality to the independently replayed target endpoint"
   },
   "witness_bank": {
     "count": 4,
     "labels": ["A", "B", "C", "D"],
     "construction": "for each candidate final stage j, form the six degree-three full-history predictions ending in j, project the target onto their convex hull, and normalize target-minus-projection to obtain u_j",
     "freeze_rule": "all four witnesses must be fully constructed and unit-norm checked using only K3 information before the first K4 active-lift output",
+    "simplex_weight_tolerance": 1e-10,
+    "unit_norm_tolerance": 1e-10,
     "single_witness_failure_is_not_a_method_failure": "the frozen method uses the entire pre-K4 witness bank through an infinity-norm certificate; it does not select one witness after K4 output"
   },
   "certificate": {
