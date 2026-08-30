@@ -1,0 +1,85 @@
+{
+  "selection_version": "pythia-14m-projected-k4-survivor-diagnostic-selection-v1",
+  "source_run_id": 33327336769,
+  "source_job_id": 99299704409,
+  "source_head_sha": "0806bab6161bcd3c349ca1dd26b774e199914ce8",
+  "source_artifact_id": 9736705289,
+  "source_artifact_digest": "sha256:7f9ccd4ef5627eee04fd85b6a506750fef20866bc7091fb985b4ab2368ef17a1",
+  "source_result_raw_sha256": "1809b9e48529695dbd6dc92b14a7af1f51d8a2883cc69498a8424ba80bbdb05f",
+  "source_result_canonical_sha256": "168f0dc7d01a9568459ad586ad31147cba7cb22a29d1fbde5b7cd757b2013cc9",
+  "protocol_sha256": "db70e9f32cc15d2400263f841901308eaf3673cb4344793200565d6f1389a4de",
+  "implementation_amendment_sha256": "d8ad41e5a49b6e3087745db8c64ed9d35beed39d04779d89080e54be839f6243",
+  "launch_commit": "0806bab6161bcd3c349ca1dd26b774e199914ce8",
+  "repair_gate_commit": "f0e678864b90e506af695e31f3889062cd8a3ba9",
+  "repair_gate_ci_run": 33327245470,
+  "repair_gate_ci_conclusion": "success",
+  "invalid_attempts_record": "configs/pythia_14m_projected_k4_survivor_diagnostic.invalid_attempts.json",
+  "invalid_prior_runs": [33323546560, 33323819378],
+  "confirmation_codebooks_observed": false,
+  "heldout_confirmation_launch_authorized": false,
+  "pilot_codebook_seed": 1011473075,
+  "target_history": "ABCD",
+  "k3_measurement_path": "streaming_exact_direct_prefix",
+  "stage_executions": 68,
+  "witness_freeze_stage_executions": 44,
+  "retained_degree4_projection_scalars": 96,
+  "target_endpoint_sha256": "eaf246430f46da1550cbaa9b5c25695f66f370dd09a51c747214a84371ef3e8f",
+  "projected_reconstruction_residual_max": 5.117434254131581e-17,
+  "source_k3_witness_lower_bound_reproduction": {
+    "A": {"source": 0.13683154464660838, "recomputed": 0.1368315446449843},
+    "B": {"source": 0.1352352829105905, "recomputed": 0.13523528291102635},
+    "C": {"source": 0.1250433233790782, "recomputed": 0.1250433233794581},
+    "D": {"source": 0.12489222880300935, "recomputed": 0.1248922288019003}
+  },
+  "candidate_last_k4": {
+    "A": {
+      "corrected_directional_lower_bound_raw": -0.003085384473788117,
+      "euclidean_distance_lower_bound": 0.0,
+      "direct_exact_directional_minimum": -0.003085384373788096,
+      "direct_exact_euclidean_class_distance": 0.029678378790026987,
+      "nearest_exact_history": "CBDA",
+      "k4_certified_impossible": false,
+      "decision_role": "terminal_exactness_diagnostic_only"
+    },
+    "B": {
+      "corrected_directional_lower_bound_raw": -0.005207079658863122,
+      "euclidean_distance_lower_bound": 0.0,
+      "direct_exact_directional_minimum": -0.005207079558863126,
+      "direct_exact_euclidean_class_distance": 0.027182280173786093,
+      "nearest_exact_history": "ADCB",
+      "k4_certified_impossible": false,
+      "decision_role": "terminal_exactness_diagnostic_only"
+    },
+    "C": {
+      "corrected_directional_lower_bound_raw": -0.0048650735399476015,
+      "euclidean_distance_lower_bound": 0.0,
+      "direct_exact_directional_minimum": -0.004865073439947581,
+      "direct_exact_euclidean_class_distance": 0.011605367220220871,
+      "nearest_exact_history": "ABDC",
+      "directional_minimum_history": "ADBC",
+      "k4_certified_impossible": false,
+      "decision_role": "survivor_decision"
+    },
+    "D": {
+      "corrected_directional_lower_bound_raw": -0.005909319318815413,
+      "euclidean_distance_lower_bound": 0.0,
+      "direct_exact_directional_minimum": -0.005909319218815423,
+      "direct_exact_euclidean_class_distance": 0.0,
+      "nearest_exact_history": "ABCD",
+      "k4_certified_impossible": false,
+      "decision_role": "survivor_decision"
+    }
+  },
+  "eliminated_by_k4_diagnostic": [],
+  "survivor_decision": {
+    "C_certified_impossible": false,
+    "D_survives": true
+  },
+  "all_diagnostic_checks_passed": true,
+  "strong_success": false,
+  "scientific_negative": true,
+  "invalid_run": false,
+  "scientific_interpretation": "The exact-prefix projected K4 machinery is numerically and certificate-valid, but a single K3-frozen witness per final-stage class does not certify wrong survivor C even with exact degree-four endpoint information. C remains geometrically separated from the target in full Euclidean space (minimum exact class distance 0.011605367220220871), while the C witness directional minimum is negative (-0.004865073439947581). Therefore the bottleneck on this spent instance is witness-direction adequacy rather than missing degree-four information or terminal relaxation looseness.",
+  "methodological_consequence": "Do not reinterpret the preregistered run as a success. Preserve it as a scientific negative. Next audit proof-safe use of a bank of witnesses that were all frozen before K4 output, using only the retained scalar projections; any post-hoc multi-witness result is methodology development on spent data, not confirmation.",
+  "heldout_confirmation_next_step_authorized": false
+}
