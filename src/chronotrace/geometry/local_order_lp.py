@@ -83,7 +83,8 @@ def solve_local_order_lp(
     try:
         from scipy.optimize import linprog
     except ImportError as exc:  # pragma: no cover - optional research dependency
-        raise RuntimeError("Install the research dependencies with: pip install -e '.[dev]'") from exc
+        message = "Install the research dependencies with: pip install -e '.[dev]'"
+        raise RuntimeError(message) from exc
 
     c = np.asarray(coefficients, dtype=np.float64)
     if c.shape != (hierarchy.dimension,) or not np.isfinite(c).all():
