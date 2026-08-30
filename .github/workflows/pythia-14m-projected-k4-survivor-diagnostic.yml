@@ -61,7 +61,7 @@ jobs:
         run: pytest
       - name: Run frozen projected K4 survivor diagnostic
         run: >-
-          python scripts/pythia_14m_projected_k4_survivor_diagnostic.py
+          python scripts/pythia_14m_projected_k4_survivor_entry.py
           --protocol configs/pythia_14m_projected_k4_survivor_diagnostic.lock.json
           --source-k3-protocol configs/pythia_14m_k3_convex_last_stage_diagnostic.lock.json
           --source-k3-selection configs/pythia_14m_k3_convex_last_stage_diagnostic.selection.json
