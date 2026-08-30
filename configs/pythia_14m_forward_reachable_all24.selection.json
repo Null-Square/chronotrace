@@ -1,0 +1,33 @@
+{
+  "selection_version": "pythia-14m-forward-reachable-all24-selection-v1",
+  "source_run_id": 33279636756,
+  "source_artifact_id": 9722715813,
+  "source_artifact_digest": "sha256:da8f6087149a587185e3dac07f97b615853f1edf8e24d5c807cb656c48b0eb53",
+  "source_result_raw_sha256": "491f71afc85d50285e45c5b11a79ec6e0ee9ad5d87da3f89dbcbbb74b7c51acc",
+  "source_result_canonical_sha256": "f1c6e62b3684b3931435bee37d20773809e669d1665f0e947656aca0fbb05862",
+  "protocol_sha256": "352e1dd972bf563b05a4b0eb59d05b287ddfc3fd7d46e3832db963f781428c6a",
+  "source_k23_protocol_sha256": "dfb2751c39b767c5024eb627eb597240b5f5aca3c248cbbd26f51f3d80d14536",
+  "source_replay_lock_sha256": "65360afdc7dd8934b3a1c1709aec020871c1cb1d9d1905f10b088d9e6d2088fd",
+  "source_smoke_selection_sha256": "469128a2b18e34cd222c7372721685e584b5420e3637dcd775c06c8852928465",
+  "confirmation_codebooks_observed": false,
+  "all24_pass_all": true,
+  "certified_full_order": "24/24",
+  "minimum_pairwise_separation": 0.008299978258954918,
+  "minimum_pairwise_separation_pair": ["DCAB", "DCBA"],
+  "minimum_certified_margin": 0.008299978148035323,
+  "minimum_target_noise_radius": 0.0041499890740176616,
+  "maximum_relative_self_residual": 3.7355717990987907e-13,
+  "basis_stage_executions": 40,
+  "candidate_gradient_evaluations": 24,
+  "target_trie_stage_executions": 64,
+  "total_stage_executions": 104,
+  "temporary_disk_bytes": 2701003776,
+  "frozen_baselines": {
+    "k3_full_order": "3/24",
+    "k3_precedence": "79/144",
+    "recency_full_order": "1/24"
+  },
+  "scientific_interpretation": "On the already-spent Pythia-14M four-stage codebook, applying each candidate final training operator to its exact K3 predecessor codeword yields 24 pairwise-distinct reachable codewords whose exact target endpoints are all within numerical replay error of their own codeword. The triangle-inequality separation certificate proves unique full-history recovery for all 24 histories under the finite hypothesis class, with a strictly positive robustness radius for every history. This is a mechanism result, not a scalability result, because the finite reachable codebook still enumerates all 24 complete histories.",
+  "heldout_confirmation_launch_authorized": false,
+  "next_step": "design_and_falsify_a_subfactorial_polynomial_size_local_order_relaxation_on_spent_data_before_any_heldout_confirmation"
+}
