@@ -54,7 +54,11 @@ def main() -> None:
     candidate_last: dict[str, Any] = {}
 
     for final_stage in stages:
-        histories = tuple("".join(history) for history in permutations(stages) if history[-1] == final_stage)
+        histories = tuple(
+            "".join(history)
+            for history in permutations(stages)
+            if history[-1] == final_stage
+        )
         score_matrix = np.asarray(
             [
                 [
@@ -90,6 +94,19 @@ def main() -> None:
 
     c_certified = bool(candidate_last["C"]["posthoc_certified_impossible"])
     d_survives = not bool(candidate_last["D"]["posthoc_certified_impossible"])
+    if c_certified and d_survives:
+        interpretation = (
+            "The pre-K4-frozen witness bank contains enough directional information to "
+            "separate C from the target when combined proof-safely, even though the "
+            "preregistered single C witness fails. This is post-hoc method development "
+            "on spent data and does not convert the preregistered negative into a success."
+        )
+    else:
+        interpretation = (
+            "The frozen witness bank does not resolve C/D under the post-hoc proof-safe "
+            "combination."
+        )
+
     posthoc = {
         "analysis_version": "projected-k4-multi-witness-posthoc-v1",
         "analysis_role": "posthoc_spent_methodology_development_not_confirmation",
@@ -98,23 +115,29 @@ def main() -> None:
         "source_job_id": 99299704409,
         "source_artifact_id": 9736705289,
         "source_preregistered_result": "scientific_negative_single_witness",
-        "witness_bank_freeze": "all four unit witnesses were frozen from K3 before any K4 output",
-        "certificate_theorem": "for any coefficients alpha with L1 norm at most one, v=sum_j alpha_j u_j has Euclidean norm at most one; therefore class distance is at least min_i <v,y-q_i>. The numerical optimizer only proposes alpha; the reported support bound is independently recomputed after L1 normalization.",
+        "witness_bank_freeze": (
+            "all four unit witnesses were frozen from K3 before any K4 output"
+        ),
+        "certificate_theorem": (
+            "for any coefficients alpha with L1 norm at most one, v=sum_j alpha_j u_j "
+            "has Euclidean norm at most one; therefore class distance is at least "
+            "min_i <v,y-q_i>. The numerical optimizer only proposes alpha; the reported "
+            "support bound is independently recomputed after L1 normalization."
+        ),
         "candidate_last": candidate_last,
         "survivor_posthoc": {
             "C_certified_impossible": c_certified,
             "D_survives": d_survives,
         },
         "frozen_elimination_guard": guard,
-        "confirmation_codebooks_observed": false,
-        "heldout_confirmation_launch_authorized": false,
-        "interpretation": (
-            "The pre-K4-frozen witness bank contains enough directional information to separate C from the target when combined proof-safely, even though the preregistered single C witness fails. This is post-hoc method development on spent data and does not convert the preregistered negative into a success."
-            if c_certified and d_survives
-            else "The frozen witness bank does not resolve C/D under the post-hoc proof-safe combination."
-        ),
+        "confirmation_codebooks_observed": False,
+        "heldout_confirmation_launch_authorized": False,
+        "interpretation": interpretation,
     }
-    Path(args.output).write_text(json.dumps(posthoc, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    Path(args.output).write_text(
+        json.dumps(posthoc, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     print(json.dumps(posthoc, indent=2, sort_keys=True))
 
 
