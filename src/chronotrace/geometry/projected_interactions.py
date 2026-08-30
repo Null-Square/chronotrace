@@ -8,7 +8,6 @@ projection per witness direction; the full order-K interaction tensor can be dis
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Sequence
 
 from chronotrace.geometry.interactions import ordered_subsequences
 
@@ -17,9 +16,9 @@ Word = tuple[str, ...]
 
 
 def projected_interaction_from_endpoint_delta(
-    word: Sequence[str],
+    word: tuple[str, ...] | list[str],
     endpoint_minus_base_projection: float,
-    lower_projected_interactions: Mapping[Word, float],
+    lower_projected_interactions: dict[Word, float],
 ) -> float:
     """Recover <u,Phi(word)> from <u,E(word)-base> and proper-subsequence projections."""
 
@@ -43,8 +42,8 @@ def projected_interaction_from_endpoint_delta(
 
 
 def projected_word_prediction(
-    word: Sequence[str],
-    projected_interactions: Mapping[Word, float],
+    word: tuple[str, ...] | list[str],
+    projected_interactions: dict[Word, float],
     *,
     max_degree: int,
 ) -> float:

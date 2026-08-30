@@ -13,7 +13,6 @@ are induced from it, so the hierarchy is exact (although factorial at that termi
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from itertools import combinations, permutations
 from typing import Any
@@ -60,7 +59,7 @@ def local_order_coordinate_count(stage_count: int, max_degree: int) -> int:
 
 
 def build_local_order_hierarchy(
-    stages: Sequence[str],
+    stages: tuple[str, ...] | list[str],
     *,
     max_degree: int,
 ) -> LocalOrderHierarchy:
@@ -99,7 +98,10 @@ def build_local_order_hierarchy(
     )
 
 
-def induced_local_order(chronology: Sequence[str], subset: Subset) -> Word:
+def induced_local_order(
+    chronology: tuple[str, ...] | list[str],
+    subset: Subset,
+) -> Word:
     """Return the order induced by one complete chronology on a canonical subset."""
 
     history = tuple(chronology)
@@ -110,7 +112,7 @@ def induced_local_order(chronology: Sequence[str], subset: Subset) -> Word:
 
 
 def local_order_vertex(
-    chronology: Sequence[str],
+    chronology: tuple[str, ...] | list[str],
     hierarchy: LocalOrderHierarchy,
 ) -> np.ndarray:
     """Encode a global chronology as a one-hot local-marginal vertex."""
@@ -208,7 +210,7 @@ def validate_local_order_weights(
 
 def projected_interaction_linear_objective(
     hierarchy: LocalOrderHierarchy,
-    projected_interactions: Mapping[Word, float],
+    projected_interactions: dict[Word, float],
     *,
     target_minus_base_projection: float,
 ) -> tuple[float, np.ndarray]:
