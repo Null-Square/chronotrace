@@ -133,6 +133,7 @@ def main() -> None:
 
     all_candidate_count = len(distances)
     survivor_candidate_count = len(survivor_histories)
+    hypothetical_reduction = 1.0 - survivor_candidate_count / all_candidate_count
     result = {
         "status": "complete",
         "claim": "posthoc_zero_new_model_output_K3_tail_and_active_hull_composition_analysis",
@@ -154,14 +155,16 @@ def main() -> None:
         "conditional_survivor_only_active_refinement": {
             "candidate_history_count": survivor_candidate_count,
             "all24_candidate_history_count": all_candidate_count,
-            "hypothetical_candidate_reduction_fraction": 1.0 - survivor_candidate_count / all_candidate_count,
+            "hypothetical_candidate_reduction_fraction": hypothetical_reduction,
             "best_history": best_history,
             "best_codeword_distance": best_distance,
             "runner_up_history": runner_up_history,
             "runner_up_codeword_distance": runner_up_distance,
             "codeword_margin": runner_up_distance - best_distance,
             "last_stage_hull_dual_lower_bounds": survivor_last_bounds,
-            "certifies_true_last_stage_conditional_on_survivor_set": conditional_last_stage_certified,
+            "certifies_true_last_stage_conditional_on_survivor_set": (
+                conditional_last_stage_certified
+            ),
             "unconditional_true_history_speedup_claim_allowed": safe_exact_skip,
         },
         "target_exact_replay_self_residual": float(target_row["self_residual"]),
@@ -176,7 +179,9 @@ def main() -> None:
             "target is a tighter higher-order tail enclosure or an active-transition-preserving "
             "relaxation that certifies those branches without factorial enumeration."
         ),
-        "next_step": "derive_and_falsify_tighter_tail_or_active_transition_class_bounds_on_spent_data",
+        "next_step": (
+            "derive_and_falsify_tighter_tail_or_active_transition_class_bounds_on_spent_data"
+        ),
     }
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
