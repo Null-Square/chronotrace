@@ -164,7 +164,12 @@ def combine_linear_witness_objectives(
         raise ValueError("constants and coefficient rows must have one row per witness")
     if alpha.shape != offsets.shape:
         raise ValueError("witness coefficients must match witness count")
-    if not np.isfinite(offsets).all() or not np.isfinite(matrix).all() or not np.isfinite(alpha).all():
+    finite = (
+        np.isfinite(offsets).all()
+        and np.isfinite(matrix).all()
+        and np.isfinite(alpha).all()
+    )
+    if not finite:
         raise ValueError("linear witness objectives must be finite")
     l1 = float(np.sum(np.abs(alpha)))
     if l1 > 1.0:
