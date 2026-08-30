@@ -30,7 +30,8 @@ def test_projected_k4_exact_prefix_repair_is_protocol_conforming() -> None:
     assert amendment["thresholds_changed"] is False
     assert amendment["heldout_policy_changed"] is False
     assert amendment["stage_execution_budget_changed"] is False
-    assert amendment["total_expected_stage_executions"] == protocol["total_expected_stage_executions"] == 68
+    assert amendment["total_expected_stage_executions"] == 68
+    assert protocol["total_expected_stage_executions"] == 68
     assert amendment["confirmation_codebooks_observed"] is False
     assert amendment["heldout_confirmation_launch_authorized"] is False
 
