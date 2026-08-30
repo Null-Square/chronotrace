@@ -108,21 +108,44 @@ def main() -> None:
             "wrong_relation": list(wrong_relation),
             "wrong_class_primal_objective": wrong.primal_objective,
             "wrong_class_certified_lower_bound": wrong.certified_lower_bound,
-            "wrong_class_euclidean_distance_lower_bound": wrong.euclidean_distance_lower_bound,
+            "wrong_class_euclidean_distance_lower_bound": (
+                wrong.euclidean_distance_lower_bound
+            ),
             "wrong_class_direct_exact_euclidean_distance": exact_euclidean,
             "wrong_relation_certified_impossible": certified,
             "true_class_primal_objective": true.primal_objective,
-            "true_class_euclidean_distance_lower_bound": true.euclidean_distance_lower_bound,
+            "true_class_euclidean_distance_lower_bound": (
+                true.euclidean_distance_lower_bound
+            ),
         }
 
     all_wrong_certified = all(
         item["wrong_relation_certified_impossible"] for item in pairwise.values()
     )
-    reconstructed = "".join(
-        sorted(stages, key=lambda stage: target_position[stage])
-    ) if all_wrong_certified else None
+    reconstructed = (
+        "".join(sorted(stages, key=lambda stage: target_position[stage]))
+        if all_wrong_certified
+        else None
+    )
     if reconstructed is not None and reconstructed != target:
         raise RuntimeError("pairwise certificates reconstructed an unexpected chronology")
+
+    certificate_form = (
+        "proof-safe infinity-norm multi-witness LP over local-order marginals with one "
+        "wrong precedence class per unordered stage pair"
+    )
+    if all_wrong_certified:
+        interpretation = (
+            "All six wrong pairwise order classes are excluded using only the four "
+            "witnesses frozen before K4 output. Their conjunction uniquely identifies "
+            "ABCD on the spent target. This is post-hoc methodology development and does "
+            "not change the preregistered single-witness negative."
+        )
+    else:
+        interpretation = (
+            "The frozen witness bank does not certify every pairwise relation on the "
+            "spent target."
+        )
 
     analysis = {
         "analysis_version": "pythia-14m-projected-k4-pairwise-multi-witness-posthoc-v1",
@@ -133,7 +156,7 @@ def main() -> None:
         "source_artifact_id": 9736705289,
         "source_preregistered_result": "scientific_negative_single_witness",
         "witness_bank_freeze": "all four witnesses were fixed from K3 before any K4 output",
-        "certificate_form": "proof-safe infinity-norm multi-witness LP over local-order marginals with one wrong precedence class per unordered stage pair",
+        "certificate_form": certificate_form,
         "hierarchy_degree": hierarchy.max_degree,
         "hierarchy_dimension": hierarchy.dimension,
         "pairwise": pairwise,
@@ -145,11 +168,7 @@ def main() -> None:
         "new_model_executions": 0,
         "confirmation_codebooks_observed": False,
         "heldout_confirmation_launch_authorized": False,
-        "interpretation": (
-            "All six wrong pairwise order classes are excluded using only the four witnesses frozen before K4 output. Their conjunction uniquely identifies ABCD on the spent target. This is post-hoc methodology development and does not change the preregistered single-witness negative."
-            if all_wrong_certified
-            else "The frozen witness bank does not certify every pairwise relation on the spent target."
-        ),
+        "interpretation": interpretation,
     }
     Path(args.output).write_text(
         json.dumps(analysis, indent=2, sort_keys=True) + "\n",
