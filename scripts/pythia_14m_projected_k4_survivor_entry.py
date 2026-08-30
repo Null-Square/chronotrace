@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
+# ruff: noqa: I001
 """Pre-model entrypoint for the frozen projected-K4 survivor diagnostic.
 
-The scientific runner intentionally remains unchanged after launch.  This adapter repairs
+The scientific runner intentionally remains unchanged after launch. This adapter repairs
 only the first-attempt configuration plumbing bug: portable numerical controls live in the
-already-frozen K23 source lock, not in the K3-convex protocol.  The adapter verifies the
+already-frozen K23 source lock, not in the K3-convex protocol. The adapter verifies the
 K23 canonical JSON hash against the K3-convex source lock before substituting that lock
 only for ``_configure_portable_numerics``.
 """
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 from pythia_finite_pair_bridge import _load_json
