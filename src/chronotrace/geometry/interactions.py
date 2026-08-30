@@ -19,10 +19,10 @@ Measuring all ordered words through degree K requires
 
     sum_{r=1..K} P(N, r)
 
-stage-map executions. The compact measurement path stores only the interaction tensors:
-every prefix endpoint is reconstructed exactly from already-measured lower-order
-interactions before the next stage is applied. This avoids retaining a second full table
-of prefix endpoints in large-model runs.
+stage-map executions. The compact measurement path stores only the interaction tensors
+and reconstructs prefixes algebraically. The streaming exact-prefix path instead retains
+only one endpoint level at a time, so every measured word follows its exact stage-map
+prefix while avoiding a full endpoint table.
 """
 
 from __future__ import annotations
@@ -223,7 +223,7 @@ def measure_ordered_interaction_basis(
 
     This convenience implementation stores every full endpoint through degree K. It is
     useful for controlled models and tests where direct endpoint reconstruction should be
-    audited. Large-model experiments should normally use the compact variant below.
+    audited. Large-model experiments should normally use a streaming variant below.
     """
 
     stages = _validate_stages(tuple(stage_maps))
@@ -267,7 +267,7 @@ def measure_ordered_interaction_basis_compact(
     is extracted immediately. This preserves the same probe count as cached prefix
     measurement while avoiding a second full tensor table of prefix endpoints.
 
-    ``endpoint_observer`` is an optional side-effect hook invoked with each exact measured
+    ``endpoint_observer`` is an optional side-effect hook invoked with each measured
     endpoint before interaction extraction. It does not alter the basis or probe count and
     allows callers to persist selected measured endpoints outside model memory.
     """
@@ -298,6 +298,60 @@ def measure_ordered_interaction_basis_compact(
                 word,
                 interactions,
             )
+
+    expected = ordered_probe_count(len(stages), degree)
+    if executions != expected:
+        raise RuntimeError(f"measured {executions} stage executions, expected {expected}")
+    return OrderedInteractionBasis(
+        stages=stages,
+        max_degree=degree,
+        base=base,
+        endpoints={},
+        interactions=interactions,
+        stage_executions=executions,
+    )
+
+
+def measure_ordered_interaction_basis_streaming_exact(
+    stage_maps: Mapping[str, Callable[[Any], Any]],
+    base: Any,
+    *,
+    max_degree: int,
+    endpoint_observer: Callable[[tuple[str, ...], Any], None] | None = None,
+) -> OrderedInteractionBasis:
+    """Measure direct-prefix endpoints while retaining only one endpoint level at a time.
+
+    Unlike the compact path, this routine never reconstructs a stage-map input from
+    Möbius interactions. Every word of length ``r`` starts from the exact measured endpoint
+    of its length-``r-1`` prefix. Only the previous endpoint level is retained in memory;
+    the returned basis still stores interactions only. An observer may persist selected
+    exact endpoints (for example the degree-K prefixes needed by a later active lift).
+    """
+
+    stages = _validate_stages(tuple(stage_maps))
+    degree = _validate_degree(max_degree, len(stages))
+    interactions: dict[tuple[str, ...], Any] = {}
+    previous_level: dict[tuple[str, ...], Any] = {(): base}
+    executions = 0
+
+    for size in range(1, degree + 1):
+        next_level: dict[tuple[str, ...], Any] = {}
+        for word in permutations(stages, size):
+            endpoint = stage_maps[word[-1]](previous_level[word[:-1]])
+            executions += 1
+            if endpoint.shape != base.shape:
+                raise ValueError("stage map changed the observation shape")
+            if endpoint_observer is not None:
+                endpoint_observer(word, endpoint)
+            interactions[word] = _interaction_from_endpoint(
+                endpoint,
+                base,
+                word,
+                interactions,
+            )
+            if size < degree:
+                next_level[word] = endpoint
+        previous_level = next_level
 
     expected = ordered_probe_count(len(stages), degree)
     if executions != expected:
