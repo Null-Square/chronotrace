@@ -1,0 +1,23 @@
+{
+  "attempt_version": "pythia-14m-projected-k4-survivor-diagnostic-attempt1-v1",
+  "protocol": "configs/pythia_14m_projected_k4_survivor_diagnostic.lock.json",
+  "launch_commit": "2cc214f47616cb18b4e49a72ba654fa6f15e173a",
+  "workflow_run_id": 33323546560,
+  "workflow_job_id": 99289590738,
+  "workflow_conclusion": "failure",
+  "failure_class": "pre_model_configuration_plumbing_failure",
+  "failure_point": "portable_numerics_configuration_before_tokenizer_or_model_loading",
+  "exception_type": "KeyError",
+  "exception_detail": "source K3 convex protocol was passed to _configure_portable_numerics even though portable_kernel_gate is frozen in the source K23 protocol",
+  "scientific_outputs_observed": false,
+  "output_artifact_created": false,
+  "tokenizer_loaded": false,
+  "model_weights_loaded": false,
+  "stage_executions": 0,
+  "degree4_outputs_observed": 0,
+  "confirmation_codebooks_observed": false,
+  "heldout_confirmation_launch_authorized": false,
+  "scientific_settings_changed_by_correction": false,
+  "correction_scope": "route portable numerical controls through the already-frozen source K23 protocol only; do not change seed, target, witnesses, K4 words, thresholds, LP certificate, decision rule, or held-out policy",
+  "rerun_scientifically_permitted": true
+}
