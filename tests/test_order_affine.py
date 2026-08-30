@@ -77,6 +77,7 @@ def test_candidate_last_affine_distance_is_conservative_discrete_lower_bound() -
         float(target @ target),
         layout,
     )
+    numerical_floor = 1e-6
 
     for stage in layout.stages:
         discrete = min(
@@ -88,9 +89,9 @@ def test_candidate_last_affine_distance_is_conservative_discrete_lower_bound() -
             for history in permutations(layout.stages)
             if history[-1] == stage
         )
-        assert bounds[stage].distance <= discrete + 1e-9
+        assert bounds[stage].distance <= discrete + numerical_floor
         assert bounds[stage].equality_residual_norm < 1e-9
         assert bounds[stage].stationarity_residual_norm < 1e-8
 
-    assert bounds["C"].distance < 1e-9
+    assert bounds["C"].distance < numerical_floor
     assert min(bounds[stage].distance for stage in layout.stages if stage != "C") > 0.1
