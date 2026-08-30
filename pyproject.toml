@@ -45,7 +45,9 @@ line-length = 100
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.per-file-ignores]
+"src/chronotrace/geometry/local_order_hierarchy.py" = ["I001"]
 "src/chronotrace/geometry/order_affine.py" = ["I001"]
+"src/chronotrace/geometry/projected_interactions.py" = ["I001"]
 "scripts/pythia_14m_four_stage_confirmation.py" = ["E501"]
 "scripts/pythia_14m_counterfactual_response_pilot.py" = ["E501", "I001"]
 "scripts/pythia_14m_k3_affine_last_stage_diagnostic.py" = ["F821"]
