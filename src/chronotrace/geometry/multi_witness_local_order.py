@@ -31,6 +31,7 @@ from chronotrace.geometry.local_order_hierarchy import (
     LocalOrderHierarchy,
     build_last_stage_equalities,
     build_local_order_equalities,
+    build_precedence_equalities,
 )
 
 
@@ -58,14 +59,16 @@ class LocalOrderMultiWitnessCertificate:
 def _combined_equalities(
     hierarchy: LocalOrderHierarchy,
     last_stage: str | None,
+    precedences: tuple[tuple[str, str], ...],
 ) -> tuple[np.ndarray, np.ndarray]:
-    base = build_local_order_equalities(hierarchy)
-    if last_stage is None:
-        return base.matrix, base.rhs
-    last = build_last_stage_equalities(hierarchy, last_stage)
+    systems = [build_local_order_equalities(hierarchy)]
+    if last_stage is not None:
+        systems.append(build_last_stage_equalities(hierarchy, last_stage))
+    if precedences:
+        systems.append(build_precedence_equalities(hierarchy, precedences))
     return (
-        np.vstack((base.matrix, last.matrix)),
-        np.concatenate((base.rhs, last.rhs)),
+        np.vstack(tuple(system.matrix for system in systems)),
+        np.concatenate(tuple(system.rhs for system in systems)),
     )
 
 
@@ -88,6 +91,7 @@ def solve_local_order_multi_witness_lp(
     coefficients: Any,
     *,
     last_stage: str | None = None,
+    precedences: tuple[tuple[str, str], ...] | list[tuple[str, str]] = (),
     certificate_guard: float = 1e-10,
 ) -> LocalOrderMultiWitnessCertificate:
     """Lower-bound chronology-class distance using a bank of unit witnesses.
@@ -97,12 +101,14 @@ def solve_local_order_multi_witness_lp(
 
         -t <= constants[j] + coefficients[j] @ x <= t
 
-    for every witness, the hierarchy equalities, ``x >= 0``, and ``t >= 0``.
+    for every witness, the hierarchy equalities, optional final-stage or precedence class
+    constraints, ``x >= 0``, and ``t >= 0``.
 
-    Since the local-order feasible set contains every global chronology and each unit
-    witness projection is bounded by Euclidean residual norm, the LP optimum is a valid
-    lower bound on the exact class distance.  A corrected dual value, rather than the raw
-    numerical primal optimum, is returned as the proof-safe certificate.
+    Since the local-order feasible set contains every global chronology satisfying the
+    requested property and each unit witness projection is bounded by Euclidean residual
+    norm, the LP optimum is a valid lower bound on that chronology class distance.  A
+    corrected dual value, rather than the raw numerical primal optimum, is returned as the
+    proof-safe certificate.
     """
 
     try:
@@ -114,6 +120,7 @@ def solve_local_order_multi_witness_lp(
     offsets = np.asarray(constants, dtype=np.float64)
     matrix = np.asarray(coefficients, dtype=np.float64)
     guard = float(certificate_guard)
+    normalized_precedences = tuple((str(before), str(after)) for before, after in precedences)
     if offsets.ndim != 1 or offsets.size < 1 or not np.isfinite(offsets).all():
         raise ValueError("constants must contain at least one finite witness offset")
     if matrix.shape != (offsets.size, hierarchy.dimension) or not np.isfinite(matrix).all():
@@ -121,7 +128,11 @@ def solve_local_order_multi_witness_lp(
     if not math.isfinite(guard) or guard < 0.0:
         raise ValueError("certificate_guard must be finite and non-negative")
 
-    equality_matrix, equality_rhs = _combined_equalities(hierarchy, last_stage)
+    equality_matrix, equality_rhs = _combined_equalities(
+        hierarchy,
+        last_stage,
+        normalized_precedences,
+    )
     variable_count = hierarchy.dimension + 1
     objective = np.zeros(variable_count, dtype=np.float64)
     objective[-1] = 1.0
