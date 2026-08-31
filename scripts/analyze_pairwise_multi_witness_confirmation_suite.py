@@ -129,7 +129,8 @@ def main() -> None:
         "per_seed": per_seed,
         "method_changed_after_confirmation_started": False,
         "interpretation": (
-            "Frozen 32-case confirmation interpreted exactly under the preregistered coverage thresholds; no post-launch method adaptation is applied."
+            "Frozen 32-case confirmation interpreted exactly under the preregistered "
+            "coverage thresholds; no post-launch method adaptation is applied."
         ),
     }
     Path(args.output).write_text(
