@@ -55,16 +55,17 @@ jobs:
           "safetensors==0.8.0"
       - name: Install ChronoTrace test and MVP stack
         run: python -m pip install -e ".[mvp,dev]"
-      - name: Frozen confirmation preflight
+      - name: Frozen label-blind confirmation preflight
         run: >-
           pytest
           tests/test_pairwise_multi_witness_confirmation_gate.py
+          tests/test_pairwise_certificate.py
           tests/test_witness_projection.py
           tests/test_multi_witness_local_order.py
-          tests/test_confirmation_aggregator_gate.py
-      - name: Run frozen seed confirmation
+          tests/test_confirmation_aggregator_v2_gate.py
+      - name: Run frozen label-blind seed confirmation
         run: >-
-          python scripts/pythia_14m_pairwise_multi_witness_confirmation.py
+          python scripts/pythia_14m_pairwise_multi_witness_confirmation_v2.py
           --confirmation-lock configs/chronotrace_pairwise_multi_witness_confirmation.lock.json
           --methodology-lock configs/chronotrace_pairwise_multi_witness_methodology.lock.json
           --source-k3-protocol configs/pythia_14m_k3_convex_last_stage_diagnostic.lock.json
@@ -98,9 +99,9 @@ jobs:
           pattern: confirmation-seed-*
           path: seed-results
           merge-multiple: true
-      - name: Aggregate frozen confirmation suite
+      - name: Aggregate frozen label-blind confirmation suite
         run: >-
-          python scripts/analyze_pairwise_multi_witness_confirmation_suite.py
+          python scripts/analyze_pairwise_multi_witness_confirmation_suite_v2.py
           --lock configs/chronotrace_pairwise_multi_witness_confirmation.lock.json
           --inputs seed-results/*.json
           --output chronotrace-pairwise-multi-witness-confirmation-selection.json
