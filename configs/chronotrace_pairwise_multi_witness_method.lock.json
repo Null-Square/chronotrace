@@ -1,22 +1,31 @@
 {
-  "lock_version": "chronotrace-pairwise-multi-witness-method-v1",
-  "status": "frozen_before_heldout_confirmation",
+  "lock_version": "chronotrace-pairwise-multi-witness-method-v2",
+  "status": "frozen_before_heldout_confirmation_after_label_blind_interface_audit",
   "method_role": "final_confirmation_method",
   "source_branch": "experiment/pythia-finite-pair-scale",
   "source_pr": 11,
+  "pre_confirmation_amendment": {
+    "reason": "the spent posthoc analyzer knew ABCD and evaluated only the known-wrong orientation; a deployable chronology method cannot use the unknown true order to choose which orientation to test",
+    "correction": "for every unordered stage pair, solve both orientation classes; infer an orientation only when exactly one class is certified impossible; abstain when neither is excluded; mark invalid when both are excluded",
+    "heldout_codebooks_generated_before_correction": false,
+    "heldout_outputs_observed_before_correction": false
+  },
   "method_components": {
     "ordered_interactions": "exact ordered Mobius interaction decomposition",
     "witness_bank": "unit witness directions derived from K3 class geometry and frozen before any K4 output",
     "higher_order_acquisition": "witness-projected degree-4 interactions from exact measured prefixes",
     "relaxation": "K-local order marginal polytope with simplex and marginal-consistency equalities",
     "certificate": "proof-safe infinity-norm multi-witness LP with independently corrected dual lower bound",
-    "chronology_rule": "for each unordered pair, certify the wrong precedence class impossible; return a total order only when all pairwise orientations are certified and transitively consistent; otherwise abstain"
+    "pairwise_decision": "for each unordered pair {i,j}, independently certificate-test both i<j and j<i classes without access to the true chronology label",
+    "chronology_rule": "infer the surviving orientation only if exactly one pair class is certified impossible; return a total chronology only when every unordered pair is certified and the inferred orientations form one transitive total order; otherwise abstain; both orientations excluded is invalid"
   },
   "frozen_commits": {
     "information_barrier_and_local_hierarchy": "0915ecf1977dca9604b4c528996e29e33aab457a",
     "multi_witness_core": "6af80f38cc3e9deec91129c4f53087c7450b3832",
     "scalable_multi_witness_local_order": "07bee0ea80496f4971f1170adccd45d0deb0bc05",
     "precedence_constraint_interface": "404169e9373f909be9969fd735789ae36ab25e74",
+    "label_blind_pairwise_interface": "0290e4f903b40247bdd7b1330d48de99e17cad01",
+    "label_blind_pairwise_tests": "d30b712e14fcb8ff90663791d8aebc976bb99fa5",
     "pairwise_posthoc_analyzer": "f610731cd25c67d27df8715887deabfc5145111b"
   },
   "source_spent_result": {
@@ -26,13 +35,16 @@
     "artifact_digest": "sha256:7f9ccd4ef5627eee04fd85b6a506750fef20866bc7091fb985b4ab2368ef17a1",
     "single_witness_result": "scientific_negative",
     "spent_seed": 1011473075,
-    "target_history": "ABCD"
+    "target_history": "ABCD",
+    "posthoc_pairwise_note": "the spent analysis used the known target only for method development/evaluation; confirmation must use the label-blind two-sided pair interface"
   },
   "numerical_rules": {
     "elimination_guard": 1e-6,
     "local_order_certificate_guard": 1e-10,
     "require_corrected_dual_not_raw_solver_value": true,
-    "false_exclusion_policy": "any true precedence certified impossible is a hard invalid result",
+    "pair_status_certified": "exactly one of the two orientation classes has corrected lower bound greater than elimination_guard",
+    "pair_status_ambiguous": "neither orientation class is certified impossible",
+    "pair_status_invalid": "both orientation classes are certified impossible",
     "abstention_allowed": true
   },
   "complexity_claim": {
@@ -41,7 +53,7 @@
     "terminal_K_equals_N": "exact but factorial",
     "explicit_limitation": "for N>K, exact true-history certification additionally requires control of omitted interactions above degree K; no universal finite bound is claimed"
   },
-  "method_change_policy_after_confirmation_begins": "no changes to mathematics, witness construction, thresholds, target set, or decision rule based on heldout outputs; any later method revision requires a new explicitly labeled development phase and new untouched confirmation data",
+  "method_change_policy_after_confirmation_begins": "no changes to mathematics, witness construction, thresholds, pairwise two-sided decision rule, target set, or interpretation based on heldout outputs; any later method revision requires a new explicitly labeled development phase and new untouched confirmation data",
   "confirmation_codebooks_observed": false,
   "heldout_confirmation_launch_authorized": false
 }
