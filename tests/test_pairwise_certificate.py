@@ -35,14 +35,11 @@ def test_pairwise_certificate_infers_surviving_orientation_without_label() -> No
 
 def test_pairwise_certificate_certifies_known_separable_synthetic_case() -> None:
     hierarchy = build_local_order_hierarchy(("A", "B", "C"), max_degree=3)
-    abc = hierarchy.coordinate_index[("A", "B", "C")]
-    bac = hierarchy.coordinate_index[("B", "A", "C")]
     constants = np.zeros(2, dtype=np.float64)
     coefficients = np.zeros((2, hierarchy.dimension), dtype=np.float64)
-    coefficients[0, abc] = 0.0
-    coefficients[1, abc] = 0.0
-    coefficients[0, bac] = 1.0
-    coefficients[1, bac] = 1.0
+    ba = hierarchy.coordinate_index[("B", "A")]
+    coefficients[0, ba] = 1.0
+    coefficients[1, ba] = 1.0
 
     result = certify_pairwise_orientation(
         hierarchy,
