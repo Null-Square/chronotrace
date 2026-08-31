@@ -5,7 +5,7 @@ on:
     branches:
       - experiment/pythia-finite-pair-scale
     paths:
-      - configs/chronotrace_pairwise_multi_witness_confirmation.launch
+      - configs/chronotrace_pairwise_multi_witness_confirmation_v3.launch
 
 permissions:
   contents: read
@@ -23,7 +23,7 @@ env:
   TOKENIZERS_PARALLELISM: "false"
 
 concurrency:
-  group: pythia-14m-pairwise-multi-witness-confirmation-${{ github.ref }}
+  group: pythia-14m-pairwise-multi-witness-confirmation-v3-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix:
-        seed: [4294917749, 3885207466, 402469483, 2000073798]
+        seed: [2186192236, 1368008047, 92712904, 1944430236]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -55,30 +55,30 @@ jobs:
           "safetensors==0.8.0"
       - name: Install ChronoTrace test and MVP stack
         run: python -m pip install -e ".[mvp,dev]"
-      - name: Frozen label-blind confirmation preflight
+      - name: Frozen fresh label-blind confirmation preflight
         run: >-
           pytest
-          tests/test_pairwise_multi_witness_confirmation_gate.py
+          tests/test_pairwise_multi_witness_confirmation_v3_gate.py
           tests/test_pairwise_certificate.py
           tests/test_witness_projection.py
           tests/test_multi_witness_local_order.py
-          tests/test_confirmation_aggregator_v2_gate.py
-      - name: Run frozen label-blind seed confirmation
+          tests/test_confirmation_aggregator_v3_gate.py
+      - name: Run frozen fresh label-blind seed confirmation
         run: >-
-          python scripts/pythia_14m_pairwise_multi_witness_confirmation_v2.py
-          --confirmation-lock configs/chronotrace_pairwise_multi_witness_confirmation.lock.json
-          --methodology-lock configs/chronotrace_pairwise_multi_witness_methodology.lock.json
+          python scripts/pythia_14m_pairwise_multi_witness_confirmation_v3.py
+          --confirmation-lock configs/chronotrace_pairwise_multi_witness_confirmation_v3.lock.json
+          --methodology-lock configs/chronotrace_pairwise_multi_witness_methodology_v3.lock.json
           --source-k3-protocol configs/pythia_14m_k3_convex_last_stage_diagnostic.lock.json
           --source-k23-protocol configs/pythia_14m_four_stage_k23_pilot.lock.json
           --seed ${{ matrix.seed }}
-          --output confirmation-seed-${{ matrix.seed }}.json
+          --output confirmation-v3-seed-${{ matrix.seed }}.json
           --threads 1
-      - name: Upload frozen seed evidence
+      - name: Upload fresh seed evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: confirmation-seed-${{ matrix.seed }}
-          path: confirmation-seed-${{ matrix.seed }}.json
+          name: confirmation-v3-seed-${{ matrix.seed }}
+          path: confirmation-v3-seed-${{ matrix.seed }}.json
           if-no-files-found: warn
 
   aggregate:
@@ -93,21 +93,21 @@ jobs:
           cache: pip
       - name: Install ChronoTrace
         run: python -m pip install -e .
-      - name: Download all frozen seed evidence
+      - name: Download all fresh seed evidence
         uses: actions/download-artifact@v4
         with:
-          pattern: confirmation-seed-*
+          pattern: confirmation-v3-seed-*
           path: seed-results
           merge-multiple: true
-      - name: Aggregate frozen label-blind confirmation suite
+      - name: Aggregate frozen fresh label-blind confirmation suite
         run: >-
-          python scripts/analyze_pairwise_multi_witness_confirmation_suite_v2.py
-          --lock configs/chronotrace_pairwise_multi_witness_confirmation.lock.json
+          python scripts/analyze_pairwise_multi_witness_confirmation_suite_v3.py
+          --lock configs/chronotrace_pairwise_multi_witness_confirmation_v3.lock.json
           --inputs seed-results/*.json
-          --output chronotrace-pairwise-multi-witness-confirmation-selection.json
+          --output chronotrace-pairwise-multi-witness-confirmation-v3-selection.json
       - name: Upload aggregate selection
         uses: actions/upload-artifact@v4
         with:
-          name: chronotrace-pairwise-multi-witness-confirmation-selection
-          path: chronotrace-pairwise-multi-witness-confirmation-selection.json
+          name: chronotrace-pairwise-multi-witness-confirmation-v3-selection
+          path: chronotrace-pairwise-multi-witness-confirmation-v3-selection.json
           if-no-files-found: error
