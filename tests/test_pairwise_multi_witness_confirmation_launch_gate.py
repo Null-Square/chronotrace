@@ -33,7 +33,7 @@ def test_confirmation_workflow_is_marker_only_and_frozen() -> None:
     assert "402469483" in workflow
     assert "2000073798" in workflow
     assert "needs: confirm-seed" in workflow
-    assert "analyze_pairwise_multi_witness_confirmation_suite.py" in workflow
+    assert "analyze_pairwise_multi_witness_confirmation_suite_v2.py" in workflow
 
 
 def test_confirmation_launch_marker_is_valid_if_present() -> None:
@@ -41,7 +41,7 @@ def test_confirmation_launch_marker_is_valid_if_present() -> None:
     if not marker.exists():
         return
     values = _marker_values(marker)
-    assert values["protocol"] == "chronotrace-pairwise-multi-witness-confirmation-32-v1"
+    assert values["protocol"] == "chronotrace-pairwise-multi-witness-confirmation-32-v2"
     assert values["launch_gate_ci_conclusion"] == "success"
     assert values["confirmation_case_count"] == "32"
     assert values["pairwise_decision_count"] == "192"
