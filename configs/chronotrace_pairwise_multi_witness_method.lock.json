@@ -1,0 +1,47 @@
+{
+  "lock_version": "chronotrace-pairwise-multi-witness-method-v1",
+  "status": "frozen_before_heldout_confirmation",
+  "method_role": "final_confirmation_method",
+  "source_branch": "experiment/pythia-finite-pair-scale",
+  "source_pr": 11,
+  "method_components": {
+    "ordered_interactions": "exact ordered Mobius interaction decomposition",
+    "witness_bank": "unit witness directions derived from K3 class geometry and frozen before any K4 output",
+    "higher_order_acquisition": "witness-projected degree-4 interactions from exact measured prefixes",
+    "relaxation": "K-local order marginal polytope with simplex and marginal-consistency equalities",
+    "certificate": "proof-safe infinity-norm multi-witness LP with independently corrected dual lower bound",
+    "chronology_rule": "for each unordered pair, certify the wrong precedence class impossible; return a total order only when all pairwise orientations are certified and transitively consistent; otherwise abstain"
+  },
+  "frozen_commits": {
+    "information_barrier_and_local_hierarchy": "0915ecf1977dca9604b4c528996e29e33aab457a",
+    "multi_witness_core": "6af80f38cc3e9deec91129c4f53087c7450b3832",
+    "scalable_multi_witness_local_order": "07bee0ea80496f4971f1170adccd45d0deb0bc05",
+    "precedence_constraint_interface": "404169e9373f909be9969fd735789ae36ab25e74",
+    "pairwise_posthoc_analyzer": "f610731cd25c67d27df8715887deabfc5145111b"
+  },
+  "source_spent_result": {
+    "run_id": 33327336769,
+    "job_id": 99299704409,
+    "artifact_id": 9736705289,
+    "artifact_digest": "sha256:7f9ccd4ef5627eee04fd85b6a506750fef20866bc7091fb985b4ab2368ef17a1",
+    "single_witness_result": "scientific_negative",
+    "spent_seed": 1011473075,
+    "target_history": "ABCD"
+  },
+  "numerical_rules": {
+    "elimination_guard": 1e-6,
+    "local_order_certificate_guard": 1e-10,
+    "require_corrected_dual_not_raw_solver_value": true,
+    "false_exclusion_policy": "any true precedence certified impossible is a hard invalid result",
+    "abstention_allowed": true
+  },
+  "complexity_claim": {
+    "coordinate_count": "sum_{r=1..K} P(N,r)",
+    "fixed_K": "polynomial in N",
+    "terminal_K_equals_N": "exact but factorial",
+    "explicit_limitation": "for N>K, exact true-history certification additionally requires control of omitted interactions above degree K; no universal finite bound is claimed"
+  },
+  "method_change_policy_after_confirmation_begins": "no changes to mathematics, witness construction, thresholds, target set, or decision rule based on heldout outputs; any later method revision requires a new explicitly labeled development phase and new untouched confirmation data",
+  "confirmation_codebooks_observed": false,
+  "heldout_confirmation_launch_authorized": false
+}
