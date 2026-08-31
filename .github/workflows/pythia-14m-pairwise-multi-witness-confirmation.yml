@@ -1,0 +1,112 @@
+name: Pythia 14M pairwise multi-witness confirmation
+
+on:
+  push:
+    branches:
+      - experiment/pythia-finite-pair-scale
+    paths:
+      - configs/chronotrace_pairwise_multi_witness_confirmation.launch
+
+permissions:
+  contents: read
+
+env:
+  PYTHONHASHSEED: "0"
+  ATEN_CPU_CAPABILITY: default
+  MKL_CBWR: COMPATIBLE
+  MKL_DYNAMIC: "FALSE"
+  OMP_DYNAMIC: "FALSE"
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  NUMEXPR_NUM_THREADS: "1"
+  TOKENIZERS_PARALLELISM: "false"
+
+concurrency:
+  group: pythia-14m-pairwise-multi-witness-confirmation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  confirm-seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        seed: [4294917749, 3885207466, 402469483, 2000073798]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.16"
+          cache: pip
+      - name: Install pinned CPU PyTorch
+        run: >-
+          python -m pip install
+          --index-url https://download.pytorch.org/whl/cpu
+          "torch==2.13.0+cpu"
+      - name: Install pinned scale stack
+        run: >-
+          python -m pip install
+          "transformers==5.16.1"
+          "tokenizers==0.23.1"
+          "huggingface-hub==1.29.0"
+          "safetensors==0.8.0"
+      - name: Install ChronoTrace test and MVP stack
+        run: python -m pip install -e ".[mvp,dev]"
+      - name: Frozen confirmation preflight
+        run: >-
+          pytest
+          tests/test_pairwise_multi_witness_confirmation_gate.py
+          tests/test_witness_projection.py
+          tests/test_multi_witness_local_order.py
+          tests/test_confirmation_aggregator_gate.py
+      - name: Run frozen seed confirmation
+        run: >-
+          python scripts/pythia_14m_pairwise_multi_witness_confirmation.py
+          --confirmation-lock configs/chronotrace_pairwise_multi_witness_confirmation.lock.json
+          --methodology-lock configs/chronotrace_pairwise_multi_witness_methodology.lock.json
+          --source-k3-protocol configs/pythia_14m_k3_convex_last_stage_diagnostic.lock.json
+          --source-k23-protocol configs/pythia_14m_four_stage_k23_pilot.lock.json
+          --seed ${{ matrix.seed }}
+          --output confirmation-seed-${{ matrix.seed }}.json
+          --threads 1
+      - name: Upload frozen seed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: confirmation-seed-${{ matrix.seed }}
+          path: confirmation-seed-${{ matrix.seed }}.json
+          if-no-files-found: warn
+
+  aggregate:
+    needs: confirm-seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.16"
+          cache: pip
+      - name: Install ChronoTrace
+        run: python -m pip install -e .
+      - name: Download all frozen seed evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: confirmation-seed-*
+          path: seed-results
+          merge-multiple: true
+      - name: Aggregate frozen confirmation suite
+        run: >-
+          python scripts/analyze_pairwise_multi_witness_confirmation_suite.py
+          --lock configs/chronotrace_pairwise_multi_witness_confirmation.lock.json
+          --inputs seed-results/*.json
+          --output chronotrace-pairwise-multi-witness-confirmation-selection.json
+      - name: Upload aggregate selection
+        uses: actions/upload-artifact@v4
+        with:
+          name: chronotrace-pairwise-multi-witness-confirmation-selection
+          path: chronotrace-pairwise-multi-witness-confirmation-selection.json
+          if-no-files-found: error
