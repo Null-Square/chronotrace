@@ -1,0 +1,57 @@
+{
+  "methodology_version": "chronotrace-pairwise-multi-witness-certificate-v3",
+  "freeze_status": "frozen_for_fresh_confirmation_after_v1_provenance_audit",
+  "method_change_relative_to_v2": "none; v3 changes only confirmation provenance and seed sampling after discovering that the four v1 seeds had already been executed",
+  "method_head_commit": "d30b712e14fcb8ff90663791d8aebc976bb99fa5",
+  "label_blind_pairwise_interface_commit": "0290e4f903b40247bdd7b1330d48de99e17cad01",
+  "spent_v1_provenance": "configs/chronotrace_pairwise_multi_witness_confirmation_v1_spent.provenance.json",
+  "v1_workflow_run_id": 33361355778,
+  "old_v1_seeds_spent": [4294917749, 3885207466, 402469483, 2000073798],
+  "spent_development_seed": 1011473075,
+  "v1_numeric_outputs_used_for_v3_method_tuning": false,
+  "fresh_v3_confirmation_outputs_observed_before_freeze": false,
+  "scientific_method": {
+    "ordered_interactions": "exact ordered Mobius interaction decomposition",
+    "k3_measurement": "streaming exact direct-prefix measurement through degree 3",
+    "witness_bank": "four unit K3 convex-hull residual witnesses, one per candidate final-stage class, frozen for each target before any K4 candidate output",
+    "k4_acquisition": "stream exact one-step active lifts from measured degree-3 prefixes and retain only witness-projected scalar endpoint/interactions",
+    "hierarchy": "nonnegative K-local order marginals with simplex and adjacent-level marginal consistency",
+    "certificate": "proof-safe infinity-norm multi-witness LP with corrected dual lower bound",
+    "pair_decision": "for every unordered pair, solve both precedence classes without access to the generating chronology; exactly one excluded class implies the opposite orientation, neither implies abstention, both implies invalidity",
+    "chronology_decision": "return a history only when all six pair orientations are inferred and form a transitive total order"
+  },
+  "numerical_rules": {
+    "certificate_guard": 1e-10,
+    "elimination_guard": 1e-6,
+    "projected_reconstruction_abs_tolerance": 1e-8,
+    "projected_reconstruction_rel_tolerance": 1e-8,
+    "terminal_exactness_tolerance": 1e-8,
+    "witness_unit_norm_tolerance": 1e-10,
+    "simplex_weight_tolerance": 1e-10,
+    "require_corrected_dual_not_raw_solver_value": true
+  },
+  "terminal_validation": {
+    "N": 4,
+    "K": 4,
+    "hierarchy_dimension": 64,
+    "rule": "each orientation-class local-order LP primal must match an independently solved convex hull over the complete permutations in that orientation class within tolerance",
+    "euclidean_soundness": "each certified lower bound must be no larger than the direct exact Euclidean vertex-class distance beyond tolerance"
+  },
+  "complexity_scope": {
+    "coordinate_count": "sum_{r=1..K} P(N,r)",
+    "fixed_K": "polynomial in N",
+    "pair_property_queries": "O(N^2)",
+    "terminal_K_equals_N": "exact but factorial in interaction acquisition",
+    "N_greater_than_K_limitation": "exact true-endpoint certification additionally requires control of omitted interactions above degree K; no universal finite tail bound is claimed"
+  },
+  "spent_methodology_evidence": {
+    "spent_seed": 1011473075,
+    "target": "ABCD",
+    "exact_forward_reachable_history_recovery": "24_of_24",
+    "preregistered_single_witness_k4": "scientific_negative",
+    "posthoc_label_aware_multi_witness_minimum_wrong_relation_bound": 0.0006986368053447774,
+    "posthoc_role": "methodology development only, not confirmation"
+  },
+  "fresh_confirmation_change_policy": "after this v3 lock, do not change witness construction, interaction degree, two-sided pairwise decision rule, LP formulation or correction, thresholds, target histories, outcome tiers, or validity rules based on fresh confirmation outputs",
+  "fresh_confirmation_launch_authorized": true
+}
