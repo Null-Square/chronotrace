@@ -20,9 +20,14 @@ This checklist separates completed scientific work from author/venue-specific ac
 ## Repository reviewer path — complete
 
 - [x] Root README reflects final frozen result rather than historical T2/T2b status.
+- [x] Browser-visible frozen result graphic and method pipeline are included.
 - [x] `docs/REVIEWER_GUIDE.md` provides shortest audit path.
 - [x] `docs/RESULTS_FREEZE.md` records immutable result/provenance ledger.
+- [x] `docs/ARCHIVE_MAP.md` distinguishes current and historical machinery.
+- [x] `docs/DEVELOPER_GUIDE.md` documents safe continuation after the paper freeze.
 - [x] `paper/CLAIMS_AND_EVIDENCE.md` constrains manuscript claims.
+- [x] `scripts/audit_release.py` verifies the frozen result/protocol/package ledger.
+- [x] Frozen-data-derived publication assets have a deterministic generator and sync test.
 - [x] PR #11 body updated to current science; PR remains open/unmerged.
 - [x] Issue #12 contains frozen scientific/provenance summary.
 - [x] Historical research journal/protocols preserved rather than silently rewritten.
@@ -51,9 +56,11 @@ This checklist separates completed scientific work from author/venue-specific ac
 - [x] Fresh confirmation coverage figure.
 - [x] Multi-witness geometry figure.
 - [x] Fixed-K / terminal exactness boundary figure.
+- [x] Case-level certification/abstention matrix source.
 - [x] Related-work comparison table.
 - [x] Fresh per-seed result table.
 - [x] Numerical validity table.
+- [x] Frozen result macros for journal-template conversion.
 
 ## Bibliography — core complete, final venue audit required
 
@@ -71,8 +78,9 @@ This checklist separates completed scientific work from author/venue-specific ac
 - [ ] Re-run DOI/title/author metadata audit immediately before submission.
 - [ ] Add any venue/reviewer-mandated references discovered during final formatting.
 
-## Author actions still required
+## Author/release actions still required
 
+- [ ] Choose and approve a software license before inviting external reuse or creating an archival release. No license is inferred automatically.
 - [ ] Replace `Anonymous Authors` after double-blind review requirements permit.
 - [ ] Supply exact author names and affiliations.
 - [ ] Add ORCID IDs if desired/required.
@@ -114,6 +122,6 @@ Preferred headline wording:
 ## Go/no-go
 
 **Scientific go:** yes.  
-**Repository go:** yes after final CI/build check.  
-**Manuscript content go:** yes after LaTeX compile/polish.  
-**Venue submission go:** requires only author metadata, template conversion, final literature audit, and venue-specific declarations—not additional method development.
+**Repository go:** yes once the final CI/release-audit/package gates are green.  
+**Manuscript content go:** yes after the current LaTeX compile remains green.  
+**Venue submission go:** requires author metadata, license decision for external reuse, template conversion, final literature audit, and venue-specific declarations—not additional method development.
