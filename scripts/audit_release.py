@@ -13,7 +13,9 @@ from typing import Any
 from chronotrace.reproducibility import json_sha256
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SELECTION = ROOT / "configs/chronotrace_pairwise_multi_witness_confirmation_v3.selection.json"
+DEFAULT_SELECTION = ROOT / (
+    "configs/chronotrace_pairwise_multi_witness_confirmation_v3.selection.json"
+)
 
 
 class ReleaseAuditError(RuntimeError):
@@ -53,7 +55,10 @@ def _verify_balanced_targets(lock: dict[str, Any]) -> None:
     _require(len(set(targets)) == 8, "fresh confirmation target histories must be unique")
     for position in range(4):
         counts = Counter(target[position] for target in targets)
-        _require(counts == {"A": 2, "B": 2, "C": 2, "D": 2}, "target position balance drift")
+        _require(
+            counts == {"A": 2, "B": 2, "C": 2, "D": 2},
+            "target position balance drift",
+        )
 
 
 def _verify_public_copy() -> None:
@@ -68,7 +73,10 @@ def _verify_public_copy() -> None:
         _require(path.exists(), f"paper-facing file missing: {relative}")
         text = path.read_text(encoding="utf-8")
         for snippet in snippets:
-            _require(snippet in text, f"paper-facing result drift in {relative}: {snippet!r}")
+            _require(
+                snippet in text,
+                f"paper-facing result drift in {relative}: {snippet!r}",
+            )
 
 
 def audit(selection_path: Path) -> dict[str, Any]:
@@ -78,10 +86,22 @@ def audit(selection_path: Path) -> dict[str, Any]:
         == "chronotrace-pairwise-multi-witness-confirmation-selection-v3-frozen",
         "unexpected frozen selection version",
     )
-    _require(selection.get("scientific_seed_jobs_all_success") is True, "seed job failure recorded")
-    _require(selection.get("seed_rerun_after_scientific_execution") is False, "seed rerun recorded")
-    _require(selection.get("method_changed_after_fresh_confirmation_started") is False, "method drift")
-    _require(selection.get("v1_seed_results_used_in_v3_selection") is False, "spent v1 evidence reused")
+    _require(
+        selection.get("scientific_seed_jobs_all_success") is True,
+        "seed job failure recorded",
+    )
+    _require(
+        selection.get("seed_rerun_after_scientific_execution") is False,
+        "seed rerun recorded",
+    )
+    _require(
+        selection.get("method_changed_after_fresh_confirmation_started") is False,
+        "method drift",
+    )
+    _require(
+        selection.get("v1_seed_results_used_in_v3_selection") is False,
+        "spent v1 evidence reused",
+    )
 
     _verify_hash(
         selection,
@@ -108,26 +128,59 @@ def audit(selection_path: Path) -> dict[str, Any]:
         ROOT / "configs/chronotrace_pairwise_multi_witness_confirmation_v3.lock.json"
     )
     _verify_balanced_targets(confirmation_lock)
-    expected_seeds = {str(int(seed)) for seed in confirmation_lock["fresh_heldout_seeds"]}
+    expected_seeds = {
+        str(int(seed)) for seed in confirmation_lock["fresh_heldout_seeds"]
+    }
     per_seed = selection["per_seed"]
-    _require(set(per_seed) == expected_seeds, "fresh seed set drift between lock and selection")
+    _require(
+        set(per_seed) == expected_seeds,
+        "fresh seed set drift between lock and selection",
+    )
 
-    full = sum(int(row["full_history_certificate_coverage"]) for row in per_seed.values())
+    full = sum(
+        int(row["full_history_certificate_coverage"]) for row in per_seed.values()
+    )
     pairs = sum(
         int(row["label_blind_pairwise_orientation_certificate_coverage"])
         for row in per_seed.values()
     )
     ambiguous = sum(int(row["ambiguous_pair_count"]) for row in per_seed.values())
-    contradictions = sum(int(row["contradictory_pair_count"]) for row in per_seed.values())
-    both = sum(int(row["both_orientations_excluded_count"]) for row in per_seed.values())
+    contradictions = sum(
+        int(row["contradictory_pair_count"]) for row in per_seed.values()
+    )
+    both = sum(
+        int(row["both_orientations_excluded_count"]) for row in per_seed.values()
+    )
 
-    _require(full == int(selection["full_history_certificate_coverage"]), "history aggregate drift")
-    _require(pairs == int(selection["label_blind_pairwise_orientation_certificate_coverage"]), "pair aggregate drift")
-    _require(ambiguous == int(selection["ambiguous_pair_count"]), "ambiguity aggregate drift")
-    _require(contradictions == int(selection["contradictory_pair_count"]), "contradiction drift")
-    _require(both == int(selection["both_orientations_excluded_count"]), "double-exclusion drift")
-    _require(pairs + ambiguous == int(selection["pairwise_decision_count"]), "pair accounting drift")
-    _require(int(selection["full_history_abstention_count"]) == 32 - full, "abstention drift")
+    _require(
+        full == int(selection["full_history_certificate_coverage"]),
+        "history aggregate drift",
+    )
+    _require(
+        pairs
+        == int(selection["label_blind_pairwise_orientation_certificate_coverage"]),
+        "pair aggregate drift",
+    )
+    _require(
+        ambiguous == int(selection["ambiguous_pair_count"]),
+        "ambiguity aggregate drift",
+    )
+    _require(
+        contradictions == int(selection["contradictory_pair_count"]),
+        "contradiction drift",
+    )
+    _require(
+        both == int(selection["both_orientations_excluded_count"]),
+        "double-exclusion drift",
+    )
+    _require(
+        pairs + ambiguous == int(selection["pairwise_decision_count"]),
+        "pair accounting drift",
+    )
+    _require(
+        int(selection["full_history_abstention_count"]) == 32 - full,
+        "abstention drift",
+    )
 
     abstention_cases = 0
     abstention_pairs = 0
@@ -135,33 +188,66 @@ def audit(selection_path: Path) -> dict[str, Any]:
         for labels in by_target.values():
             abstention_cases += 1
             abstention_pairs += len(labels)
-    _require(abstention_cases == int(selection["full_history_abstention_count"]), "case abstention drift")
+    _require(
+        abstention_cases == int(selection["full_history_abstention_count"]),
+        "case abstention drift",
+    )
     _require(abstention_pairs == ambiguous, "ambiguous pair ledger drift")
 
     invalid = bool(selection["invalid_suite"])
     expected_class = _classification(full, invalid)
-    _require(selection["outcome_classification"] == expected_class, "outcome tier drift")
-    _require(expected_class == "strong", "frozen paper result is no longer the strong tier")
-    _require(contradictions == 0 and both == 0 and not invalid, "frozen suite validity failure")
+    _require(
+        selection["outcome_classification"] == expected_class,
+        "outcome tier drift",
+    )
+    _require(
+        expected_class == "strong",
+        "frozen paper result is no longer the strong tier",
+    )
+    _require(
+        contradictions == 0 and both == 0 and not invalid,
+        "frozen suite validity failure",
+    )
 
     digest_re = re.compile(r"^sha256:[0-9a-f]{64}$")
     for seed, row in per_seed.items():
-        _require(int(row["stage_executions"]) == 96, f"stage execution drift for seed {seed}")
+        _require(
+            int(row["stage_executions"]) == 96,
+            f"stage execution drift for seed {seed}",
+        )
         _require(
             int(row["witness_freeze_stage_executions"]) == 72,
             f"witness freeze boundary drift for seed {seed}",
         )
-        _require(row["invalid"] is False, f"invalid fresh seed job recorded for {seed}")
-        _require(bool(digest_re.match(row["artifact_digest"])), f"artifact digest malformed for {seed}")
+        _require(
+            row["invalid"] is False,
+            f"invalid fresh seed job recorded for {seed}",
+        )
+        _require(
+            bool(digest_re.match(row["artifact_digest"])),
+            f"artifact digest malformed for {seed}",
+        )
         _require(
             bool(re.fullmatch(r"[0-9a-f]{64}", row["result_raw_sha256"])),
             f"result digest malformed for {seed}",
         )
 
-    _require(selection["all_terminal_witness_hull_exactness_passed"] is True, "terminal exactness failed")
-    _require(selection["all_corrected_bounds_sound_in_witness_geometry"] is True, "witness soundness failed")
-    _require(selection["all_corrected_bounds_sound_against_euclidean_vertices"] is True, "Euclidean soundness failed")
-    _require(selection["all_target_active_lifts_replayed_exactly"] is True, "active-lift replay failed")
+    _require(
+        selection["all_terminal_witness_hull_exactness_passed"] is True,
+        "terminal exactness failed",
+    )
+    _require(
+        selection["all_corrected_bounds_sound_in_witness_geometry"] is True,
+        "witness soundness failed",
+    )
+    _require(
+        selection["all_corrected_bounds_sound_against_euclidean_vertices"] is True,
+        "Euclidean soundness failed",
+    )
+    _require(
+        selection["all_target_active_lifts_replayed_exactly"] is True,
+        "active-lift replay failed",
+    )
 
     _verify_public_copy()
 
