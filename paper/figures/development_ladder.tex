@@ -1,16 +1,16 @@
 \begin{tikzpicture}[
   node distance=5.5mm,
-  step/.style={draw, rounded corners, align=left, inner sep=5pt, text width=0.88\linewidth},
+  ladderbox/.style={draw, rounded corners, align=left, inner sep=5pt, text width=0.88\linewidth},
   arrow/.style={-{Latex[length=2mm]}, thick},
   tag/.style={font=\bfseries\scriptsize}
 ]
-\node[step] (s1) {\textbf{Behavioral AB/BA detector} \hfill \textbf{NEGATIVE}\\Perfect order classification was explained by ordinary recency/capability; confirmation blocked.};
-\node[step, below=of s1] (s2) {\textbf{Static finite-pair / low-order decoder} \hfill \textbf{NEGATIVE}\\Finite Pythia stages preserved coarse chronology but produced structured late-stage swaps.};
-\node[step, below=of s2] (s3) {\textbf{Exact forward-reachable N=4 geometry} \hfill \textbf{MECHANISM}\\24/24 histories separated; establishes endpoint identifiability, but enumerates all complete histories.};
-\node[step, below=of s3] (s4) {\textbf{K3 convex certificate} \hfill \textbf{PARTIAL}\\Wrong final-stage classes A/B excluded on spent ABCD; C/D survive.};
-\node[step, below=of s4] (s5) {\textbf{Preregistered single-witness K4} \hfill \textbf{NEGATIVE}\\C remains feasible along its frozen direction although exact Euclidean class distance is positive.};
-\node[step, below=of s5] (s6) {\textbf{Multi-witness development on spent seed} \hfill \textbf{POST-HOC}\\L1-safe combinations of witnesses frozen before K4 output recover positive wrong-class support; no new model calls.};
-\node[step, below=of s6] (s7) {\textbf{Label-blind frozen v3 confirmation} \hfill \textbf{CONFIRMATION}\\27/32 complete histories and 182/192 pair relations certified; five abstentions, zero contradictions.};
+\node[ladderbox] (s1) {\textbf{Behavioral AB/BA detector} \hfill \textbf{NEGATIVE}\\Perfect order classification was explained by ordinary recency/capability; confirmation blocked.};
+\node[ladderbox, below=of s1] (s2) {\textbf{Static finite-pair / low-order decoder} \hfill \textbf{NEGATIVE}\\Finite Pythia stages preserved coarse chronology but produced structured late-stage swaps.};
+\node[ladderbox, below=of s2] (s3) {\textbf{Exact forward-reachable N=4 geometry} \hfill \textbf{MECHANISM}\\24/24 histories separated; establishes endpoint identifiability, but enumerates all complete histories.};
+\node[ladderbox, below=of s3] (s4) {\textbf{K3 convex certificate} \hfill \textbf{PARTIAL}\\Wrong final-stage classes A/B excluded on spent ABCD; C/D survive.};
+\node[ladderbox, below=of s4] (s5) {\textbf{Preregistered single-witness K4} \hfill \textbf{NEGATIVE}\\C remains feasible along its frozen direction although exact Euclidean class distance is positive.};
+\node[ladderbox, below=of s5] (s6) {\textbf{Multi-witness development on spent seed} \hfill \textbf{POST-HOC}\\L1-safe combinations of witnesses frozen before K4 output recover positive wrong-class support; no new model calls.};
+\node[ladderbox, below=of s6] (s7) {\textbf{Label-blind frozen v3 confirmation} \hfill \textbf{CONFIRMATION}\\27/32 complete histories and 182/192 pair relations certified; five abstentions, zero contradictions.};
 
 \foreach \a/\b in {s1/s2,s2/s3,s3/s4,s4/s5,s5/s6,s6/s7}{\draw[arrow] (\a) -- (\b);}
 \end{tikzpicture}
