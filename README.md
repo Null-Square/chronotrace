@@ -1,280 +1,134 @@
 # ChronoTrace
 
-**Inverse temporal provenance for language-model training.**
+**Certified reconstruction of training chronology from noncommutative learning interactions.**
 
-ChronoTrace studies a specific inverse problem in sequential learning:
+ChronoTrace studies an inverse problem in sequential learning:
 
-> Given a finished model, candidate learning stages, and a defined observation/access regime, what information about the unknown order of those stages is identifiable?
+> Given a finished model, a known base checkpoint, candidate learning stages, and a replay-capable training operator, which stage-order claims can be **certified** from the endpoint?
 
-The project is no longer testing the broad claim that “training order matters.” That is well established. The current target is narrower: reconstruct or constrain an **unknown macro-stage chronology** from the endpoint and characterize the **interaction order** required for that inversion.
+The project does **not** claim that training order matters—that is already known. The contribution is an inverse, proof-oriented formulation: reconstruct or constrain an **unknown chronology** using exact ordered interactions and conservative certificates that may abstain when the evidence is insufficient.
 
-## Current scientific status — 2026-08-29
+## Frozen headline result
 
-ChronoTrace has both negative and positive results. The repository keeps them all in an append-only research journal rather than rewriting the story around successful experiments.
+The final fresh Pythia-14M confirmation is frozen in
+[`configs/chronotrace_pairwise_multi_witness_confirmation_v3.selection.json`](configs/chronotrace_pairwise_multi_witness_confirmation_v3.selection.json).
 
-### 1. Original behavioral AB/BA experiment — confounded negative
+| Metric | Frozen result |
+| --- | ---: |
+| Fresh confirmation cases | 32 |
+| Complete histories certified | **27 / 32 (84.375%)** |
+| Pairwise precedences certified | **182 / 192 (94.79%)** |
+| Full-history abstentions | 5 |
+| Contradictory inferred pairs | **0** |
+| Both orientations excluded | **0** |
+| Invalid seed jobs | **0** |
+| Preregistered outcome tier | **STRONG** |
 
-The first Pythia-70M discovery run classified `A -> B` versus `B -> A` perfectly, but a capability-only baseline also classified the order perfectly. Every matched seed violated the pre-registered capability-equivalence gate.
+The four fresh seeds scored 8/8, 7/8, 6/8, and 6/8 complete-history certificates. All terminal `K=N=4` witness-hull exactness checks, corrected-bound soundness checks, target replay checks, and projected Möbius reconstruction checks passed. The scientific seed jobs were not rerun after observing their outputs.
 
-Conclusion: the original detector was reading ordinary recency / forgetting, not a nontrivial chronology trace. Confirmation was not run.
+## Method in one paragraph
 
-### 2. Common terminal washout — negative
+For deterministic stage maps `F_i` from a common base state `theta_0`, ChronoTrace defines exact ordered Möbius interactions `Phi(w)` over distinct-stage words. A degree-`K` basis gives an exact endpoint representation for words of length at most `K`. The method freezes a bank of low-degree unit witnesses before observing the higher-order candidate output, streams only their higher-order projections, and certifies that a candidate **wrong precedence class** is separated from the target. For a coefficient vector `alpha` with `||alpha||_1 <= 1`, the combined witness has Euclidean norm at most one; a proof-safe local-order LP then gives a conservative distance lower bound. A pair `i,j` is oriented only when exactly one of `i<j` or `j<i` is certified impossible. Complete chronology is returned only when all pair decisions form a transitive total order.
 
-A shared balanced terminal stage C did not reliably equalize ordinary A/B capability before the original forensic witness disappeared.
+## What is exact, and what is not
 
-Conclusion: do not manufacture endpoint equivalence by blindly extending a washout stage.
+At terminal depth `K=N`, the local-order hierarchy equals the permutation convexification and is independently checked against complete-permutation convex-hull solves. This is the regime used by the frozen 32-case Pythia confirmation.
 
-### 3. Noncommutative mechanism program — controlled positive
-
-The project pivoted to the geometry of training operators.
-
-For small reset-SGD updates,
-
-```text
-theta_AB - theta_BA
-  = eta^2 (H_B g_A - H_A g_B) + O(eta^3).
-```
-
-Controlled tests established:
-
-- the predicted Lie-bracket scaling law;
-- the mechanism in a small causal transformer;
-- multi-update macro-stage reconstruction after the one-step approximation fails;
-- exact finite-pair reconstruction through long stages on the controlled transformer.
-
-These are mechanism results, not yet realistic LLM provenance.
-
-### 4. Portable Pythia-14M scale bridge — reproducible 3/6 full-order result
-
-A chronology-blind stability gate froze a plain-SGD learning rate before any Pythia chronology result was observed.
-
-Early Pythia-14M executions were host/backend sensitive, so no result was accepted until a portable CPU numerical path produced exact tensor-hash agreement across independent runners.
-
-Under that portable path, all replicas recovered exactly **3/6** three-stage histories.
-
-The error structure is not random:
-
-```text
-ABC -> ACB
-ACB -> ACB
-BAC -> BAC
-BCA -> BAC
-CAB -> CAB
-CBA -> CAB
-```
-
-Descriptively on this frozen instance:
-
-- full permutation: `3/6`;
-- first stage: `6/6`;
-- pairwise precedence: `15/18 = 83.3%`;
-- mean Kendall tau: `2/3`.
-
-Every error preserves the first stage and swaps only the final two stages.
-
-### 5. State-conditioned interaction diagnostic — mechanistic support, not generalization
-
-For histories sharing prefix A,
-
-```text
-E_ABC - E_ACB = C_BC(F_A(theta_0)).
-```
-
-The static finite-pair decoder instead uses the B/C interaction measured at `theta_0`.
-
-On the already-observed Pythia-14M instance, conditioning on the first stage dramatically rotates and shrinks the relevant tail commutator. Base/conditioned cosines are approximately `0.03–0.10`, and commutator-drift norms are roughly as large as the base commutators themselves.
-
-This supports a **state-conditioned interaction** explanation for the structured tail errors, but it was generated from the same instance and therefore is not independent evidence.
-
-### 6. T2 independent interaction map — current falsifier
-
-The next experiment was frozen before its chronology outcomes:
-
-- Pythia-14M at the same checkpoint;
-- four independently generated tokenizer-safe codebooks;
-- stage lengths `{1,2,4,8,16,32}`;
-- all six A/B/C permutations;
-- no condition selected or discarded by chronology performance;
-- portable deterministic numerical path;
-- pre-registered partial-order and prefix-conditioned interaction checks.
-
-Pythia-31M remains blocked until this map is interpreted.
-
-See `configs/pythia_14m_t2.lock.json` and `docs/experiments/PYTHIA_14M_T2_PROTOCOL.md`.
-
-## Current theory
-
-A training stage is a nonlinear operator. For a chronology
-
-```text
-pi = (pi_1, ..., pi_N),
-```
-
-the endpoint is an ordered composition
-
-```text
-E_pi = F_pi_N ... F_pi_1(theta_0).
-```
-
-For finite stages, ChronoTrace uses an exact interaction decomposition. The endpoint can be organized by interaction degree:
-
-```text
-degree 1: singleton stage effects
-degree 2: directed pair interactions
-degree 3: prefix-conditioned / three-stage interactions
-...
-```
-
-This motivates **Training-History Interaction Order**:
-
-> the minimum interaction degree required to distinguish or constrain a candidate training chronology under a specified observation/error tolerance.
-
-The current hypothesis is that low-order interactions may preserve **coarse chronology** even when they are insufficient for the exact total order. Higher-order, prefix-conditioned interactions may then resolve later branches.
-
-For a shared prefix and two possible tail orders, the project now uses an exact decomposition into:
-
-- rotation/shrinkage of the tail-order separation;
-- a common higher-order midpoint bias.
-
-Both tail orders are simultaneously recoverable against each other exactly when
-
-```text
-alignment > |midpoint_bias|.
-```
-
-This quantity is being tested on independent Pythia-14M instances rather than tuned on the motivating result.
-
-## Real training is an extended-state path
-
-The current mechanism bridge deliberately uses reset/plain SGD to isolate **weight geometry**.
-
-Real LLM training is better represented by a state such as
-
-```text
-z = (weights,
-     optimizer moments,
-     global step / scheduler,
-     RNG and sampler state,
-     mixed-precision state,
-     ...).
-```
-
-That creates distinct chronology channels:
-
-1. **geometric noncommutativity** — order enters at second order under constant-step reset SGD;
-2. **optimizer memory** — momentum/Adam can carry earlier gradients into later updates;
-3. **training-clock / schedule asymmetry** — the same data at different global steps can receive different effective weight;
-4. **stochastic-stream state** — shuffle, minibatch, dropout, distributed and numerical state can couple to temporal position.
-
-These mechanisms must be introduced separately. Optimizer memory and training non-Markovianity are established neighboring research areas; they are not ChronoTrace novelty claims.
-
-See `docs/THEORY_ACCESS_AND_TRACE_CHANNELS.md`.
-
-## Access regimes
-
-ChronoTrace claims are meaningful only with an explicit access model.
-
-The **current mechanism experiments** use a white-box simulator regime:
-
-- known base checkpoint;
-- known candidate stages;
-- known training rule;
-- ability to replay candidate stage operators;
-- access to final weights;
-- unknown chronology.
-
-This does **not** yet constitute black-box forensic provenance.
-
-Later stages of the program will ask whether chronology directions observable in weights survive projection into logits or model responses. An Order Witness can be interpreted as a query whose behavioral sensitivity aligns with a chronology-sensitive parameter direction.
-
-See `docs/THEORY_ACCESS_AND_TRACE_CHANNELS.md`.
-
-## Novelty boundary
-
-ChronoTrace must not claim as novel that:
-
-- training order matters;
-- training order can leave persistent traces;
-- optimization is path dependent;
-- training has memory / can be modeled as a multi-time process;
-- optimizer moments carry past gradients;
-- later training can change the value of an earlier perturbation.
-
-Close work includes palimpsestic black-box provenance, data-order/curriculum studies, process-tensor tomography of SGD, training-memory surveys, optimizer-state transport, unlearning fingerprints, and forward Lie-bracket analyses of sequential learning.
-
-The current candidate contribution is:
-
-> **Post-hoc identification or partial-order reconstruction of an unknown semantic macro-stage chronology from a finished model, together with a graded interaction hierarchy that characterizes when that inverse problem is identifiable.**
-
-That remains a candidate novelty boundary, not a claim of first discovery. The literature map is continuously updated.
-
-See `docs/LITERATURE_MAP.md`.
-
-## Probe complexity versus inference complexity
-
-A fixed degree-K interaction basis can require only polynomially many stage-map probes,
+For fixed `K<N`, the hierarchy has polynomial-size coordinates
 
 ```text
 sum_(r=1..K) P(N,r) = O(N^K)
 ```
 
-for fixed K.
+and pair-property queries are `O(N^2)`, but exact certification of the true endpoint additionally requires control of interactions above degree `K`. ChronoTrace proves an information barrier: for arbitrary smooth one-step SGD, no universal finite-query rule can infer an unseen `K+1` directional tail bound from degree-`<=K` observations alone. Accordingly, this repository **does not claim** a universal subfactorial exact decoder for arbitrary `N`.
 
-That does **not** make exact chronology decoding automatically polynomial: there are still `N!` candidate total orders, and consistency among pair orientations is combinatorial.
+## Scientific progression
 
-ChronoTrace therefore distinguishes:
+The repository preserves failed and negative experiments because they determined the final method:
 
-- **probe complexity** — cost to construct the interaction representation;
-- **inference complexity** — cost to recover a consistent chronology from it.
+1. **Behavioral AB/BA discovery was confounded** by ordinary recency/capability effects.
+2. **Static low-order decoders failed structurally** on finite Pythia stages, often preserving coarse chronology while swapping later stages.
+3. **Exact forward-reachable decoding recovered 24/24 N=4 histories**, establishing endpoint separability but requiring factorial full-history enumeration.
+4. **K3 convex certification pruned two wrong final-stage classes** on the spent ABCD instance.
+5. A **preregistered single-witness K4 diagnostic was negative**: the remaining wrong class was Euclidean-separated but not separated along its frozen witness direction.
+6. A post-hoc **multi-witness certificate** showed that the already-frozen witness bank contained enough information; no new model calls were required for that diagnosis.
+7. The method was then made **label-blind**, frozen, and tested on a new deterministic seed set, yielding the 27/32 fresh confirmation above.
 
-A future scalable approach may use prefix beams, pruning, partial orders, or constrained ranking rather than exhaustive permutation enumeration.
+The original negative remains negative; it was not relabeled after method development.
 
-See `docs/PATH_SIGNATURE_FRAMING.md`.
+## Reviewer path
 
-## Research records
+If you are reviewing the work, start here:
 
-Start here:
+1. [`docs/REVIEWER_GUIDE.md`](docs/REVIEWER_GUIDE.md) — claims, evidence, exact artifact pointers, and a short reproduction path.
+2. [`docs/RESULTS_FREEZE.md`](docs/RESULTS_FREEZE.md) — immutable result ledger and provenance boundary.
+3. [`paper/main.tex`](paper/main.tex) — manuscript source.
+4. [`paper/CLAIMS_AND_EVIDENCE.md`](paper/CLAIMS_AND_EVIDENCE.md) — paper claim-to-evidence matrix.
+5. [`docs/K_LOCAL_INFORMATION_BARRIER.md`](docs/K_LOCAL_INFORMATION_BARRIER.md) — why fixed-depth exactness needs additional tail information for `N>K`.
+6. [`docs/RESEARCH_JOURNAL.md`](docs/RESEARCH_JOURNAL.md) — append-only historical development record.
 
-1. [`docs/RESEARCH_JOURNAL.md`](docs/RESEARCH_JOURNAL.md) — append-only chronology of hypotheses, experiments, failures, and decisions.
-2. [`docs/TRAINING_HISTORY_THEORY.md`](docs/TRAINING_HISTORY_THEORY.md) — current mathematical theory.
-3. [`docs/THEORY_ACCESS_AND_TRACE_CHANNELS.md`](docs/THEORY_ACCESS_AND_TRACE_CHANNELS.md) — identifiability/access model and real-training chronology channels.
-4. [`docs/PATH_SIGNATURE_FRAMING.md`](docs/PATH_SIGNATURE_FRAMING.md) — relation to graded noncommutative path representations.
-5. [`docs/PREFIX_CONDITIONED_DECOMPOSITION.md`](docs/PREFIX_CONDITIONED_DECOMPOSITION.md) — exact shared-prefix tail decomposition.
-6. [`docs/LITERATURE_MAP.md`](docs/LITERATURE_MAP.md) — novelty boundary and neighboring work.
-7. [`docs/experiments/PYTHIA_14M_T2_PROTOCOL.md`](docs/experiments/PYTHIA_14M_T2_PROTOCOL.md) — current independent falsifier.
+Historical protocols and exploratory scripts remain in the repository for auditability; they are not the recommended entry point.
 
-## Non-negotiable research rules
+## Reproducibility anchors
 
-1. **Write the mechanism before the expensive test.** New compute must answer a pre-written question or falsifier.
-2. **Keep the research journal append-only.** Corrections are new entries, not silent rewrites of history.
-3. **Freeze selection rules before outcomes.** Do not tune on chronology performance and then call the result confirmation.
-4. **Preserve exact artifacts and hashes.** Model, data, optimizer, codebook, endpoint and numerical execution identity matter.
-5. **Separate numerical reproducibility from scientific success.** A perfectly reproducible negative result is scientifically valid.
-6. **Separate discovery from independent evidence.** A diagnostic on the instance that generated a hypothesis is explanatory, not confirmation.
-7. **Report partial chronology.** Exact permutation accuracy alone can hide meaningful structure.
-8. **State the access regime.** White-box simulator evidence must not be described as black-box provenance.
-9. **Distinguish chronology channels.** Geometry, optimizer memory, schedule/time and stochastic state require separate interventions.
-10. **Do not claim novelty from weak wording.** The novelty claim must survive direct comparison with current training-memory and provenance literature.
-
-## Repository map
+Final scientific run:
 
 ```text
-chronotrace/
-├── configs/                 frozen and design experiment configurations
-├── docs/                    theory, literature, protocols, decisions and results
-├── paper/                   paper outline and bibliography
-├── scripts/                 experiment and aggregation utilities
-├── src/chronotrace/         Python package
-├── tests/                   deterministic scientific/drift tests
-└── .github/workflows/       CI and reproducible experiment runners
+GitHub Actions run: 33418210637
+scientific head:    7107221c16a001a7974ca1b436d9cacd26145fe2
+selection commit:   8ed5c7deda81080200d5ca5b2de01ed7f31b94d7
 ```
 
-## Installation
+Fresh seed artifacts:
 
-The implementation scaffold targets Python 3.11+.
+```text
+2186192236  artifact 9768220564  sha256:78d9abc998364b5686bfdcb194ea44e2c8e514fa5623c95a1317559cfad59dcc
+1368008047  artifact 9768257657  sha256:0df6ab12047ff36a2c54ef4e1cb7966fb372cf27423e3761347e097e00e0eb96
+92712904    artifact 9768112808  sha256:1830a159945aa50b5f4c4e71fe15bbf047cb9dba4e3c96c09fabc81498d4e668
+1944430236  artifact 9768224175  sha256:fd6a5a0126507d7f7448ad4effafb5d202a988175725bb9e3c83e612530a0006
+```
+
+The first aggregate attempt failed **after** all four scientific jobs succeeded because it treated JSON object key order as semantic although seed files were emitted with sorted keys. The correction only changed the aggregate key-set check; it changed no method, seed, threshold, or scientific output. Regression CI `33475012691` passed normal and optimized tests.
+
+## Access regime and claim boundary
+
+The frozen Pythia result is a **replay-capable white-box mechanism/forensics experiment**:
+
+- known base checkpoint;
+- known candidate stages and training rule;
+- ability to replay stage maps from controlled prefixes;
+- final weights observed;
+- chronology hidden from the decision rule.
+
+It is not a black-box ownership detector and does not establish legal provenance. Neighboring work on forward curriculum/order planning, training-data membership, model lineage, and known-transcript order correlations addresses different questions.
+
+## Installation and tests
+
+Python 3.11+ is supported.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+pytest
+ruff check .
 ```
+
+The scale experiments additionally use the pinned CPU PyTorch/Transformers stack recorded in their workflow and protocol locks.
+
+## Repository map
+
+```text
+chronotrace/
+├── configs/                 frozen protocols, locks, selections, provenance
+├── docs/                    reviewer guide, theory, decisions, historical journal
+├── paper/                   manuscript, figures, tables, bibliography
+├── scripts/                 experiment and aggregation utilities
+├── src/chronotrace/         certificate and interaction implementation
+├── tests/                   proof/drift/regression tests
+└── .github/workflows/       reproducible CI and frozen experiment workflows
+```
+
+## Research policy
+
+ChronoTrace keeps development provenance append-only: negative experiments remain visible; discovery and confirmation are separated; selection rules are frozen before confirmation; numerical reproducibility is distinguished from scientific success; and unsupported chronology claims become abstentions rather than guesses.
