@@ -54,7 +54,7 @@ def test_v3_aggregator_reproduces_frozen_excellent_threshold(tmp_path: Path) -> 
     for seed in lock["fresh_heldout_seeds"]:
         result = _synthetic_seed_result(lock, int(seed))
         path = tmp_path / f"seed-{seed}.json"
-        path.write_text(json.dumps(result), encoding="utf-8")
+        path.write_text(json.dumps(result, sort_keys=True), encoding="utf-8")
         inputs.append(str(path))
 
     output = tmp_path / "selection.json"
@@ -93,7 +93,7 @@ def test_v3_aggregator_invalidates_contradictions(tmp_path: Path) -> None:
             result["label_blind_pairwise_orientation_certificate_coverage"] = 47
             result["ambiguous_pair_count"] = 0
         path = tmp_path / f"seed-{seed}.json"
-        path.write_text(json.dumps(result), encoding="utf-8")
+        path.write_text(json.dumps(result, sort_keys=True), encoding="utf-8")
         inputs.append(str(path))
 
     output = tmp_path / "selection-invalid.json"
