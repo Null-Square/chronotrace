@@ -1,0 +1,537 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage[nameinlink,capitalise]{cleveref}
+
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Phiord}{\Phi}
+\newcommand{\dist}{\operatorname{dist}}
+\newcommand{\conv}{\operatorname{conv}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\argmax}{\operatorname*{arg\,max}}
+\newcommand{\cC}{\mathcal{C}}
+\newcommand{\cH}{\mathcal{H}}
+
+\title{\textbf{ChronoTrace: Certified Reconstruction of Training Order\\from Noncommutative Learning Interactions}}
+\author{Anonymous Authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A trained neural network is the endpoint of an ordered optimization process, yet most model-provenance methods ask whether data or an ancestor was used rather than \emph{in which order} known learning stages occurred. We formulate \emph{training-chronology reconstruction}: given a base checkpoint, a finite set of candidate stage operators, a finished model, and replay-capable access to the stage procedure, infer only those precedence relations that can be certified from the endpoint. ChronoTrace represents deterministic stage compositions by an exact ordered M\"obius interaction decomposition and constructs proof-safe distance lower bounds for candidate precedence classes. The certificate freezes a bank of unit witnesses before higher-order candidate output, streams only witness-projected active lifts, combines witnesses under an $\ell_1$ norm constraint, and minimizes the resulting score over a local-order marginal hierarchy. A corrected LP dual yields a conservative lower bound even under small numerical solver violations. At terminal depth $K=N$, the hierarchy is checked against exact permutation convex hulls; for fixed $K<N$, the representation is polynomial-size, but we prove an information barrier showing that arbitrary unseen $(K+1)$-order behavior cannot be universally bounded from finite degree-$\le K$ observations without additional assumptions or information.
+
+The empirical program deliberately preserves falsifications. Static low-order decoding fails structurally on finite Pythia stages; exhaustive reachable endpoint geometry nevertheless separates all $24$ four-stage histories on a spent instance; a preregistered single-witness $K=4$ certificate remains negative despite nonzero Euclidean class separation. Multi-witness methodology is then developed on the spent instance, frozen into a label-blind two-sided precedence rule, and evaluated on a new deterministic seed set. On Pythia-14M with $N=K=4$, ChronoTrace certifies \textbf{27/32 complete histories (84.4\%)} and \textbf{182/192 pairwise precedences (94.8\%)}, with five conservative full-history abstentions, zero contradictory certified pairs, zero double-exclusions, and all terminal exactness and soundness checks passing. These results establish a proof-oriented inverse chronology mechanism under replay-capable weight-space access while sharply separating the exact terminal result from the unresolved problem of assumption-free fixed-depth certification for longer histories.
+\end{abstract}
+
+\section{Introduction}
+
+Modern models are rarely produced by a single homogeneous training phase. Continued pretraining, domain adaptation, instruction tuning, preference optimization, synthetic-data stages, safety interventions, and other updates are applied sequentially. Their order can matter because neural optimization is path dependent and stage update fields need not commute. Forward work has therefore studied curricula, task ordering, and Lie-bracket criteria for choosing a beneficial schedule \citep{bengio2009curriculum,rukhovich2025commute,sweeney2026sequential,dini2026ordering}. The inverse question is different:
+
+\begin{quote}
+Given a finished model and known candidate learning stages, what can be certified about the \emph{unknown order} in which those stages occurred?
+\end{quote}
+
+This is not membership inference \citep{shokri2017membership}, training-data attribution \citep{koh2017influence,pruthi2020tracin,ilyas2022datamodels}, ancestry verification \citep{mu2023modeldna,thakur2026training}, or testing dependence on a disclosed randomized training transcript \citep{kuditipudi2025palimpsestic}. It is an inverse problem over a finite family of noncommuting training operators.
+
+A naive solution enumerates every complete history, replays it, and chooses the nearest endpoint. In a controlled four-stage Pythia experiment this approach indeed separates all $4!=24$ histories. But this mechanism result is not a satisfactory method: it moves the factorial history space into the measurement procedure. Conversely, low-order local approximations are computationally attractive but can fail at finite update sizes because later pair effects are conditioned on the preceding state. Our goal is therefore not simply to predict a permutation. It is to construct a hierarchy of \emph{certificates}: exclude a wrong precedence class only when a proof-safe lower bound shows that the observed endpoint cannot belong to it, and abstain otherwise.
+
+ChronoTrace is built around three ideas. First, deterministic stage compositions admit an exact ordered M\"obius decomposition into singleton, pair, triple, and higher interactions. Second, a bank of frozen linear witnesses can compress higher-order endpoint information while preserving certified Euclidean lower bounds. Third, precedence is treated as a property of a permutation class and optimized over a local-order marginal relaxation, with a numerically corrected LP dual used as the certificate.
+
+The scientific development matters to the claim. A preregistered single-witness $K=4$ experiment was \emph{negative}: a wrong class survived even though its exact Euclidean distance from the target was positive. Post-hoc analysis on the already-spent instance showed that the bottleneck was the chosen direction, not missing $K=4$ information. A safe combination of witnesses that had all been frozen before $K=4$ output separated the wrong class. We then changed the interface from a target-aware ``wrong class'' query to a label-blind rule that independently tests both orientations of every pair, froze the method, and ran a new confirmation sample without intermediate adaptation.
+
+Our contributions are:
+
+\begin{enumerate}[leftmargin=*,itemsep=3pt]
+\item \textbf{Inverse chronology formulation.} We formalize reconstruction of unknown macro-stage precedence under an explicit replay-capable access regime, with abstention as a first-class output.
+\item \textbf{Exact ordered interaction representation.} We use ordered M\"obius inversion to decompose finite deterministic stage compositions and show that linear witness projection commutes with the decomposition.
+\item \textbf{Proof-safe multi-witness precedence certificates.} We combine a pre-output bank of unit witnesses under an $\ell_1$ constraint and minimize the combined score over a local-order marginal hierarchy. A corrected LP dual produces a conservative lower bound despite numerical reduced-cost violations.
+\item \textbf{Information boundary.} We give a finite-query construction showing that, for arbitrary smooth one-step SGD, degree-$\le K$ observations alone cannot universally control unseen degree-$(K+1)$ directional behavior. This separates polynomial-size fixed-depth representations from assumption-free exact reconstruction.
+\item \textbf{Fresh label-blind Pythia confirmation.} On four new deterministic Pythia-14M codebooks and eight balanced four-stage histories per codebook, the frozen method certifies 27/32 complete histories and 182/192 pairwise precedences with zero contradictory certified pairs.
+\end{enumerate}
+
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{\input{figures/pipeline.tex}}
+\caption{\textbf{ChronoTrace pipeline.} The current result uses replay-capable white-box access: the base checkpoint, candidate stage operators, and training rule are known; chronology is hidden; final weights are observed. Low-degree interactions and unit witnesses are frozen before higher-order candidate output. Both orientations of every pair are then tested independently. The method returns certified precedence edges, a total order if complete, or abstention.}
+\label{fig:pipeline}
+\end{figure*}
+
+\section{Problem Setting and Access Regime}
+
+Let $\theta_0\in\R^d$ be a known base state and let $\{F_i\}_{i=1}^N$ be deterministic training-stage maps. Each $F_i$ may itself represent a finite sequence of optimizer updates, provided the replay protocol fixes every relevant source of state. For a word $w=(w_1,\ldots,w_m)$ of distinct stage labels, define
+\begin{equation}
+E(w)=F_{w_m}\circ\cdots\circ F_{w_1}(\theta_0).
+\end{equation}
+The hidden chronology is a permutation $\pi\in S_N$, and the auditor observes $y=E(\pi)$.
+
+\begin{definition}[Replay-capable chronology reconstruction]
+Given $\theta_0$, candidate stage maps $F_1,\ldots,F_N$, an observed endpoint $y$, and the ability to evaluate prescribed counterfactual stage-map prefixes/extensions, infer a set of precedence relations $i\prec j$ that are certified to hold for the hidden chronology.
+\end{definition}
+
+The distinction between \emph{candidate stage identity} and \emph{stage order} is essential. ChronoTrace does not discover arbitrary latent datasets from weights. It assumes the stage alphabet is known and treats ordering as the hidden variable.
+
+The released model in our experiment exposes weights, while replay access reconstructs controlled counterfactual states. Real pipelines can contain optimizer moments, schedules, RNG streams, mixed precision, or distributed state. Those are separate chronology channels. The present experiment deliberately uses deterministic plain-SGD-style stage updates to isolate weight-space operator geometry.
+
+\paragraph{Outputs.}
+For each unordered pair $\{i,j\}$, ChronoTrace may output $i\prec j$, $j\prec i$, or ``ambiguous.'' A full chronology is emitted only if every pair is oriented and the directed graph is a transitive total order. The method is designed to abstain rather than guess.
+
+\section{Exact Ordered Interaction Geometry}
+
+\subsection{Ordered M\"obius interactions}
+
+For an ordered word $w$, let $u\preceq w$ denote an ordered subsequence of $w$. Define interactions recursively:
+\begin{equation}
+\Phiord(w)=E(w)-\theta_0-\sum_{\substack{u\prec w\\u\neq\emptyset}}\Phiord(u),
+\label{eq:mobius}
+\end{equation}
+where the sum is over nonempty proper ordered subsequences.
+
+\begin{proposition}[Exact ordered decomposition]
+For every finite distinct-stage word $w$,
+\begin{equation}
+E(w)=\theta_0+\sum_{\substack{u\preceq w\\u\neq\emptyset}}\Phiord(u).
+\label{eq:exact-decomp}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Equation~\eqref{eq:exact-decomp} follows immediately from the recursive definition~\eqref{eq:mobius}; this is M\"obius inversion on the ordered-subword poset. The use of M\"obius inversion itself is classical \citep{rota1964mobius}; the role here is to expose graded finite chronology interactions of the training operators.
+\end{proof}
+
+Define the degree-$K$ truncation
+\begin{equation}
+P_K(w)=\theta_0+\sum_{\substack{u\preceq w\\1\le |u|\le K}}\Phiord(u).
+\end{equation}
+
+\begin{corollary}[Exactness up to observed degree]
+If $|w|\le K$, then $P_K(w)=E(w)$ in exact arithmetic.
+\end{corollary}
+
+The number of distinct ordered interaction coordinates through degree $K$ is
+\begin{equation}
+D_{N,K}=\sum_{r=1}^{K}P(N,r)=\sum_{r=1}^{K}\frac{N!}{(N-r)!},
+\end{equation}
+which is $O(N^K)$ for fixed $K$.
+
+\subsection{Connection to local commutators}
+
+For one reset-SGD step $U_A(\theta)=\theta-\eta g_A(\theta)$ and $U_B(\theta)=\theta-\eta g_B(\theta)$,
+\begin{equation}
+\theta_{AB}-\theta_{BA}=\eta^2\left(H_Bg_A-H_Ag_B\right)+O(\eta^3),
+\end{equation}
+with quantities evaluated at the common base. This local Lie-bracket geometry is well established and is now actively used for forward order planning \citep{rukhovich2025commute,sweeney2026sequential}. ChronoTrace does not claim the bracket as new. Its role is explanatory: order enters through noncommuting update fields locally, while the exact finite interaction hierarchy extends beyond the local approximation.
+
+\subsection{Projection commutes with the decomposition}
+
+Let $U\in\R^{d\times m}$ contain frozen witness directions and let $z(w)=U^\top E(w)$. Since M\"obius inversion is linear,
+\begin{equation}
+U^\top\Phiord(w)=z(w)-U^\top\theta_0-\sum_{u\prec w}U^\top\Phiord(u).
+\end{equation}
+Thus projected interactions can be accumulated without retaining full degree-$K$ model-space tensors. This is the compression used by the final experiment.
+
+\section{From Witnesses to Certified Precedence}
+
+\subsection{Frozen witness bank}
+
+Suppose low-degree analysis produces unit vectors $u_1,\ldots,u_m$. In the confirmation protocol, all witnesses are frozen before any degree-$K$ candidate active-lift endpoint is observed. For a candidate class $\cC$ and target $y$, define residuals $r(q)=y-q$ for $q\in\cC$.
+
+A single witness may be poorly oriented even when $\dist(y,\cC)>0$. This occurred in the preregistered $K=4$ development experiment. The key observation is that multiple pre-output witnesses can be combined safely.
+
+\begin{proposition}[L1-safe witness combination]
+Let $\|u_j\|_2\le1$ and let $\alpha\in\R^m$ satisfy $\|\alpha\|_1\le1$. Then
+\begin{equation}
+v=\sum_{j=1}^m\alpha_j u_j
+\end{equation}
+satisfies $\|v\|_2\le1$, and for every residual $r$,
+\begin{equation}
+\|r\|_2\ge \langle v,r\rangle.
+\label{eq:witness-lb}
+\end{equation}
+Consequently,
+\begin{equation}
+\dist(y,\cC)\ge \min_{q\in\cC}\langle v,y-q\rangle.
+\label{eq:class-lb}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+By the triangle inequality,
+$\|v\|_2\le\sum_j|\alpha_j|\|u_j\|_2\le\|\alpha\|_1\le1$.
+Cauchy--Schwarz gives~\eqref{eq:witness-lb}, and minimizing over $q\in\cC$ gives~\eqref{eq:class-lb}.
+\end{proof}
+
+The optimizer may propose $\alpha$, but the implementation normalizes it into the $\ell_1$ unit ball and independently recomputes the vertex/support objective before certifying a lower bound.
+
+\begin{figure}[t]
+\centering
+\resizebox{0.92\linewidth}{!}{\input{figures/multi_witness_geometry.tex}}
+\caption{\textbf{Conceptual multi-witness geometry.} Individual frozen directions may fail to separate all vertices of a wrong-order class. An $\ell_1$-safe combination remains norm-bounded, so a positive minimum support gap is a certified Euclidean distance lower bound.}
+\label{fig:multiwitness}
+\end{figure}
+
+\subsection{K-local order marginals}
+
+Enumerating all complete permutations defeats the purpose of a fixed-depth hierarchy. Instead, for each subset $S\subseteq[N]$ with $1\le |S|\le K$ and each ordering $\sigma$ of $S$, introduce a nonnegative local marginal $x_{S,\sigma}$. The hierarchy imposes:
+
+\begin{enumerate}[leftmargin=*]
+\item simplex constraints within each subset $S$;
+\item adjacent-level marginal consistency between orderings on $S$ and their restrictions to $S\setminus\{i\}$;
+\item property constraints such as $i\prec j$ when certifying a precedence class.
+\end{enumerate}
+
+This is structurally related to established lift-and-project/local-marginal hierarchies such as Sherali--Adams/RLT \citep{sherali1990hierarchy}. We do not claim local marginals as a new relaxation family. The contribution is the chronology-specific objective induced by projected ordered interactions and its use as a proof-safe inverse certificate.
+
+For a fixed combined witness $v$, projected interactions define a linear objective
+\begin{equation}
+L_v(x)=c_v+a_v^\top x
+\end{equation}
+whose minimum lower-bounds the witness support over the feasible precedence class when the local-order polytope is a relaxation of complete histories.
+
+\subsection{Numerically corrected LP dual}
+
+Consider
+\begin{equation}
+\min_x c^\top x+c_0 \quad\text{s.t.}\quad Ax=b,\;x\ge0.
+\end{equation}
+For a proposed dual vector $y$, define reduced-cost residual $\delta=c-A^\top y$. A floating-point LP solver may return tiny negative reduced costs, so directly using $c_0+b^\top y$ can overstate the lower bound. ChronoTrace corrects the dual by subtracting the exact worst subset-wise negative reduced-cost contribution allowed by each simplex block. In schematic form,
+\begin{equation}
+\mathrm{LB}_{\mathrm{safe}}
+=c_0+b^\top y+
+\sum_{S}\min_{\sigma\in\mathrm{Ord}(S)}\delta_{S,\sigma}
+-\varepsilon_{\mathrm{guard}}.
+\label{eq:corrected-dual}
+\end{equation}
+The implementation uses the hierarchy's block structure to compute this correction. The resulting quantity is the certificate, not the raw solver objective.
+
+\subsection{Label-blind two-sided pair rule}
+
+For every unordered pair $\{i,j\}$, ChronoTrace solves two independent certificate problems:
+\begin{equation}
+\cC_{i\prec j},\qquad \cC_{j\prec i}.
+\end{equation}
+The generating chronology is not consulted until after both decisions are complete.
+
+\begin{itemize}[leftmargin=*]
+\item If exactly one class is certified impossible, infer the opposite orientation.
+\item If neither is excluded, abstain on the pair.
+\item If both are excluded, mark the result invalid.
+\end{itemize}
+
+A full history is certified only if all $\binom{N}{2}$ pairs are oriented and form a transitive total order.
+
+\section{Exactness and the Fixed-Depth Information Barrier}
+
+\subsection{Terminal exactness}
+
+At $K=N$, all complete-order coordinates are present. For the $N=4$ confirmation, the terminal local-order formulation is independently compared against explicit convex-hull optimization over every permutation satisfying the tested precedence relation. Every one of the $384$ orientation-class solves in the fresh suite passes this exactness check within the frozen tolerance.
+
+\subsection{Why fixed K is not automatically exact}
+
+For $K<N$, the observed endpoint contains interactions of degree greater than $K$ that do not appear in the truncated representation. A norm bound on the omitted tail is sufficient but can be too loose to certify useful separation. One might hope to infer the missing directional tail from the already-measured low-degree states alone. In general this is impossible without further assumptions.
+
+\begin{theorem}[Finite-query K-local information barrier, informal]
+Fix any finite set of queried states $Q$ generated from degree-$\le K$ observations of a smooth one-step gradient update rule, and let $x_\star\notin Q$ be an unqueried state required by a degree-$(K+1)$ extension. There exist two smooth objectives whose gradients agree at every state in $Q$ but whose gradient at $x_\star$ differs by an arbitrary prescribed direction and scale. Therefore no method using only the queried degree-$\le K$ information can provide a universal finite bound on the unseen degree-$(K+1)$ directional contribution for arbitrary smooth objectives.
+\end{theorem}
+
+\paragraph{Construction.}
+Let
+\begin{equation}
+P(x)=\prod_{q\in Q}\|x-q\|_2^2
+\end{equation}
+and normalize a smooth perturbation by $P(x_\star)$. A term of the form
+\begin{equation}
+\psi(x)=\frac{P(x)}{P(x_\star)}\langle a,x-x_\star\rangle
+\end{equation}
+can be arranged so that the perturbation gradient vanishes on $Q$ while changing the derivative behavior at the unqueried extension state. Scaling $a$ changes the unseen transition without affecting the finite observations. The repository gives the precise construction and tests.
+
+This theorem does not say fixed-depth methods are useless. It says an exact guarantee below terminal depth needs additional structure: regularity constants, explicit higher-order probes, problem-specific tail estimates, or other information not contained in the finite low-degree observations alone.
+
+\begin{figure}[t]
+\centering
+\resizebox{0.98\linewidth}{!}{\input{figures/complexity_boundary.tex}}
+\caption{\textbf{Exactness/scalability boundary.} For fixed $K$, the representation is polynomial-size in $N$. At $K=N$ it is terminally exact but interaction acquisition becomes factorial. For $K<N$, omitted interactions require additional control; the information-barrier theorem rules out a universal assumption-free finite-query tail certificate.}
+\label{fig:boundary}
+\end{figure}
+
+\section{Experimental Program}
+
+\subsection{Why Pythia}
+
+Pythia provides public checkpoints and a controlled training ecosystem intended for learning-dynamics research \citep{biderman2023pythia}. We use Pythia-14M as a reproducible mechanism bridge rather than as a scale claim. The experiment starts from a fixed checkpoint and applies four deterministic synthetic stage datasets with exactly one plain-SGD update per stage at the frozen learning rate.
+
+The experiment is intentionally stronger-access and smaller-scale than deployment provenance settings. This allows exact endpoint hashes, direct counterfactual stage-map probes, and terminal convex-hull validation of the certificate itself.
+
+\subsection{Numerical reproducibility}
+
+Early development exposed host/backend sensitivity in tiny endpoint differences. No chronology result was accepted until a portable CPU execution path reproduced the relevant tensors under the frozen numerical stack. The final protocols pin Python, CPU PyTorch, Transformers/tokenizer dependencies, thread counts, dataset/codebook generation, checkpoint revision, dtype, and stage randomness. Numerical reproducibility is treated as a prerequisite distinct from scientific success.
+
+\subsection{Development-versus-confirmation discipline}
+
+We separate three evidence roles:
+
+\begin{description}[leftmargin=2.2cm,style=nextline]
+\item[Spent development] Used to understand failures and design later methods. Results are never relabeled as confirmation.
+\item[Preregistered negative] A frozen method that fails its success rule; retained as a negative result.
+\item[Fresh confirmation] New deterministic seeds generated after the final label-blind method and thresholds are frozen; no intermediate adaptation is permitted.
+\end{description}
+
+\begin{figure*}[t]
+\centering
+\resizebox{0.92\textwidth}{!}{\input{figures/development_ladder.tex}}
+\caption{\textbf{Scientific development ladder.} ChronoTrace's final method is the result of successive falsifications. The preregistered single-witness K4 run remains explicitly negative. Multi-witness aggregation was developed post-hoc on the spent seed, then frozen into a label-blind interface before fresh v3 confirmation.}
+\label{fig:ladder}
+\end{figure*}
+
+\section{Development Results and Falsifications}
+
+\subsection{Static low-order decoding is insufficient at finite stage size}
+
+Controlled small-step experiments support the expected commutator scaling, but finite Pythia stages expose a state-conditioning problem. A static pair interaction measured at the base state can differ markedly from the relevant pair interaction after a shared prefix. Three-stage experiments preserve the first stage far more reliably than the tail order, motivating higher interaction degree and partial-order reporting.
+
+These results are useful precisely because they are negative for the simplest decoder. They prevent us from presenting the local bracket as an already-sufficient inverse method.
+
+\subsection{Exact forward-reachable geometry establishes identifiability}
+
+On the spent four-stage Pythia system, directly replaying every complete candidate history and comparing endpoints recovers all $24/24$ histories. The minimum pair separation is positive, and self-reconstruction residuals are near numerical precision. Thus the final weights contain enough information to distinguish the histories in this controlled system.
+
+This result answers the mechanism question but not the scalability question: enumerating every history is factorial.
+
+\subsection{K3 convex certificate partially prunes the history}
+
+A frozen degree-3 convex last-stage certificate on the spent target ABCD eliminates final-stage classes A and B, while C and D survive. This is a proof-safe partial result rather than a full chronology claim.
+
+\subsection{Preregistered single-witness K4 is a scientific negative}
+
+The next frozen diagnostic acquires exact degree-4 active lifts but evaluates each class with only its own K3-frozen witness. All implementation/exactness gates pass, yet wrong class C survives. Importantly, C has nonzero exact Euclidean distance from the target. Its failure is directional: the frozen C witness has a negative minimum support over the class.
+
+This distinction is central. The experiment does not show that K4 information is absent; it shows that one low-degree residual direction can be a poor separating hyperplane for the higher-order class geometry.
+
+\subsection{Post-hoc multi-witness development}
+
+Using only the four witnesses that were already frozen before K4 output, we optimize an $\ell_1$-safe combination on the spent endpoint projections. The combined certificate separates the residual wrong class while the true class remains feasible. Extending the same property-certificate view to all unordered pairs excludes all six wrong pair orientations for the spent ABCD target.
+
+No new Pythia model calls are used in this post-hoc analysis. Nevertheless, it is explicitly methodology development because the coefficients/property formulation were designed after observing the single-witness failure.
+
+\section{Fresh Label-Blind Confirmation}
+
+\subsection{Protocol freeze}
+
+Before fresh confirmation, the method is frozen to the two-sided label-blind rule: both orientations of every pair are tested independently; the generating chronology is used only after decisions for evaluation. Witness construction, interaction degree, LP formulation, numerical correction, thresholds, target histories, validity rules, and outcome tiers are all fixed.
+
+A provenance audit discovered that four seeds originally reserved as held-out had already been executed by an earlier v1 workflow. We therefore mark them spent rather than pretending they are untouched. Their numerical outcomes are not used to tune v3. The final v3 seed set is generated mechanically from a frozen SHA-256 derivation rule:
+\begin{equation*}
+2186192236,\quad1368008047,\quad92712904,\quad1944430236.
+\end{equation*}
+
+Each seed evaluates the same eight position-balanced histories:
+\begin{equation*}
+\texttt{ABCD, BCDA, CDAB, DABC, DCBA, ADCB, BADC, CBAD}.
+\end{equation*}
+All four seed jobs launch from one immutable marker with no adaptation between jobs.
+
+\subsection{Primary result}
+
+\begin{table}[t]
+\centering
+\caption{Fresh v3 label-blind confirmation. Pair coverage counts certified precedence relations out of 48 per seed. Ambiguity means neither orientation could be excluded; it is not counted as an incorrect certificate.}
+\label{tab:confirmation}
+\begin{tabular}{lrrr}
+\toprule
+Seed & Full histories & Pair relations & Ambiguous pairs \\
+\midrule
+2186192236 & 6/8 & 43/48 & 5 \\
+1368008047 & 7/8 & 47/48 & 1 \\
+92712904   & 6/8 & 44/48 & 4 \\
+1944430236 & 8/8 & 48/48 & 0 \\
+\midrule
+\textbf{Total} & \textbf{27/32} & \textbf{182/192} & \textbf{10} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ChronoTrace certifies $27/32=84.375\%$ complete histories and $182/192=94.79\%$ pairwise precedences. The remaining ten pair decisions are ambiguous and cause five full-history abstentions. There are \textbf{zero contradictory inferred pairs}, \textbf{zero cases in which both orientations are excluded}, and no invalid seed job. Under the preregistered outcome tiers, 24--27 certified histories with zero invalid cases is classified as \textbf{strong}; the observed result lies at the top of this tier.
+
+\begin{figure}[t]
+\centering
+\resizebox{0.98\linewidth}{!}{\input{figures/confirmation_coverage.tex}}
+\caption{\textbf{Fresh confirmation coverage by seed.} Dark bars show pairwise precedence coverage and light bars show complete-history certificate coverage. The method abstains rather than filling ambiguous edges; no certified pair contradicts the generating chronology in the fresh suite.}
+\label{fig:coverage}
+\end{figure}
+
+The five abstaining cases are not evenly distributed: one seed certifies every case, while the other seeds contain a small number of unresolved pair relations. This is the intended behavior of a certificate system. It is preferable to an apparently higher ``accuracy'' obtained by forcing a label on unsupported cases.
+
+\subsection{Terminal exactness and soundness checks}
+
+The final experiment is $N=K=4$. Every orientation-class local-order primal is compared with an independent exact convex-hull solve over complete permutations in the class. Aggregate numerical diagnostics are:
+
+\begin{table}[t]
+\centering
+\caption{Frozen numerical validity diagnostics for the fresh suite.}
+\label{tab:validity}
+\begin{tabular}{lr}
+\toprule
+Diagnostic & Maximum / result \\
+\midrule
+Projected reconstruction residual & $6.77\times10^{-17}$ \\
+Terminal primal exactness error & $4.06\times10^{-17}$ \\
+Terminal witness-hull exactness & all pass \\
+Corrected bounds sound in witness geometry & all pass \\
+Corrected bounds sound vs. Euclidean vertices & all pass \\
+Target active lifts replay exactly & all pass \\
+Contradictory pair inferences & 0 \\
+Double-exclusions & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The minimum positive excluded-orientation margin above the frozen $10^{-6}$ elimination guard is $6.015\times10^{-6}$. The certificate is therefore not relying on equality at the numerical threshold.
+
+\subsection{Post-science aggregation correction}
+
+All four scientific seed jobs completed and uploaded immutable artifacts. The first aggregate step then failed because it compared JSON object iteration order with the preregistered target order even though seed files were emitted with sorted keys. We corrected the aggregator to require the exact target key \emph{set and count}; no seed result, method, threshold, target set, or outcome tier changed. A regression test serializes synthetic results with sorted keys, and normal plus optimized CI passes. We report this plumbing failure because provenance handling is part of the scientific evidence, not something to hide after a successful result.
+
+\section{Related Work and Novelty Boundary}
+
+\paragraph{Forward ordering and curriculum design.}
+Curriculum learning and later work study how ordering data or domains changes optimization and generalization \citep{bengio2009curriculum,dini2026ordering}. Recent geometric work uses Lie brackets to select or rank beneficial future domain orders \citep{rukhovich2025commute,sweeney2026sequential}. These papers make the local noncommutative mechanism an especially important novelty boundary: ChronoTrace does not claim to discover that commutators encode order sensitivity. Our problem is inverse: the chronology is latent and the output is a proof-safe exclusion of candidate order classes rather than a preferred future curriculum.
+
+\paragraph{Membership, influence, and data attribution.}
+Membership inference asks whether a particular record was present \citep{shokri2017membership}. Influence functions, TracIn, and datamodels estimate how training data affects model predictions or counterfactual outcomes \citep{koh2017influence,pruthi2020tracin,ilyas2022datamodels}. These methods address inclusion/influence rather than an unknown permutation of known macro-stage operators.
+
+\paragraph{Model lineage and provenance.}
+Model DNA and recent weight-space lineage signatures ask whether checkpoints share ancestry \citep{mu2023modeldna,thakur2026training}. Palimpsestic provenance uses a disclosed randomized training order as a statistical signature of derivation \citep{kuditipudi2025palimpsestic}. ChronoTrace instead assumes candidate stage identities but hides their semantic macro-order, then tries to reconstruct that order from the endpoint under replay-capable access.
+
+\paragraph{Training memory.}
+Process-tensor work measures non-Markovian training memory and the effect of causal breaks \citep{sevetlidis2026process}. Such work supports the broader premise that optimization carries multi-time structure, but ``training has memory'' is not a ChronoTrace novelty claim.
+
+\paragraph{Permutation representations and lift-and-project hierarchies.}
+Compact low-order representations of distributions over permutations and polyhedral marginal relaxations have a long history \citep{huang2009fourier,sherali1990hierarchy}. Ordered M\"obius inversion is likewise classical \citep{rota1964mobius}. ChronoTrace's proposed novelty lies in coupling these kinds of graded/order representations to the inverse training-chronology problem, frozen model-space witnesses, and proof-safe endpoint exclusion certificates.
+
+\begin{table*}[t]
+\centering
+\caption{Problem/access distinction from neighboring work. ``Transcript'' denotes whether the realized training order is known or deliberately encoded rather than latent.}
+\label{tab:related}
+\begin{tabular}{p{3.0cm}p{2.2cm}p{1.7cm}p{4.1cm}p{3.0cm}}
+\toprule
+Work family & Realized order known? & Direction & Primary question/output & Typical access \\
+\midrule
+Curriculum/data-order optimization & chosen by method & forward & Which schedule should be used? & loss/gradients/training \\
+Lie-bracket transfer-order planning & no realized history; candidate sources known & forward & Which pair/order improves a target? & gradients/HVPs \\
+Membership inference & n/a & inverse inclusion & Was record $x$ used? & black-box or white-box \\
+Influence / attribution & n/a & inverse effect & Which data affected behavior? & gradients/checkpoints/training \\
+Model lineage & n/a & inverse ancestry & Does model B descend from model A? & weights or queries \\
+Palimpsestic provenance & disclosed randomized transcript used statistically & inverse dependence & Is model/text dependent on a known training run? & queries/text \\
+\textbf{ChronoTrace} & \textbf{hidden} & \textbf{inverse chronology} & \textbf{Which known stage precedes which? certify or abstain} & \textbf{replay-capable weights} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\section{Discussion}
+
+\subsection{What the fresh result establishes}
+
+The fresh confirmation changes the status of the project from a spent-instance mechanism demonstration to a reproducible method result. After development on a separate spent chronology, the label-blind rule generalizes to new deterministic codebooks and balanced histories. Complete-history coverage is high but not perfect, while certified pair relations are more complete. This pattern matches the intended semantics of the method: pairwise property certificates can accumulate into a total order when every edge is separated, and otherwise leave a partial order.
+
+The absence of contradictory certified relations is important but should not be overinterpreted. Thirty-two histories are enough to demonstrate nontrivial out-of-development behavior, not to estimate an extremely small global false-certificate probability. The more defensible statement is empirical: no false pair certificate was observed in the frozen suite, and every terminal certificate was independently checked against the exact class geometry.
+
+\subsection{Why the negative experiment belongs in the main paper}
+
+The single-witness negative reveals a distinction that would otherwise remain hidden. Exact higher-order information can be present while a particular low-degree residual direction is an inadequate separating functional. Multi-witness combination is therefore not merely a performance tweak; it changes the geometry from one candidate hyperplane to a norm-controlled family of hyperplanes drawn from information frozen before the higher-order output. Keeping the negative result makes clear which part of the final method was actually necessary.
+
+\subsection{Certificate coverage versus forced prediction}
+
+A standard classifier can always output one of $N!$ labels, but such an output does not distinguish strong evidence from arbitrary tie-breaking. ChronoTrace instead optimizes for certified exclusion. Five of 32 fresh cases remain unresolved because at least one pair cannot be separated under the frozen threshold. We view this as scientifically preferable to inflating full-order coverage with unsupported guesses.
+
+\subsection{Scalability is the open boundary}
+
+The representation and local-order optimization are polynomial-size for fixed $K$, but the final exact Pythia experiment is terminal, $K=N=4$. It therefore does not prove that a constant-depth interaction basis is sufficient for long histories. The information-barrier theorem sharpens this limitation: arbitrary smooth dynamics admit adversarially different unseen extensions that agree on every finite low-degree queried state. A scalable exact method needs additional assumptions or measurements, not simply a more aggressive LP.
+
+\section{Limitations}
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Scale and history length.} The decisive confirmation uses Pythia-14M and four stages. It is a controlled mechanism/certificate validation, not evidence that the same coverage persists for dozens of stages or billion-parameter models.
+\item \textbf{Terminal interaction depth.} The fresh exact result uses $K=N=4$. Fixed-depth $K<N$ remains a relaxation unless omitted higher-order interactions are controlled.
+\item \textbf{Strong access model.} Candidate stage identities, base checkpoint, update rule, and replay procedure are known. The method does not infer arbitrary hidden datasets and is not black-box provenance.
+\item \textbf{Controlled optimizer channel.} Deterministic plain-SGD-style stages isolate weight geometry. Momentum, Adam moments, schedules, stochastic minibatches, mixed precision, and distributed state can create additional chronology channels not evaluated here.
+\item \textbf{Synthetic stage data.} The confirmation uses controlled tokenizer-safe codebooks rather than natural semantic post-training corpora. This improves exact reproducibility but narrows ecological validity.
+\item \textbf{Finite confirmation sample.} Four fresh codebooks and eight balanced histories per codebook provide a meaningful out-of-development test, but not a complete characterization of certificate failure rates across training regimes.
+\end{enumerate}
+
+These limitations define the present claim rather than negating it. The paper's result is a proof-oriented inverse chronology mechanism with a fresh terminal confirmation under controlled replay-capable access.
+
+\section{Conclusion}
+
+We introduced ChronoTrace, a framework for reconstructing unknown training chronology by certifying impossible precedence classes. The method combines an exact ordered interaction representation, witnesses frozen before higher-order candidate output, norm-safe multi-witness combinations, a local-order marginal hierarchy, and numerically corrected LP dual bounds. The development record includes structured low-order failures and a preregistered single-witness negative, which motivated the final multi-witness property certificate. After freezing a label-blind two-sided rule, fresh Pythia-14M confirmation certifies 27/32 complete four-stage histories and 182/192 pairwise precedences with five abstentions and no contradictory certified pair.
+
+The result supports a narrow but substantive conclusion: under replay-capable weight-space access, a finished neural model can contain enough ordered interaction structure to support \emph{certified} reconstruction of an unknown training chronology. At the same time, the fixed-depth information barrier prevents us from conflating terminal exactness with a universal scalable decoder. Closing that gap---through explicit regularity, selective higher-order probes, or other tail information---is the central next theoretical problem.
+
+\appendix
+
+\section{Frozen Confirmation Details}
+
+The frozen v3 scientific run is GitHub Actions run \texttt{33418210637} at scientific commit \texttt{7107221c16a001a7974ca1b436d9cacd26145fe2}. The repository selection file is
+\begin{center}
+\texttt{configs/chronotrace\_pairwise\_multi\_witness\_confirmation\_v3.selection.json}.
+\end{center}
+The four artifact IDs are 9768220564, 9768257657, 9768112808, and 9768224175; their SHA-256 digests are recorded in the selection file and reviewer guide.
+
+Each seed executes 96 stage-map calls: 40 for the exact K3 interaction basis, 32 for eight direct target replays, and 24 for degree-4 active lifts. Witnesses are frozen after 72 calls, before any degree-4 candidate output. Only projected scalar degree-4 information is retained for the certificate path; full K4 model-space tensors are not retained.
+
+\section{Abstention Cases}
+
+The ten ambiguous pair decisions occur in five cases:
+\begin{itemize}[leftmargin=*]
+\item seed 2186192236, DABC: AC and BC ambiguous;
+\item seed 2186192236, CBAD: AB, AC, and BD ambiguous;
+\item seed 1368008047, BCDA: AD ambiguous;
+\item seed 92712904, BCDA: AB ambiguous;
+\item seed 92712904, CBAD: AB, AC, and BC ambiguous.
+\end{itemize}
+Seed 1944430236 certifies all 48 pair relations and all eight complete histories.
+
+\section{Outcome Tiers}
+
+Before fresh confirmation, aggregate complete-history coverage was mapped to the following frozen interpretation:
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Coverage & Interpretation \\
+\midrule
+28--32 / 32 & excellent \\
+24--27 / 32 & strong \\
+16--23 / 32 & partial \\
+0--15 / 32 & scientific negative \\
+any validity contradiction & invalid \\
+\bottomrule
+\end{tabular}
+\end{center}
+The observed 27/32 result is therefore \emph{strong} under the pre-existing rule; the threshold was not moved after observing the aggregate.
+
+\section{Reproducibility and Audit Trail}
+
+The repository keeps historical failures and invalid attempts. In particular, an earlier four-seed v1 workflow consumed seeds that had originally been intended as held-out. Rather than reuse them, v3 records them as spent and derives a new seed set mechanically. The v1 outputs are not used for v3 tuning.
+
+The first v3 aggregate job fails after all seed artifacts exist because of a JSON dictionary-order assertion. The corrected aggregator treats object-key ordering as non-semantic and checks the exact key set/count. Commit \texttt{23f58008d856d4cdecfb8a6777e4d8fdf302741c} contains the correction, commit \texttt{d38bceb55d2148980d3130d1228f35e5f4b26f97} adds a regression that serializes sorted keys, and CI run \texttt{33475012691} passes lint, unit/drift tests, and optimized-mode tests.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
