@@ -1,5 +1,8 @@
 # ChronoTrace
 
+[![CI](https://github.com/Null-Square/chronotrace/actions/workflows/ci.yml/badge.svg?branch=experiment%2Fpythia-finite-pair-scale)](https://github.com/Null-Square/chronotrace/actions/workflows/ci.yml)
+[![Paper](https://github.com/Null-Square/chronotrace/actions/workflows/paper.yml/badge.svg?branch=experiment%2Fpythia-finite-pair-scale)](https://github.com/Null-Square/chronotrace/actions/workflows/paper.yml)
+
 **Certified reconstruction of training chronology from noncommutative learning interactions.**
 
 ChronoTrace studies an inverse problem in sequential learning:
@@ -12,6 +15,8 @@ The project does **not** claim that training order matters—that is already kno
 
 The final fresh Pythia-14M confirmation is frozen in
 [`configs/chronotrace_pairwise_multi_witness_confirmation_v3.selection.json`](configs/chronotrace_pairwise_multi_witness_confirmation_v3.selection.json).
+
+![Frozen fresh confirmation results](assets/chronotrace-results.svg)
 
 | Metric | Frozen result |
 | --- | ---: |
@@ -29,6 +34,37 @@ The four fresh seeds scored 8/8, 7/8, 6/8, and 6/8 complete-history certificates
 ## Method in one paragraph
 
 For deterministic stage maps `F_i` from a common base state `theta_0`, ChronoTrace defines exact ordered Möbius interactions `Phi(w)` over distinct-stage words. A degree-`K` basis gives an exact endpoint representation for words of length at most `K`. The method freezes a bank of low-degree unit witnesses before observing the higher-order candidate output, streams only their higher-order projections, and certifies that a candidate **wrong precedence class** is separated from the target. For a coefficient vector `alpha` with `||alpha||_1 <= 1`, the combined witness has Euclidean norm at most one; a proof-safe local-order LP then gives a conservative distance lower bound. A pair `i,j` is oriented only when exactly one of `i<j` or `j<i` is certified impossible. Complete chronology is returned only when all pair decisions form a transitive total order.
+
+![ChronoTrace certificate pipeline](assets/chronotrace-pipeline.svg)
+
+## Five-minute reviewer verification
+
+The release audit does not download model weights or rerun Pythia. It verifies the frozen selection arithmetic, seed ledger, canonical lock hashes, result tier, validity flags, and paper-facing result copy.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+make audit
+```
+
+For the full code/package gate:
+
+```bash
+make reviewer
+```
+
+With a TeX distribution installed, compile the manuscript too:
+
+```bash
+make reviewer-full
+```
+
+Generated reviewer/paper assets are deterministic functions of the frozen selection:
+
+```bash
+python scripts/generate_release_assets.py --check
+```
 
 ## What is exact, and what is not
 
@@ -62,10 +98,12 @@ If you are reviewing the work, start here:
 
 1. [`docs/REVIEWER_GUIDE.md`](docs/REVIEWER_GUIDE.md) — claims, evidence, exact artifact pointers, and a short reproduction path.
 2. [`docs/RESULTS_FREEZE.md`](docs/RESULTS_FREEZE.md) — immutable result ledger and provenance boundary.
-3. [`paper/main.tex`](paper/main.tex) — manuscript source.
+3. [`paper/main.tex`](paper/main.tex) — journal-neutral manuscript source.
 4. [`paper/CLAIMS_AND_EVIDENCE.md`](paper/CLAIMS_AND_EVIDENCE.md) — paper claim-to-evidence matrix.
 5. [`docs/K_LOCAL_INFORMATION_BARRIER.md`](docs/K_LOCAL_INFORMATION_BARRIER.md) — why fixed-depth exactness needs additional tail information for `N>K`.
-6. [`docs/RESEARCH_JOURNAL.md`](docs/RESEARCH_JOURNAL.md) — append-only historical development record.
+6. [`docs/ARCHIVE_MAP.md`](docs/ARCHIVE_MAP.md) — current versus historical research machinery.
+7. [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md) — continuation path for new contributors and follow-up protocols.
+8. [`docs/RESEARCH_JOURNAL.md`](docs/RESEARCH_JOURNAL.md) — append-only historical development record.
 
 Historical protocols and exploratory scripts remain in the repository for auditability; they are not the recommended entry point.
 
@@ -110,8 +148,7 @@ Python 3.11+ is supported.
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-pytest
-ruff check .
+make check
 ```
 
 The scale experiments additionally use the pinned CPU PyTorch/Transformers stack recorded in their workflow and protocol locks.
@@ -120,15 +157,18 @@ The scale experiments additionally use the pinned CPU PyTorch/Transformers stack
 
 ```text
 chronotrace/
+├── assets/                  browser-visible result and method diagrams
 ├── configs/                 frozen protocols, locks, selections, provenance
-├── docs/                    reviewer guide, theory, decisions, historical journal
-├── paper/                   manuscript, figures, tables, bibliography
-├── scripts/                 experiment and aggregation utilities
+├── docs/                    reviewer/developer guides, theory, decisions, journal
+├── paper/                   manuscript, generated macros, figures, bibliography
+├── scripts/                 experiment, audit, aggregation, asset-generation utilities
 ├── src/chronotrace/         certificate and interaction implementation
-├── tests/                   proof/drift/regression tests
-└── .github/workflows/       reproducible CI and frozen experiment workflows
+├── tests/                   proof/drift/release/regression tests
+└── .github/workflows/       reproducible CI, paper compile, frozen experiments
 ```
 
 ## Research policy
 
 ChronoTrace keeps development provenance append-only: negative experiments remain visible; discovery and confirmation are separated; selection rules are frozen before confirmation; numerical reproducibility is distinguished from scientific success; and unsupported chronology claims become abstentions rather than guesses.
+
+For new scientific work, create a new protocol/version rather than modifying the frozen v3 paper result. See [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md).
