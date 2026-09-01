@@ -26,6 +26,7 @@
 \newcommand{\dist}{\operatorname{dist}}
 \newcommand{\cC}{\mathcal{C}}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 
 \title{\textbf{ChronoTrace: Certified Reconstruction of Training Order\\from Noncommutative Learning Interactions}}
 \author{Anonymous Authors}
@@ -371,7 +372,7 @@ Process-tensor work measures non-Markovian training memory \citep{sevetlidis2026
 \small
 \caption{Problem/access distinction from neighboring work. The mathematical ingredients overlap established areas; the distinction is the inverse question, access model, and certified output.}
 \label{tab:related}
-\begin{tabularx}{\textwidth}{@{}p{2.7cm}p{2.8cm}p{1.8cm}Yp{2.8cm}@{}}
+\begin{tabularx}{\textwidth}{@{}P{2.7cm}P{2.8cm}P{1.8cm}YP{2.8cm}@{}}
 \toprule
 Work family & Realized order & Direction & Primary question/output & Typical access \\
 \midrule
@@ -433,7 +434,11 @@ The frozen v3 scientific run is GitHub Actions run \texttt{33418210637}. Its sci
 \begin{center}
 \small\nolinkurl{7107221c16a001a7974ca1b436d9cacd26145fe2}
 \end{center}
-The frozen selection is \texttt{configs/chronotrace\_pairwise\_multi\_witness\_confirmation\_v3.selection.json}. Artifact IDs 9768220564, 9768257657, 9768112808, and 9768224175 and their SHA-256 digests are recorded in that selection and in the reviewer guide.
+The frozen selection is:
+\begin{center}
+\small\nolinkurl{configs/chronotrace_pairwise_multi_witness_confirmation_v3.selection.json}
+\end{center}
+Artifact IDs 9768220564, 9768257657, 9768112808, and 9768224175 and their SHA-256 digests are recorded in that selection and in the reviewer guide.
 
 Each seed executes 96 stage-map calls: 40 for the exact K3 interaction basis, 32 for eight direct target replays, and 24 for degree-4 active lifts. Witnesses are frozen after 72 calls, before any degree-4 candidate output. Only projected scalar degree-4 information is retained for the certificate path; full K4 model-space tensors are not retained.
 
