@@ -11,7 +11,8 @@ The research method is frozen. This directory is now a publication workspace, no
 - `main.tex` — complete journal-neutral manuscript draft.
 - `CLAIMS_AND_EVIDENCE.md` — claim-to-evidence guardrail; use this when editing strong statements.
 - `FIGURE_PLAN.md` — purpose and source data for each main figure/table.
-- `figures/` — reproducible TikZ sources for all main conceptual/result figures.
+- `figures/` — reproducible TikZ sources for the paper figures.
+- `generated/results_macros.tex` — frozen result macros generated from the v3 selection.
 - `references.bib` — working verified bibliography.
 - `SUBMISSION_CHECKLIST.md` — remaining author/venue/export actions.
 - `Q1_READINESS.md` — internal reviewer-risk assessment.
@@ -20,6 +21,7 @@ Repository-level audit files:
 
 - `../docs/REVIEWER_GUIDE.md`
 - `../docs/RESULTS_FREEZE.md`
+- `../docs/DEVELOPER_GUIDE.md`
 - `../configs/chronotrace_pairwise_multi_witness_confirmation_v3.selection.json`
 
 ## Frozen headline result
@@ -43,6 +45,26 @@ The manuscript must preserve the distinction among:
 - post-hoc multi-witness methodology development;
 - fresh v3 confirmation.
 
+## Generated result material
+
+Frozen-data-derived publication assets are regenerated from the selection JSON at the repository root:
+
+```bash
+python scripts/generate_release_assets.py --write
+python scripts/generate_release_assets.py --check
+```
+
+This currently produces:
+
+```text
+assets/chronotrace-results.svg
+assets/chronotrace-pipeline.svg
+paper/generated/results_macros.tex
+paper/figures/confirmation_matrix.tex
+```
+
+The SVGs are reviewer/README figures. The TikZ matrix and result macros are paper-facing. Do not edit generated values by hand.
+
 ## Build
 
 From this directory, with a standard TeX distribution:
@@ -60,7 +82,23 @@ pdflatex -interaction=nonstopmode -halt-on-error main.tex
 pdflatex -interaction=nonstopmode -halt-on-error main.tex
 ```
 
-The manuscript is intentionally journal-neutral. Convert the preamble/front matter to the selected journal template only after the scientific text and figure set have passed reviewer audit.
+From the repository root:
+
+```bash
+make reviewer-full
+```
+
+The dedicated GitHub Actions **Paper** workflow also compiles the manuscript, checks unresolved citations/references, reports layout warnings, and uploads the PDF artifact.
+
+## Journal conversion
+
+The manuscript is intentionally journal-neutral until a target venue is selected. When converting it, keep the neutral source intact and create a venue-specific directory such as:
+
+```text
+paper/venues/<journal-slug>/
+```
+
+Place the journal class/style/template there and port the content from `main.tex`. Keep figures and frozen result macros shared where the journal license/template permits. This preserves a clean neutral manuscript for resubmission or venue changes.
 
 ## Claim discipline
 
