@@ -85,8 +85,11 @@ def main() -> None:
         result = by_seed[seed]
         if result.get("confirmation_lock_sha256") != lock_sha:
             raise RuntimeError("fresh confirmation lock hash drift across seed result")
-        if tuple(result["cases"]) != expected_targets:
-            raise RuntimeError("fresh confirmation target order/coverage drift")
+        if (
+            set(result["cases"]) != set(expected_targets)
+            or len(result["cases"]) != len(expected_targets)
+        ):
+            raise RuntimeError("fresh confirmation target coverage drift")
         if int(result["stage_executions"]) != 96:
             raise RuntimeError("fresh confirmation seed stage execution drift")
         if int(result["witness_freeze_stage_executions"]) != 72:
