@@ -2,6 +2,13 @@
 
 The final paper should use a small number of figures, each with a distinct scientific job. Avoid decorative figures that repeat the text.
 
+Paper TikZ sources live under `paper/figures/`. Browser-visible reviewer versions live under `assets/`. Frozen-data-derived assets are regenerated with:
+
+```bash
+python scripts/generate_release_assets.py --write
+python scripts/generate_release_assets.py --check
+```
+
 ## Figure 1 — Inverse chronology certificate pipeline
 
 **Purpose:** establish the problem/access regime and show what is new operationally.
@@ -25,7 +32,10 @@ Required visual labels:
 
 Do **not** imply black-box access.
 
-Source: `paper/figures/pipeline.tex`.
+Sources:
+
+- paper: `paper/figures/pipeline.tex`
+- browser/README: `assets/chronotrace-pipeline.svg`
 
 ## Figure 2 — Scientific development ladder
 
@@ -80,7 +90,10 @@ Aggregate annotation:
 
 The visualization must distinguish abstention from incorrect certification.
 
-Source: `paper/figures/confirmation_coverage.tex`.
+Sources:
+
+- paper: `paper/figures/confirmation_coverage.tex`
+- browser/README: `assets/chronotrace-results.svg`
 
 ## Figure 4 — Multi-witness certificate geometry
 
@@ -126,6 +139,16 @@ At `K=N`:
 
 Source: `paper/figures/complexity_boundary.tex`.
 
+## Appendix Figure A1 — Case-level confirmation matrix
+
+**Purpose:** show exactly where full-history abstentions occurred without collapsing them into an aggregate rate.
+
+Rows are the four fresh seeds and columns are the eight frozen target histories. `C` denotes a complete certified chronology; `A` denotes a conservative full-history abstention. No cell represents an incorrect certified history.
+
+Source: `paper/figures/confirmation_matrix.tex`.
+
+This file is generated from the frozen selection and must not be edited by hand.
+
 ## Tables
 
 ### Table 1 — Related-work problem/access comparison
@@ -144,9 +167,13 @@ The four seed rows and aggregate.
 
 Maximum residual/exactness errors and all-pass booleans.
 
+## Generated paper values
+
+`paper/generated/results_macros.tex` contains frozen result macros generated from the v3 selection. It is intended for venue-template conversion so repeated headline values can be sourced from one file rather than retyped.
+
 ## Appendix figures
 
-- abstention case matrix by seed/target/pair;
+- case-level confirmation matrix: `paper/figures/confirmation_matrix.tex`;
 - protocol/provenance timeline including spent v1 correction;
 - exact terminal hull-vs-local-LP agreement diagnostics;
 - synthetic K<N relaxation-gap examples.
