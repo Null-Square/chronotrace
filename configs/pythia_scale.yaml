@@ -1,0 +1,29 @@
+protocol_version: pythia-finite-pair-scale-v1
+revision: step143000
+codebook_seed: 20260829
+world_count: 16
+models:
+  - label: pythia-14m-deduped
+    id: EleutherAI/pythia-14m-deduped
+  - label: pythia-31m-deduped
+    id: EleutherAI/pythia-31m-deduped
+  - label: pythia-70m-deduped
+    id: EleutherAI/pythia-70m-deduped
+learning_rate_candidates:
+  - 0.0001
+  - 0.0003
+  - 0.001
+  - 0.003
+  - 0.01
+stability:
+  stage: A
+  updates: 8
+  maximum_loss_ratio: 0.98
+  minimum_relative_displacement: 1.0e-8
+  maximum_relative_displacement: 0.02
+chronology_bridge:
+  model: EleutherAI/pythia-14m-deduped
+  updates_per_stage: 16
+  stages: [A, B, C]
+  required_correct: 6
+  minimum_margin: 0.0

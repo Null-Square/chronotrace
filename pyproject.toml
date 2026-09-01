@@ -18,9 +18,11 @@ chronotrace = "chronotrace.cli:main"
 
 [project.optional-dependencies]
 dev = [
+  "numpy>=2.0",
   "pytest>=8.0",
   "pytest-cov>=5.0",
   "ruff>=0.6",
+  "scipy>=1.13",
 ]
 mvp = [
   "numpy>=2.0",
@@ -42,3 +44,19 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/chronotrace/geometry/local_order_hierarchy.py" = ["I001"]
+"src/chronotrace/geometry/order_affine.py" = ["I001"]
+"src/chronotrace/geometry/projected_interactions.py" = ["I001"]
+"scripts/generate_release_assets.py" = ["E501"]
+"scripts/pythia_14m_four_stage_confirmation.py" = ["E501"]
+"scripts/pythia_14m_counterfactual_response_pilot.py" = ["E501", "I001"]
+"scripts/pythia_14m_k3_affine_last_stage_diagnostic.py" = ["F821"]
+"scripts/pythia_14m_k3_convex_last_stage_diagnostic.py" = ["F821"]
+"scripts/pythia_14m_pairwise_multi_witness_confirmation_v2.py" = ["F821"]
+"scripts/pythia_14m_projected_k4_survivor_diagnostic.py" = ["F821"]
+"scripts/pythia_14m_local_commutator_pilot.py" = ["E501", "I001"]
+"scripts/pythia_14m_reverse_peeling_all24.py" = ["E501"]
+"scripts/pythia_14m_reverse_peeling_armijo_diagnostic.py" = ["E501"]
+"tests/test_confirmation_aggregator_v2_gate.py" = ["I001"]

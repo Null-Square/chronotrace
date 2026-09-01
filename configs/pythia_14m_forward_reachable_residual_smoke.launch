@@ -1,0 +1,13 @@
+protocol=pythia-14m-forward-reachable-residual-smoke-v1
+source_k23_run=33267599644
+source_picard_run=33274469711
+source_armijo_run=33277162152
+spent_codebook_seed=1011473075
+target_history=ABCD
+frozen_k3_prediction=BACD
+candidate_hypotheses=24
+candidate_gradient_evaluations=24
+confirmation_codebooks_observed=false
+launch_role=one_shot_forward_reachable_methodology_smoke
+attempt=2
+test_fix=use_numeric_comparison_for_binary_float_margin

@@ -4,37 +4,56 @@
 
 Can a finished language model retain recoverable information about the **order of learning stages** that produced it?
 
-The first controlled problem compares two histories:
+ChronoTrace studies the inverse problem:
 
-```text
-AB: base -> stage A -> stage B
-BA: base -> stage B -> stage A
-```
+> Given a finished model endpoint and candidate training-stage procedures, what aspects of the hidden training chronology are identifiable, at what interaction order, and under what conditions?
 
-Both histories must use the same stage data, token budget, optimizer family, hyperparameters, and model architecture. The variable of interest is stage order.
+This is different from the better-studied forward problem:
 
-## Inverse sequential learning
+> How does training order affect the final model, or which order should we choose?
 
-Most sequential-learning work studies the forward problem:
+## Why order can be encoded
 
-> How does training order affect the final model?
+Sequential training stages are generally noncommuting operators:
 
-ChronoTrace studies an inverse problem:
+`F_B(F_A(theta)) != F_A(F_B(theta))`.
 
-> Given the final model, what can we infer about the training order?
+In the local regime the first order-dependent term is a Lie-bracket / commutator effect. For complete finite training stages, the endpoint admits a hierarchy of singleton, pairwise, triple, and higher ordered interactions.
 
-The endpoint can contain path-dependent information because sequential gradient update operators do not generally commute.
+The research question is therefore not simply whether two histories produce different weights. They almost always can. The hard inverse question is whether those differences have enough reusable structure to recover chronology **without exhaustively replaying every candidate history**.
 
-## Scope of the first paper
+## Current refinement after the first scale gate
 
-The first paper does not need to reconstruct an industrial pretraining pipeline. It needs to establish four things:
+The project initially targeted complete AB/BA or multi-stage order recovery from a fixed pairwise signature. Controlled tiny-transformer experiments supported this strongly, but the first portable Pythia-14M three-stage gate reproducibly recovered only `3/6` complete orders.
 
-1. **Existence:** a history signal survives controlled AB/BA training.
-2. **Generalization:** the signal transfers to random seeds not used to fit the detector.
-3. **Non-triviality:** ordinary capability differences do not fully explain the signal.
-4. **Persistence:** the signal can survive at least some common subsequent training.
+The error structure was not random: all three wrong predictions preserved the true first stage and swapped only the final two stages. On that single locked instance the base pairwise decoder descriptively recovered `15/18` precedence relations and the first stage `6/6`.
 
-If these results hold, later work can address multi-stage reconstruction, acquisition-mechanism inference, and black-box transfer.
+This motivates the current sharper question:
+
+> Is training chronology encoded **hierarchically and state-conditionally**, such that base-state pair interactions recover coarse precedence while prefix-conditioned / higher-order interactions are required for deeper order?
+
+For example, the exact difference between histories `ABC` and `ACB` is
+
+`C_BC(F_A(theta_0))`,
+
+where
+
+`C_BC(theta) = F_C(F_B(theta)) - F_B(F_C(theta))`.
+
+The current finite-pair basis uses `C_BC(theta_0)`. Their difference is a third-order prefix-conditioned interaction.
+
+## Scope of the next paper candidate
+
+A credible first paper no longer needs to force one binary detector story. It should establish, if the data support it:
+
+1. **Inverse mechanism:** order information appears as noncommutative training-stage interactions.
+2. **Interaction hierarchy:** singleton/pair/triple truncations have measurable regimes of sufficiency and failure.
+3. **Partial identifiability:** coarse chronology can remain recoverable even when complete order is not.
+4. **Predictive boundary:** interaction/separation diagnostics predict when a lower-order decoder will fail.
+5. **Replay advantage:** a fixed interaction order can reconstruct or constrain a factorial chronology space using polynomially many stage probes.
+6. **Scale evidence:** the mechanism generalizes beyond the tiny controlled transformer to independently generated Pythia-scale experiments.
+
+If these do not generalize, the project should stop rather than reinterpret one synthetic instance as evidence.
 
 ## What this is not
 
@@ -47,14 +66,16 @@ ChronoTrace is not primarily:
 - curriculum optimization;
 - a watermark inserted during training.
 
-Those areas are relevant baselines and neighboring work. ChronoTrace targets the latent history of ordinary optimization without requiring a purpose-built provenance marker.
+Those areas are relevant baselines and neighboring work. ChronoTrace targets latent chronology created by ordinary optimization without requiring a purpose-built provenance marker.
 
 ## Identifiability boundary
 
-Not every pair of histories is distinguishable. If two histories induce the same distribution over observable models, no forensic method can recover the difference from the endpoint.
+Not every pair of histories is distinguishable. If two histories induce the same distribution over the observable checkpoint, no forensic method can recover the difference.
 
-The empirical question is therefore not only whether history can be recovered. It is also:
+Real training also has hidden state. For Adam-like optimization the true state includes weights, optimizer moments, scheduler step, RNG/data position, and mixed-precision state, while a published checkpoint often exposes only weights. Projecting away that hidden state can make otherwise distinct histories observationally equivalent.
 
-> Which properties of stages, interactions, models, and subsequent training make history identifiable?
+Therefore the primary scientific object is the boundary:
 
-This boundary is a first-class research result, including negative results.
+> Which stage interactions, model states, optimizer memories, and observation channels make training chronology identifiable?
+
+Negative results at this boundary are first-class results, not failed engineering.

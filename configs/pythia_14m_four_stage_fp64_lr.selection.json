@@ -1,0 +1,36 @@
+{
+  "base_parameter_sha256_fp64": "f7973f1dd58380b5d8b0e10f54e3c45714c1fed90083922c8e69cb0af47b9b86",
+  "base_parameter_sha256_projected_fp32": "cba585ef12f0a770686bffb9d1c1d00e11400106b46d943c1cae04fa7e0df2ce",
+  "calibration_protocol_sha256": "962110df9fee175236cdd6e9d495bb283d07a6d600f42d415b8d61b8c383a732",
+  "chosen_learning_rate": 0.0001,
+  "chronology_data_observed": false,
+  "claim": "chronology_blind_four_stage_fp64_singleton_operating_point",
+  "codebook_sha256": "6424c45a6a34eddc0f80d81e93d2f2e292909c44c5be35bc3ba927e40ef1d409",
+  "confirmation_codebooks_observed": false,
+  "dataset_sha256": {
+    "stage_a": "5e75b1e39ff9857793f8ea2667abbe844f64f83a2128f773198fa929814be3dd",
+    "stage_b": "27531392f09f7993531df66ca2b841fbf1b85c4edd3cb5333099bb2cdc9a2df9",
+    "stage_c": "30f1ef52773e49cdd54894a1d33c51562accb2c933225e795cc8e20df4ec65af",
+    "stage_d": "a802b2d5b38a032defd97aeebfcb82df6defa5e32b819338ed226927a6d4c28a",
+    "worlds": "d3b195e900c2ccbe3d70b7454927f5a7b01cdaf7c2c7108270cd0d344f830e6f"
+  },
+  "model": "EleutherAI/pythia-14m-deduped",
+  "next_candidate_0.0003_all_stages_failed_loss_ratio": true,
+  "numerical_execution_fingerprint_sha256": "deaad55af513e78d0c4c1d5636836bcb7d7325be64d8df0b196cd6a66b262d42",
+  "pilot_codebook_seed": 1011473075,
+  "precision": "fp64",
+  "protocol_version": "pythia-14m-four-stage-fp64-singleton-lr-v1",
+  "revision": "step143000",
+  "selection_rule": "largest frozen candidate passing the unchanged singleton stability rule on all four stages",
+  "source_artifact_digest": "sha256:4410b51bf76846691221890535210c83c8e3385e258d6f6d6b0e899529afcae9",
+  "source_artifact_id": 9718629654,
+  "source_artifact_json_sha256": "55358bbe828ea43d1ae9cfbfe9eeba899dc76d35e9ef0735d0f0708921b8ea10",
+  "source_workflow_run_id": 33265789914,
+  "stage_passes_at_selected_rate": {
+    "A": true,
+    "B": true,
+    "C": true,
+    "D": true
+  },
+  "status": "complete"
+}

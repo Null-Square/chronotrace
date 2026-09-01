@@ -1,8 +1,11 @@
 name: FP32 Pythia Validation
 
 on:
-  push:
-    branches: [fix/enforce-fp32-training]
+  workflow_dispatch:
+
+concurrency:
+  group: fp32-pythia-validation-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

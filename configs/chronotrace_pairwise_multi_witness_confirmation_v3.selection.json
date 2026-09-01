@@ -1,0 +1,123 @@
+{
+  "selection_version": "chronotrace-pairwise-multi-witness-confirmation-selection-v3-frozen",
+  "scientific_run_id": 33418210637,
+  "scientific_head_commit": "7107221c16a001a7974ca1b436d9cacd26145fe2",
+  "scientific_seed_jobs_all_success": true,
+  "seed_rerun_after_scientific_execution": false,
+  "confirmation_lock_sha256": "8532656e6e2ac718909e9e478d7d00f6184b3a9abfc9d847d88baeadee9047c7",
+  "methodology_lock_sha256": "2582bb323e7b272e0f113485724ab0c31aeb6eb6a5d6a7436e438aa212cb9ea7",
+  "source_k3_protocol_sha256": "9d4505922b6846544d2113aff61876e83c061c700a82bd1f41cb624b42909170",
+  "source_k23_protocol_sha256": "dfb2751c39b767c5024eb627eb597240b5f5aca3c248cbbd26f51f3d80d14536",
+  "aggregate_attempt_1": {
+    "job_id": 99577612088,
+    "conclusion": "failure",
+    "failure_class": "post_science_serialization_order_plumbing_failure",
+    "failure_message": "fresh confirmation target order/coverage drift",
+    "scientific_outputs_invalidated": false
+  },
+  "aggregate_correction": {
+    "commit": "23f58008d856d4cdecfb8a6777e4d8fdf302741c",
+    "regression_test_commit": "d38bceb55d2148980d3130d1228f35e5f4b26f97",
+    "ci_run_id": 33475012691,
+    "ci_conclusion": "success",
+    "change": "treat JSON object key order as non-semantic; require exact target-key set and count",
+    "scientific_method_changed": false,
+    "thresholds_changed": false
+  },
+  "confirmation_case_count": 32,
+  "pairwise_decision_count": 192,
+  "orientation_class_lp_solve_count": 384,
+  "full_history_certificate_coverage": 27,
+  "full_history_certificate_coverage_fraction": 0.84375,
+  "label_blind_pairwise_orientation_certificate_coverage": 182,
+  "label_blind_pairwise_orientation_certificate_coverage_fraction": 0.9479166666666666,
+  "full_history_abstention_count": 5,
+  "ambiguous_pair_count": 10,
+  "contradictory_pair_count": 0,
+  "both_orientations_excluded_count": 0,
+  "minimum_excluded_orientation_margin_over_guard": 6.015076349674094e-06,
+  "maximum_projected_reconstruction_residual": 6.765421556309548e-17,
+  "maximum_terminal_primal_exactness_error": 4.063047641389428e-17,
+  "all_terminal_witness_hull_exactness_passed": true,
+  "all_corrected_bounds_sound_in_witness_geometry": true,
+  "all_corrected_bounds_sound_against_euclidean_vertices": true,
+  "all_target_active_lifts_replayed_exactly": true,
+  "invalid_suite": false,
+  "outcome_classification": "strong",
+  "frozen_outcome_threshold": "24 to 27 of 32 full histories certified correctly with zero invalid cases",
+  "per_seed": {
+    "2186192236": {
+      "artifact_id": 9768220564,
+      "artifact_digest": "sha256:78d9abc998364b5686bfdcb194ea44e2c8e514fa5623c95a1317559cfad59dcc",
+      "result_raw_sha256": "5e3c45a5a15e9aca7d359f0106919771b49b15d9d10d07a9150d6a4c5752610e",
+      "full_history_certificate_coverage": 6,
+      "label_blind_pairwise_orientation_certificate_coverage": 43,
+      "ambiguous_pair_count": 5,
+      "contradictory_pair_count": 0,
+      "both_orientations_excluded_count": 0,
+      "minimum_excluded_orientation_margin_over_guard": 7.952924155844716e-06,
+      "stage_executions": 96,
+      "witness_freeze_stage_executions": 72,
+      "invalid": false
+    },
+    "1368008047": {
+      "artifact_id": 9768257657,
+      "artifact_digest": "sha256:0df6ab12047ff36a2c54ef4e1cb7966fb372cf27423e3761347e097e00e0eb96",
+      "result_raw_sha256": "1ec1370652c86386959e27b0300d9c526cce55401ff6e5a51c043e9611553306",
+      "full_history_certificate_coverage": 7,
+      "label_blind_pairwise_orientation_certificate_coverage": 47,
+      "ambiguous_pair_count": 1,
+      "contradictory_pair_count": 0,
+      "both_orientations_excluded_count": 0,
+      "minimum_excluded_orientation_margin_over_guard": 6.015076349674094e-06,
+      "stage_executions": 96,
+      "witness_freeze_stage_executions": 72,
+      "invalid": false
+    },
+    "92712904": {
+      "artifact_id": 9768112808,
+      "artifact_digest": "sha256:1830a159945aa50b5f4c4e71fe15bbf047cb9dba4e3c96c09fabc81498d4e668",
+      "result_raw_sha256": "c4d5e5b16fb2c02f5dddf46f74b25ee487f4032405b45adfe825b5bc63034228",
+      "full_history_certificate_coverage": 6,
+      "label_blind_pairwise_orientation_certificate_coverage": 44,
+      "ambiguous_pair_count": 4,
+      "contradictory_pair_count": 0,
+      "both_orientations_excluded_count": 0,
+      "minimum_excluded_orientation_margin_over_guard": 7.236782676011825e-06,
+      "stage_executions": 96,
+      "witness_freeze_stage_executions": 72,
+      "invalid": false
+    },
+    "1944430236": {
+      "artifact_id": 9768224175,
+      "artifact_digest": "sha256:fd6a5a0126507d7f7448ad4effafb5d202a988175725bb9e3c83e612530a0006",
+      "result_raw_sha256": "69dd387ace07ecf71d6f2f0b73206dc282d635ec36bebe52c7da82165ec3e37e",
+      "full_history_certificate_coverage": 8,
+      "label_blind_pairwise_orientation_certificate_coverage": 48,
+      "ambiguous_pair_count": 0,
+      "contradictory_pair_count": 0,
+      "both_orientations_excluded_count": 0,
+      "minimum_excluded_orientation_margin_over_guard": 9.435874224681657e-06,
+      "stage_executions": 96,
+      "witness_freeze_stage_executions": 72,
+      "invalid": false
+    }
+  },
+  "abstentions_by_seed_target_and_pair": {
+    "2186192236": {
+      "DABC": ["AC", "BC"],
+      "CBAD": ["AB", "AC", "BD"]
+    },
+    "1368008047": {
+      "BCDA": ["AD"]
+    },
+    "92712904": {
+      "BCDA": ["AB"],
+      "CBAD": ["AB", "AC", "BC"]
+    },
+    "1944430236": {}
+  },
+  "v1_seed_results_used_in_v3_selection": false,
+  "method_changed_after_fresh_confirmation_started": false,
+  "interpretation": "Fresh deterministic-seed label-blind 32-case confirmation is strong under the preregistered tier. Five cases abstain conservatively; there are no contradictory pair inferences or double-exclusions. This N=4,K=4 terminal experiment validates the certificate mechanism, not a non-factorial exact full-history decoder for arbitrary N."
+}

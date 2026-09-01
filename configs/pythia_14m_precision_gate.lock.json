@@ -1,0 +1,33 @@
+{
+  "protocol_version": "pythia-14m-one-step-precision-adjudication-v1",
+  "freeze_status": "frozen_after_t2b_before_precision_outputs",
+  "purpose": "adjudicate whether the failed T2b learning-rate asymptotic restoration is caused by FP32 finite-precision dynamics/cancellation or by failure to enter the smooth local regime",
+  "source_t2b_run_id": 33248443650,
+  "source_t2b_protocol": "configs/pythia_14m_t2b_lr.lock.json",
+  "model": "EleutherAI/pythia-14m-deduped",
+  "revision": "step143000",
+  "optimizer": "plain_sgd_no_momentum_no_weight_decay",
+  "updates_per_stage": 1,
+  "stages": ["A", "B", "C"],
+  "codebook_seeds": [1208340830, 2712532023, 798146982, 3670363774],
+  "precisions": ["fp32", "fp64"],
+  "learning_rates": [1e-8, 3e-8, 1e-7, 3e-7, 1e-6, 3e-6, 1e-5, 3e-5, 1e-4],
+  "learning_rate_role": "numerical asymptotic probe only; no rate is selected as a scientific operating point",
+  "measurements": [
+    "singleton_displacement_norms",
+    "all_three_raw_pair_commutator_norms",
+    "mean_pair_commutator_norm",
+    "commutator_norm_divided_by_eta_squared",
+    "adjacent_loglog_slopes",
+    "global_loglog_slope",
+    "fp32_fp64_same_eta_norm_ratio",
+    "fp32_fp64_same_eta_commutator_cosine"
+  ],
+  "pre_registered_interpretation": {
+    "precision_boundary_support": "FP64 shows a clear approach toward second-order pair-commutator scaling at the low-rate end while FP32 does not, and FP32/FP64 commutator agreement degrades as eta shrinks",
+    "nonlocality_support": "FP32 and FP64 agree closely but neither approaches second-order scaling over the extended low-rate sweep",
+    "mixed_or_unresolved": "neither pattern is clean enough; do not proceed to four-stage or larger-model science until the numerical mechanism is localized further"
+  },
+  "scientific_scope": "numerical-only replay of already observed T2b instances; no new chronology generalization claim may be made from this gate",
+  "scale_decision": "31M and four-stage scientific reconstruction remain blocked until this adjudication is interpreted"
+}
