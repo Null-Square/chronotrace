@@ -1,140 +1,181 @@
+![ChronoTrace — Record the sequence. Rewind the cause.](assets/chronotrace-cover.jpg)
+
 # ChronoTrace
+
+[![CI](https://github.com/Null-Square/chronotrace/actions/workflows/ci.yml/badge.svg)](https://github.com/Null-Square/chronotrace/actions/workflows/ci.yml)
 
 **Training-history forensics for language models.**
 
 ChronoTrace studies an inverse problem in sequential learning:
 
-> Given a trained language model, can we recover information about the sequence of learning events that produced it?
+> Given a trained language model, what information about the sequence of learning events that produced it remains recoverable from the final model?
 
-The project tests whether optimization history leaves a measurable trace after ordinary model behavior has converged. The first target is deliberately narrow: distinguish models trained on the same two domains in opposite orders (`A → B` versus `B → A`) while controlling data, token count, optimizer, model architecture, and evaluation performance.
+The project is deliberately evidence-gated. It separates controlled mechanism results from large-model chronology claims, preserves negative results, and does not promote a detector result when ordinary capability already explains the signal.
 
-## Status
+## Reviewer status at a glance
 
-**Research stage:** hypothesis and benchmark setup.
+| Workstream | Status | Current conclusion | Evidence |
+| --- | --- | --- | --- |
+| Phase-0 Pythia-70M AB/BA discovery | **Negative / confounded** | Endpoint order was perfectly classifiable, but capability-only features were also perfect and all eight matched seed pairs failed the capability-equivalence gate. This does **not** establish non-trivial path memory. | [`docs/results/PHASE0_V1.md`](docs/results/PHASE0_V1.md) |
+| Phase-0b common-tail washout | **Design-only negative** | No tested common-tail duration satisfied the frozen capability gate. At `C=300`, the contextual order witness was at chance while the capability-only baseline remained above chance. | [`docs/results/PHASE0B_WASHOUT_PILOT.md`](docs/results/PHASE0B_WASHOUT_PILOT.md) |
+| Inverse commutator mechanism | **Positive controlled result** | The predicted second-order chronology geometry appears in a smooth nonlinear system and a deterministic causal transformer; all `3! = 6` stage orders are recovered in the local theorem gate. | [`docs/results/commutator_macro_gate.md`](docs/results/commutator_macro_gate.md) |
+| Finite macro-stage decoder | **Positive controlled result** | Treating complete training stages as finite operators retains `6/6` recovery through `64` updates/stage after the one-step HVP decoder has already failed. | [`docs/results/commutator_macro_gate.md`](docs/results/commutator_macro_gate.md) |
+| Finite-pair interaction decoder | **Positive controlled result** | Exact singleton + ordered-pair probes recover all six A/B/C chronologies through the full fixed sweep to `256` updates/stage. This is the preferred white-box decoder for the first scale gate. | [`docs/results/finite_pair_gate.md`](docs/results/finite_pair_gate.md) |
+| Realistic large-model chronology | **Pending** | Not yet established. The next gate isolates model scale while retaining known stages, deterministic execution, plain SGD, full weights, and the finite-pair decoder. | [`docs/RESULTS.md`](docs/RESULTS.md) |
 
-The next implementation milestone is the **MVP validation slice**. It will test one binary claim before the project expands:
+For the consolidated evidence ledger, claim boundary, and exact reported values, start with **[`docs/RESULTS.md`](docs/RESULTS.md)**.
 
-> A detector trained on some random seeds can predict `A → B` versus `B → A` on unseen seeds better than chance, while ordinary task metrics remain approximately matched.
+## Headline controlled result
 
-If this claim does not survive seed-held-out evaluation, we stop or revise the core hypothesis.
+The strongest completed result is the **Finite Pair Interaction Decoder**. For candidate stages `A, B, C`, it caches singleton stage effects and exact ordered-pair interactions
 
-## Core terms
+```text
+I_{j<-i} = F_j(F_i(theta_0)) - theta_0 - Delta_i - Delta_j
+```
 
-- **Training history:** an ordered sequence of learning stages.
-- **Path persistence:** recoverable information about training history that remains in the final model.
-- **Order witness:** a probe that separates models with different histories.
-- **PathBench:** the controlled benchmark for training-history reconstruction.
-- **Training-history half-life:** decay of recoverable history signal under common subsequent training.
+and predicts complete histories without replaying every full chronology. The probe budget is `N^2` stage executions rather than factorial history replay.
+
+On the fixed deterministic `1,032`-parameter causal transformer:
+
+| Updates per stage | Micro HVP | Differential macro | Finite pair |
+| ---: | ---: | ---: | ---: |
+| 1 | 6/6 | 6/6 | 6/6 |
+| 2 | 4/6 | 6/6 | 6/6 |
+| 32 | 5/6 | 6/6 | 6/6 |
+| 64 | 4/6 | 6/6 | 6/6 |
+| 128 | 2/6 | 4/6 | 6/6 |
+| 256 | 1/6 | 3/6 | 6/6 |
+
+The simple sufficient nearest-signature certificate `2 ||r_high|| / delta_min < 1` holds through `32` updates/stage. It becomes inconclusive from `64` onward even though empirical decoding remains `6/6`. Those later points are successful controlled reconstructions, **not** formally certified by that worst-case norm bound.
+
+## Evidence boundary
+
+ChronoTrace currently supports these statements:
+
+- sequential training order can produce an antisymmetric interaction signature in controlled nonlinear systems;
+- the same inverse second-order geometry survives a genuine causal-transformer parameterization and language-model loss in a small deterministic model;
+- finite training-stage operators extend chronology recovery beyond one-step local geometry;
+- exact finite pair interactions extend recovery beyond the local finite-difference macro decoder in the fixed controlled stress test;
+- the first Pythia AB/BA discovery result was confounded by ordinary capability differences and is recorded as a negative result, not evidence of path persistence.
+
+ChronoTrace does **not** currently establish:
+
+- reliable chronology reconstruction for realistic LLM training pipelines;
+- robustness to stochastic batches, persistent Adam state, unknown stage recipes, distillation, merging, or black-box access;
+- training provenance, ownership, or legal attribution from model endpoints;
+- the original seed-held-out path-persistence hypothesis under capability-matched Pythia-scale endpoints.
 
 ## Research question
 
-Let two models receive the same training-stage multiset but in different orders:
+Let two models receive the same training-stage multiset in different orders:
 
 ```text
 M_AB = Train(B, Train(A, M0))
 M_BA = Train(A, Train(B, M0))
 ```
 
-ChronoTrace asks whether a forensic procedure `F` can infer the hidden order from the final model:
+ChronoTrace asks whether an endpoint procedure `F` can infer the hidden chronology:
 
 ```text
 F(M_AB) -> AB
 F(M_BA) -> BA
 ```
 
-The strict evaluation uses random seeds that the detector did not see during detector training.
+For more than two stages, the project studies whether low-order interactions between finite stage maps are sufficient to identify a full or partial order without exhaustive replay.
 
-## First-principles motivation
+## Reviewer quick start
 
-Sequential gradient updates do not generally commute. For small updates, the difference between `A → B` and `B → A` appears in higher-order interaction terms. ChronoTrace tests whether those path-dependent effects remain measurable after training and whether they can be converted into useful forensic evidence.
+A reviewer can inspect the project in this order:
 
-The project does **not** assume that all training histories are identifiable. A major goal is to measure the conditions under which history is recoverable, unstable, or information-theoretically indistinguishable.
+1. **[`docs/RESULTS.md`](docs/RESULTS.md)** — consolidated claim/evidence ledger and limitations.
+2. **[`docs/results/finite_pair_gate.md`](docs/results/finite_pair_gate.md)** — strongest current controlled reconstruction result.
+3. **[`docs/results/commutator_macro_gate.md`](docs/results/commutator_macro_gate.md)** — smooth-system, tiny-transformer, and finite macro-stage mechanism gates.
+4. **[`docs/results/PHASE0_V1.md`](docs/results/PHASE0_V1.md)** — confounded Pythia-70M discovery result and why confirmation stayed closed.
+5. **[`docs/results/PHASE0B_WASHOUT_PILOT.md`](docs/results/PHASE0B_WASHOUT_PILOT.md)** — failed common-tail design pilot.
+6. **[`docs/HYPOTHESES.md`](docs/HYPOTHESES.md)** — falsifiable hypotheses and null hypotheses.
+7. **[`docs/EXPERIMENT_PROTOCOL.md`](docs/EXPERIMENT_PROTOCOL.md)** — reproducibility, split, metadata, and confirmation discipline.
+8. **[`docs/DECISIONS.md`](docs/DECISIONS.md)** — research decisions, including the finite-pair scale-gate choice.
+
+## Reproduce the controlled gates
+
+The implementation targets Python `3.11+`.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[mvp,dev]"
+
+ruff check .
+pytest
+
+python scripts/commutator_smoke.py
+python scripts/transformer_commutator_smoke.py
+python scripts/operator_commutator_smoke.py
+python scripts/finite_pair_commutator_smoke.py
+python scripts/smoke_mvp.py
+```
+
+The main CI workflow runs lint and unit tests on Python `3.11` and `3.12`, then runs the torch geometry regressions and all controlled smoke gates on CPU.
+
+## Core terms
+
+- **Training history** — an ordered sequence of learning stages.
+- **Path persistence** — recoverable information about training history that remains in the final model.
+- **Order witness** — a probe or endpoint feature that separates models with different histories.
+- **PathBench** — the controlled benchmark for training-history reconstruction.
+- **ChronoScore** — a signed chronology score used by the controlled inverse-geometry experiments.
+- **Training-history interaction order** — proposed hierarchy describing the minimum singleton/pair/triple/... interaction order needed to identify chronology at a target error level. This is a research direction, not yet an established contribution.
+
+## Research progression
+
+### Completed evidence gates
+
+- **Phase-0 discovery:** Pythia-scale AB/BA endpoint classification exposed a recency/capability confound.
+- **Phase-0b washout pilot:** shuffled common-tail rehearsal did not achieve endpoint capability equivalence.
+- **Commutator gate:** inverse second-order chronology geometry validated in a smooth nonlinear system and tiny causal transformer.
+- **Macro-stage gate:** finite stage-map decoder retained perfect six-order recovery through `64` updates/stage.
+- **Finite-pair gate:** epsilon-free singleton/pair decoder retained `6/6` recovery through `256` updates/stage.
+
+### Next gate — isolate model scale
+
+The next experiment should change **model scale only**: move the finite-pair white-box decoder to a Pythia checkpoint while retaining deterministic stage execution, known exact stages, plain SGD without momentum or weight decay, full endpoint weights, and a predeclared stage-length sweep. Chronology accuracy must not be used to tune the learning rate.
+
+Only after this fixed scale gate is resolved should the project add stochastic data order, optimizer state, low-dimensional projection, unknown stage recipes, or black-box access.
 
 ## Repository map
 
 ```text
 chronotrace/
 ├── configs/                 experiment configuration
-├── docs/                    research specification and decision records
+├── docs/                    research specification, evidence, and decisions
+│   └── results/             immutable per-gate result reports
 ├── paper/                   paper outline and bibliography
-├── scripts/                 repository and experiment utilities
+├── scripts/                 deterministic research and smoke utilities
 ├── src/chronotrace/         Python package
-├── tests/                   fast deterministic tests
-└── .github/workflows/       continuous integration
+├── tests/                   fast deterministic and geometry regression tests
+└── .github/workflows/       CI and controlled experiment workflows
 ```
 
-Start with:
+## Reproducibility discipline
 
-1. [`docs/RESEARCH_QUESTION.md`](docs/RESEARCH_QUESTION.md)
-2. [`docs/HYPOTHESES.md`](docs/HYPOTHESES.md)
-3. [`docs/MVP.md`](docs/MVP.md)
-4. [`docs/PATHBENCH.md`](docs/PATHBENCH.md)
-5. [`docs/EXPERIMENT_PROTOCOL.md`](docs/EXPERIMENT_PROTOCOL.md)
+ChronoTrace uses explicit evidence gates:
 
-## Non-negotiable research rules
+1. hold out random seeds from detector fitting;
+2. keep the data multiset matched when testing order;
+3. measure ordinary capability and reject chronology claims explained by capability imbalance;
+4. predefine stop conditions and keep confirmation closed after a failed gate;
+5. preserve raw run metadata, model identifiers, optimizer settings, stage order, package versions, commit SHA, and artifact checksums;
+6. separate discovery from confirmation;
+7. report uncertainty and effect sizes rather than accuracy alone;
+8. preserve negative results and method failure boundaries.
 
-1. **Hold out random seeds.** Never report a history detector only on training runs used to fit that detector.
-2. **Keep the data multiset matched.** The primary AB/BA experiment changes order, not data membership.
-3. **Measure ordinary capability.** A history classifier is not interesting if it only detects large performance differences between AB and BA models.
-4. **Predefine stop conditions.** The MVP can falsify the project hypothesis.
-5. **Keep raw run metadata.** Model, data, optimizer, seed, stage order, package versions, and commit SHA must be recorded.
-6. **Separate discovery from confirmation.** Probe discovery and final confirmatory evaluation use different model seeds.
-7. **Report uncertainty.** Use confidence intervals and effect sizes, not accuracy alone.
-8. **Do not claim provenance proof from weak evidence.** ChronoTrace estimates evidence about training history; it does not make legal or ownership conclusions.
-
-## Planned research progression
-
-### Phase 0 — Binary order validation
-
-Train controlled small language models under `AB` and `BA`. Test seed-held-out order classification.
-
-### Phase 1 — Order witnesses
-
-Search for behavioral and white-box features that are selectively sensitive to cross-stage interactions.
-
-### Phase 2 — Forensic half-life
-
-Apply identical subsequent stage `C` and measure how fast the AB/BA signal decays.
-
-### Phase 3 — Multi-stage reconstruction
-
-Recover partial or total orders for histories containing more than two stages.
-
-### Phase 4 — Acquisition mechanism
-
-Test whether the model reveals whether a capability arose from direct memorization, distributed reconstruction, rule learning, distillation, or later adaptation.
-
-### Phase 5 — Black-box transfer
-
-Test whether order witnesses discovered on shadow models transfer to models available only through generation APIs.
-
-## Installation
-
-The implementation scaffold targets Python 3.11+.
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-```
-
-Run repository checks:
-
-```bash
-python scripts/doctor.py
-pytest
-ruff check .
-```
-
-## Reproducibility
-
-Experiment outputs must not be committed to Git. Each run will write a machine-readable manifest that includes the repository commit, configuration, seeds, model identifier, training stages, environment, and artifact checksums.
-
-See [`docs/EXPERIMENT_PROTOCOL.md`](docs/EXPERIMENT_PROTOCOL.md).
+See [`docs/EXPERIMENT_PROTOCOL.md`](docs/EXPERIMENT_PROTOCOL.md) and [`docs/BASELINES.md`](docs/BASELINES.md).
 
 ## Safety and scope
 
-ChronoTrace is intended for model auditing, research reproducibility, training-governance analysis, and authorized model forensics. Controlled and synthetic datasets are the default for validation. See [`docs/ETHICS_AND_SCOPE.md`](docs/ETHICS_AND_SCOPE.md).
+ChronoTrace is intended for model auditing, research reproducibility, training-governance analysis, and authorized model forensics. Controlled and synthetic datasets are the default for validation. It estimates evidence about training history; it does not make ownership or legal provenance claims.
+
+See [`docs/ETHICS_AND_SCOPE.md`](docs/ETHICS_AND_SCOPE.md).
 
 ## Paper
 
@@ -142,7 +183,7 @@ Working title:
 
 > **ChronoTrace: The Inverse Problem of Sequential Learning in Language Models**
 
-The paper is developed beside the implementation so that every main claim maps to an experiment and every experiment maps to a reproducible artifact.
+The paper is developed beside the implementation so that every main claim maps to an experiment and every experiment maps to a reproducible artifact. See [`paper/`](paper/) for the current outline and references.
 
 ## License
 
