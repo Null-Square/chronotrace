@@ -1,4 +1,4 @@
-![ChronoTrace — Record the sequence. Rewind the cause.](assets/chronotrace-cover.jpg)
+![ChronoTrace — Record the sequence. Rewind the cause.](chronotrace-cover.jpg)
 
 # ChronoTrace
 
