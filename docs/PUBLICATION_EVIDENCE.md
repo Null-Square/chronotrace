@@ -21,3 +21,7 @@ Primary records SHA-256: `0da6ba2e6b06e65d1d640bfa79ea8cce187a2079cce3dbc9bbd26e
 The frozen runner does not pass generating labels into the decoder. Complete endpoint-reference construction occurs after primary decisions. Ranked costs use that reference to score a fixed ranking, not to select it. Numerical reproducibility, independent computational paths, and external replication are different claims.
 
 The primary figure/table aggregates are checked by `scripts/audit_publication.py`. Full raw-data checks require Supplement S1. Historical Pythia and secant outputs remain historical; no source lock, seed, threshold, or scientific result is rewritten during publication preparation.
+
+## Disclosure and dual-use discussion revision
+
+The 12 September 2026 revision explicitly discloses AI-assisted experimental script writing and manuscript drafting. Its security discussion is a literature-grounded threat analysis, not additional measured capability. It distinguishes chronology inference from state recovery, semantic model editing, safety verification and safeguard removal. The proposed defensive protocol has not been executed. Original source locks, results, tables, and figure data are unchanged. See `AI_ASSISTANCE_AND_DUAL_USE_2026_09_12.md` and `security/CHRONOLOGY_INFORMATION_RISK_PROTOCOL.md`.
