@@ -5,18 +5,22 @@ on:
     branches: [research/structured-short-probe-certificates-20260912]
     paths:
       - "src/chronotrace/validated_affine.py"
-      - "scripts/structured_affine_benchmark.py"
+      - "scripts/structured_affine_benchmark*.py"
       - "tests/test_validated_affine.py"
       - "tests/test_structured_benchmark.py"
-      - "configs/structured_chronotrace_confirmation_v1.json"
+      - "tests/test_history_blind_target.py"
+      - "tests/test_short_probe_boundary.py"
+      - "configs/structured_chronotrace_confirmation_v2.json"
       - ".github/workflows/structured-chronology-validation.yml"
   pull_request:
     paths:
       - "src/chronotrace/validated_affine.py"
-      - "scripts/structured_affine_benchmark.py"
+      - "scripts/structured_affine_benchmark*.py"
       - "tests/test_validated_affine.py"
       - "tests/test_structured_benchmark.py"
-      - "configs/structured_chronotrace_confirmation_v1.json"
+      - "tests/test_history_blind_target.py"
+      - "tests/test_short_probe_boundary.py"
+      - "configs/structured_chronotrace_confirmation_v2.json"
       - ".github/workflows/structured-chronology-validation.yml"
   workflow_dispatch:
 
@@ -46,7 +50,7 @@ jobs:
           python - <<'PY'
           import hashlib, json
           from pathlib import Path
-          config = json.loads(Path('configs/structured_chronotrace_confirmation_v1.json').read_text())
+          config = json.loads(Path('configs/structured_chronotrace_confirmation_v2.json').read_text())
           for name, expected in config['source_sha256'].items():
               actual = hashlib.sha256(Path(name).read_bytes()).hexdigest()
               if actual != expected:
@@ -57,19 +61,22 @@ jobs:
           ruff check --select F,E9
           src/chronotrace/validated_affine.py
           scripts/structured_affine_benchmark.py
+          scripts/structured_affine_benchmark_v2.py
           tests/test_validated_affine.py
           tests/test_structured_benchmark.py
+          tests/test_history_blind_target.py
+          tests/test_short_probe_boundary.py
       - name: Full repository regression
         run: python -m pytest --junitxml=artifacts/structured-full-tests.xml
       - name: Full repository optimized-mode regression
         env:
           PYTHONOPTIMIZE: "1"
         run: python -m pytest --junitxml=artifacts/structured-optimized-tests.xml
-      - name: Reexecute frozen 512-case confirmation without model downloads
+      - name: Reexecute frozen v2 512-case confirmation without model downloads
         run: >-
-          python scripts/structured_affine_benchmark.py
-          --protocol configs/structured_chronotrace_confirmation_v1.json
-          --output artifacts/structured-confirmation-ci.json
+          python scripts/structured_affine_benchmark_v2.py
+          --protocol configs/structured_chronotrace_confirmation_v2.json
+          --output artifacts/structured-confirmation-v2-ci.json
       - name: Retain complete results and test reports
         if: always()
         uses: actions/upload-artifact@v4
