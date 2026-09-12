@@ -1,174 +1,75 @@
 # ChronoTrace
 
-[![CI](https://github.com/Null-Square/chronotrace/actions/workflows/ci.yml/badge.svg?branch=experiment%2Fpythia-finite-pair-scale)](https://github.com/Null-Square/chronotrace/actions/workflows/ci.yml)
-[![Paper](https://github.com/Null-Square/chronotrace/actions/workflows/paper.yml/badge.svg?branch=experiment%2Fpythia-finite-pair-scale)](https://github.com/Null-Square/chronotrace/actions/workflows/paper.yml)
+**Conditional training-order verification by bidirectional replay.**
 
-**Certified reconstruction of training chronology from noncommutative learning interactions.**
+Author: **Omar Al-Tawil**. Current manuscript target: **Neurocomputing** (Elsevier), original research article. This is a publication-preparation repository, not an accepted paper or a production forensic service.
 
-ChronoTrace studies an inverse problem in sequential learning:
+> Given a known base, known deterministic training stages, and an exported final checkpoint, which stage orders remain compatible—and can alternatives be excluded more cheaply than complete replay?
 
-> Given a finished model, a known base checkpoint, candidate learning stages, and a replay-capable training operator, which stage-order claims can be **certified** from the endpoint?
+## Current paper and evidence
 
-The project does **not** claim that training order matters—that is already known. The contribution is an inverse, proof-oriented formulation: reconstruct or constrain an **unknown chronology** using exact ordered interactions and conservative certificates that may abstain when the evidence is insufficient.
+Start with [the manuscript source](paper/bidirectional/main.tex), [the reviewer guide](docs/REVIEWER_GUIDE.md), and [the publication evidence ledger](docs/PUBLICATION_EVIDENCE.md). `make paper` builds the current manuscript; previous manuscript material is archived in `paper/legacy_pythia/`.
 
-## Frozen headline result
+| Observation setting | Bidirectional unique verified | Equal-gradient-work ranked first match |
+|---|---:|---:|
+| FP32 export, all durations | **72/72** | 9/72 |
+| FP16 export, durations 5 and 10 | **48/48** | 6/48 |
+| FP16 export, duration 20 | **0/24** | **8/24** |
 
-The final fresh Pythia-14M confirmation is frozen in
-[`configs/chronotrace_pairwise_multi_witness_confirmation_v3.selection.json`](configs/chronotrace_pairwise_multi_witness_confirmation_v3.selection.json).
+The primary study has **72 problem-specific endpoints, 144 export observations, 12 seed clusters, and 12 sampled permutations reused across task/duration settings**. It uses eight known stages, 32 full-batch GD updates per stage, and two 64-dimensional digit-classification tasks. Training and replay are FP64; export precision is not training precision.
 
-![Frozen fresh confirmation results](assets/chronotrace-results.svg)
+All 40,320 endpoints were independently enumerated for every primary problem after predictions were fixed. Every reference-compatible order was retained. Across the 144 observations, 120 full histories and 3,360 pair relations were verified, with zero observed wrong outputs. Zero observed errors is not a universal zero-error guarantee. All 24 strong-FP16 failures have unique exhaustive solutions: they are bound/budget failures, not proven information loss.
 
-| Metric | Frozen result |
-| --- | ---: |
-| Fresh confirmation cases | 32 |
-| Complete histories certified | **27 / 32 (84.375%)** |
-| Pairwise precedences certified | **182 / 192 (94.79%)** |
-| Full-history abstentions | 5 |
-| Contradictory inferred pairs | **0** |
-| Both orientations excluded | **0** |
-| Invalid seed jobs | **0** |
-| Preregistered outcome tier | **STRONG** |
+**Measured value:** median FP32 gradient-work reduction is **8.74x** versus complete prefix-cached replay. Eight spent-input serial timing pairs yield a **7.33x median paired runtime speedup** versus complete replay (1.824 s versus 13.214 s marginal medians). This is not a runtime comparison against ranked replay; its work was scored using the exhaustive reference. The original timing artifact lacks a CPU-model identifier.
 
-The four fresh seeds scored 8/8, 7/8, 6/8, and 6/8 complete-history certificates. All terminal `K=N=4` witness-hull exactness checks, corrected-bound soundness checks, target replay checks, and projected Möbius reconstruction checks passed. The scientific seed jobs were not rerun after observing their outputs.
+A separate frozen-encoder bridge verifies 12 observations of six **170-parameter classifier heads**, after 72.31–72.46% head-loss reduction. It does not audit the encoder or a complete deep network; only the first bridge target has a complete endpoint reference.
 
-## Method in one paragraph
+## Method and boundaries
 
-For deterministic stage maps `F_i` from a common base state `theta_0`, ChronoTrace defines exact ordered Möbius interactions `Phi(w)` over distinct-stage words. A degree-`K` basis gives an exact endpoint representation for words of length at most `K`. The method freezes a bank of low-degree unit witnesses before observing the higher-order candidate output, streams only their higher-order projections, and certifies that a candidate **wrong precedence class** is separated from the target. For a coefficient vector `alpha` with `||alpha||_1 <= 1`, the combined witness has Euclidean norm at most one; a proof-safe local-order LP then gives a conservative distance lower bound. A pair `i,j` is oriented only when exactly one of `i<j` or `j<i` is certified impossible. Complete chronology is returned only when all pair decisions form a transitive total order.
+The native engine is [`bidirectional.py`](src/chronotrace/geometry/bidirectional.py). It joins forward prefix states with residual-controlled inverse suffixes and selectively replays survivors against coordinate-wise checkpoint rounding cells. Failed inverse iterations enlarge uncertainty. Replay-budget exhaustion retains untested candidates.
 
-![ChronoTrace certificate pipeline](assets/chronotrace-pipeline.svg)
+Guarantees require a known base, immutable deterministic GD recipes, known gradients, correct global Lipschitz bounds with `eta * L < 1`, and valid numerical allowances. The code uses fixed numerical guards, **not formally validated interval arithmetic**. A `verified_unique` result means replay consistency and conditional exclusion under the declared candidate model, not unconditional provenance or legal ownership.
 
-## Five-minute reviewer verification
+Current middle joins still compare `N!` vector pairs; memory and worst-case verification remain combinatorial. Unknown batches, unknown recipes, Adam/momentum state, missing/repeated stages, and arbitrary LLM pipelines are not validated.
 
-The release audit does not download model weights or rerun Pythia. It verifies the frozen selection arithmetic, seed ledger, canonical lock hashes, result tier, validity flags, and paper-facing result copy.
+## Reproduce
+
+Native implementation and full repository tests:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
-make audit
+python -m pip install -e '.[dev]'
+python -m pytest -q
+python -O -m pytest -q
+python scripts/audit_publication.py
+make paper
 ```
 
-For the full code/package gate:
+The **complete frozen experimental workspace and raw candidate-distance evidence are supplied as Supplement S1**, not duplicated into this repository's native scripts directory. See [reproduction and artifact identity](research/bidirectional_v1/REPRODUCE.md). Use its pinned environment for numerical reproduction; the native repository development dependencies are broader.
+
+From the extracted Supplement S1 workspace:
 
 ```bash
-make reviewer
+pip install -r requirements-bidirectional.txt
+export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONPATH=src:scripts
+python scripts/verify_bidirectional_artifacts.py --root .
+python -m pytest -q tests
+python scripts/run_bidirectional_confirmation.py \
+  --config configs/bidirectional_v1.lock.json \
+  --output artifacts/independent_rerun --workers 1
 ```
 
-With a TeX distribution installed, compile the manuscript too:
+Stored-artifact verification is not a new training run or external replication. The standalone workspace has 1,073 test items; native repository tests are a different collection. Publication CI tests native normal/optimized execution separately.
 
-```bash
-make reviewer-full
-```
+## Historical evidence, not the current headline
 
-Generated reviewer/paper assets are deterministic functions of the frozen selection:
+The earlier Pythia-14M terminal confirmation remains **27 / 32** full histories and **182 / 192** pairs, with the original **STRONG** outcome tier. It used `N=K=4`, one update per stage, and complete terminal candidate acquisition. Its result and scientific locks are unchanged. Logical closure (28/32) and stored discrete distances (32/32) are post-hoc audits, not replacement confirmation outcomes. See [historical freeze](docs/RESULTS_FREEZE.md).
 
-```bash
-python scripts/generate_release_assets.py --check
-```
+Historical negative/common-tail results and the later nonterminal secant study remain visible; none is pooled into the current sample. Reversible optimization, temporal traces, and meet-in-the-middle search are established ideas; the paper claims a particular assumption-explicit audit construction and measured work boundary.
 
-## What is exact, and what is not
+## Publication status
 
-At terminal depth `K=N`, the local-order hierarchy equals the permutation convexification and is independently checked against complete-permutation convex-hull solves. This is the regime used by the frozen 32-case Pythia confirmation.
+[Submission checklist](paper/SUBMISSION_CHECKLIST.md) records the remaining author approvals and journal checks. Affiliation, corresponding email, funding/conflicts, contribution declarations, rights/licensing, and final author approval must not be inferred from repository ownership. No acceptance, published DOI, external replication, or software license is asserted.
 
-For fixed `K<N`, the hierarchy has polynomial-size coordinates
-
-```text
-sum_(r=1..K) P(N,r) = O(N^K)
-```
-
-and pair-property queries are `O(N^2)`, but exact certification of the true endpoint additionally requires control of interactions above degree `K`. ChronoTrace proves an information barrier: for arbitrary smooth one-step SGD, no universal finite-query rule can infer an unseen `K+1` directional tail bound from degree-`<=K` observations alone. Accordingly, this repository **does not claim** a universal subfactorial exact decoder for arbitrary `N`.
-
-## Scientific progression
-
-The repository preserves failed and negative experiments because they determined the final method:
-
-1. **Behavioral AB/BA discovery was confounded** by ordinary recency/capability effects.
-2. **Static low-order decoders failed structurally** on finite Pythia stages, often preserving coarse chronology while swapping later stages.
-3. **Exact forward-reachable decoding recovered 24/24 N=4 histories**, establishing endpoint separability but requiring factorial full-history enumeration.
-4. **K3 convex certification pruned two wrong final-stage classes** on the spent ABCD instance.
-5. A **preregistered single-witness K4 diagnostic was negative**: the remaining wrong class was Euclidean-separated but not separated along its frozen witness direction.
-6. A post-hoc **multi-witness certificate** showed that the already-frozen witness bank contained enough information; no new model calls were required for that diagnosis.
-7. The method was then made **label-blind**, frozen, and tested on a new deterministic seed set, yielding the 27/32 fresh confirmation above.
-
-The original negative remains negative; it was not relabeled after method development.
-
-## Reviewer path
-
-If you are reviewing the work, start here:
-
-1. [`docs/REVIEWER_GUIDE.md`](docs/REVIEWER_GUIDE.md) — claims, evidence, exact artifact pointers, and a short reproduction path.
-2. [`docs/RESULTS_FREEZE.md`](docs/RESULTS_FREEZE.md) — immutable result ledger and provenance boundary.
-3. [`paper/main.tex`](paper/main.tex) — journal-neutral manuscript source.
-4. [`paper/CLAIMS_AND_EVIDENCE.md`](paper/CLAIMS_AND_EVIDENCE.md) — paper claim-to-evidence matrix.
-5. [`docs/K_LOCAL_INFORMATION_BARRIER.md`](docs/K_LOCAL_INFORMATION_BARRIER.md) — why fixed-depth exactness needs additional tail information for `N>K`.
-6. [`docs/ARCHIVE_MAP.md`](docs/ARCHIVE_MAP.md) — current versus historical research machinery.
-7. [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md) — continuation path for new contributors and follow-up protocols.
-8. [`docs/RESEARCH_JOURNAL.md`](docs/RESEARCH_JOURNAL.md) — append-only historical development record.
-
-Historical protocols and exploratory scripts remain in the repository for auditability; they are not the recommended entry point.
-
-## Reproducibility anchors
-
-Final scientific run:
-
-```text
-GitHub Actions run: 33418210637
-scientific head:    7107221c16a001a7974ca1b436d9cacd26145fe2
-selection commit:   8ed5c7deda81080200d5ca5b2de01ed7f31b94d7
-```
-
-Fresh seed artifacts:
-
-```text
-2186192236  artifact 9768220564  sha256:78d9abc998364b5686bfdcb194ea44e2c8e514fa5623c95a1317559cfad59dcc
-1368008047  artifact 9768257657  sha256:0df6ab12047ff36a2c54ef4e1cb7966fb372cf27423e3761347e097e00e0eb96
-92712904    artifact 9768112808  sha256:1830a159945aa50b5f4c4e71fe15bbf047cb9dba4e3c96c09fabc81498d4e668
-1944430236  artifact 9768224175  sha256:fd6a5a0126507d7f7448ad4effafb5d202a988175725bb9e3c83e612530a0006
-```
-
-The first aggregate attempt failed **after** all four scientific jobs succeeded because it treated JSON object key order as semantic although seed files were emitted with sorted keys. The correction only changed the aggregate key-set check; it changed no method, seed, threshold, or scientific output. Regression CI `33475012691` passed normal and optimized tests.
-
-## Access regime and claim boundary
-
-The frozen Pythia result is a **replay-capable white-box mechanism/forensics experiment**:
-
-- known base checkpoint;
-- known candidate stages and training rule;
-- ability to replay stage maps from controlled prefixes;
-- final weights observed;
-- chronology hidden from the decision rule.
-
-It is not a black-box ownership detector and does not establish legal provenance. Neighboring work on forward curriculum/order planning, training-data membership, model lineage, and known-transcript order correlations addresses different questions.
-
-## Installation and tests
-
-Python 3.11+ is supported.
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-make check
-```
-
-The scale experiments additionally use the pinned CPU PyTorch/Transformers stack recorded in their workflow and protocol locks.
-
-## Repository map
-
-```text
-chronotrace/
-├── assets/                  browser-visible result and method diagrams
-├── configs/                 frozen protocols, locks, selections, provenance
-├── docs/                    reviewer/developer guides, theory, decisions, journal
-├── paper/                   manuscript, generated macros, figures, bibliography
-├── scripts/                 experiment, audit, aggregation, asset-generation utilities
-├── src/chronotrace/         certificate and interaction implementation
-├── tests/                   proof/drift/release/regression tests
-└── .github/workflows/       reproducible CI, paper compile, frozen experiments
-```
-
-## Research policy
-
-ChronoTrace keeps development provenance append-only: negative experiments remain visible; discovery and confirmation are separated; selection rules are frozen before confirmation; numerical reproducibility is distinguished from scientific success; and unsupported chronology claims become abstentions rather than guesses.
-
-For new scientific work, create a new protocol/version rather than modifying the frozen v3 paper result. See [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md).
+The author is responsible for the final submitted work. The manuscript discloses AI assistance in methods, analysis, coding, and writing. Cite the exact software commit and the manuscript as unpublished until a publication identifier exists; see [CITATION.cff](CITATION.cff).

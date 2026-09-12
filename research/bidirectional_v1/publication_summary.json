@@ -1,0 +1,22 @@
+{
+  "version": "publication-20260912",
+  "author": "Omar Al-Tawil",
+  "title": "ChronoTrace: Conditional training-order verification by bidirectional replay",
+  "seed_clusters": 12,
+  "distinct_sampled_orders": 12,
+  "problems": 72,
+  "observations": 144,
+  "cells": [
+    {"precision": "fp32", "duration": 5, "cases": 24, "verified": 24, "ranked": 3, "secant": 0},
+    {"precision": "fp32", "duration": 10, "cases": 24, "verified": 24, "ranked": 3, "secant": 0},
+    {"precision": "fp32", "duration": 20, "cases": 24, "verified": 24, "ranked": 3, "secant": 0},
+    {"precision": "fp16", "duration": 5, "cases": 24, "verified": 24, "ranked": 3, "secant": 0},
+    {"precision": "fp16", "duration": 10, "cases": 24, "verified": 24, "ranked": 3, "secant": 0},
+    {"precision": "fp16", "duration": 20, "cases": 24, "verified": 0, "ranked": 8, "secant": 0}
+  ],
+  "wrong_full": 0,
+  "wrong_pairs": 0,
+  "inferred_pairs": 3360,
+  "source_records_sha256": "0da6ba2e6b06e65d1d640bfa79ea8cce187a2079cce3dbc9bbd26e336efb5181",
+  "supplement_sha256": "b70924ce131fe1545b026957ef970ae69f7442b1f4fec3f9230960f503c52412"
+}

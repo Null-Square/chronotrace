@@ -1,0 +1,50 @@
+\documentclass[preprint,11pt]{elsarticle}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,amsthm,booktabs,array,graphicx}
+\usepackage{algorithm,algpseudocode}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage[hidelinks]{hyperref}
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\journal{Neurocomputing}
+\makeatletter
+\def\ps@pprintTitle{\let\@oddhead\@empty\let\@evenhead\@empty
+\def\@oddfoot{\footnotesize Prepared for consideration in Neurocomputing\hfill\thepage}
+\let\@evenfoot\@oddfoot}
+\makeatother
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{assumption}{Assumption}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\dist}{\operatorname{dist}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\perm}{\mathfrak{S}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\C}{\mathcal{C}}
+\newcommand{\Live}{\mathcal{L}}
+\newcommand{\eps}{\varepsilon}
+\providecommand{\paperroot}{.}
+\begin{document}
+\begin{frontmatter}
+\title{ChronoTrace: Conditional training-order verification by bidirectional replay}
+\author{Omar Al-Tawil}
+% Affiliation and corresponding email must be supplied and approved by the author.
+\begin{abstract}
+A final model checkpoint may be consistent with several orders of known training stages. Recovering one matching order does not exclude alternatives, while exhaustive replay can make verification expensive. We study this inverse problem for a known base and deterministic gradient-descent recipes. ChronoTrace joins forward prefix states with residual-controlled inverse-suffix enclosures, then replays surviving candidates against the checkpoint's rounding cell. Under global gradient regularity, invertible updates, and valid numerical allowances, the construction preserves every compatible history, including when inverse iterations or final replay are truncated. The contribution is a conditional endpoint-audit construction, not a new reversible-learning primitive. A source-locked study comprises 72 eight-stage digit-classification problems in 12 seed clusters, each observed through FP32 and FP16 checkpoint export; training and replay use FP64. All 72 FP32 observations yield unique verified candidates, versus nine correct first matches from a second-order ranked-replay baseline at matched gradient work. Median gradient work is 8.74 times lower than complete prefix-cached replay. Eight serial timing pairs give a 7.33-fold median speedup over that exhaustive reference. The strongest FP16 setting fails in all 24 cases despite unique exhaustive-reference solutions, exposing a limitation of uncertainty transport and the replay budget. A separate frozen-encoder, 170-parameter head experiment verifies 12 observations of six targets after more than 72\% head-loss reduction. The results support efficient auditing in a restricted known-recipe setting; they do not establish arbitrary-model provenance, subfactorial total computation, or formally validated floating-point certificates.
+\end{abstract}
+\begin{keyword}
+Training chronology \sep Inverse learning dynamics \sep Model auditing \sep Set-membership inference \sep Reversible optimization \sep Checkpoint quantization
+\end{keyword}
+\end{frontmatter}
+
+\input{\paperroot/sections/01_context}
+\input{\paperroot/sections/02_method}
+\input{\paperroot/sections/03_experiments}
+\input{\paperroot/sections/04_results}
+\input{\paperroot/sections/05_discussion_appendices}
+
+\bibliographystyle{elsarticle-num-names}
+\bibliography{\paperroot/references}
+\end{document}

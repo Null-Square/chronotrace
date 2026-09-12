@@ -1,109 +1,21 @@
-# Q1 Venue Strategy
+# Venue strategy — checked 12 September 2026
 
-**Status checked:** 2026-09-01. Quartiles change; verify the chosen journal in the exact indexing system used by your institution immediately before submission.
+## Primary target: Neurocomputing (Elsevier)
 
-## Recommended order
+Prepare as an **original research article**, not an Original Software Publication. The publisher's stated scope includes learning methods, theories of learning, analysis of network dynamics, and practical learning systems. That is a defensible fit for the conditional inverse-dynamics method and measured computational study. Scope fit does not predict editorial acceptance; the small-model scope and straightforward component proof techniques are material novelty/impact risks.
 
-### 1. Journal of Machine Learning Research (JMLR) — best intellectual fit, highest bar
+The current package uses the Elsevier `elsarticle` class, a 233-word abstract, six keywords, numeric references, and a separate editable five-item highlights file. Journal-specific anonymity, limits and portal requirements must be checked live: the official Guide for Authors was not retrievable during this preparation. No unverified journal metrics or publishing charges are quoted.
 
-Why it fits:
+## Elsevier transfer plan
 
-- JMLR explicitly welcomes new principled algorithms with sound empirical validation, experimental/theoretical studies yielding new insight into learning systems, formalization of new learning tasks, and new analytical frameworks.
-- ChronoTrace combines a new inverse learning task, a certified algorithm, a barrier theorem, and controlled empirical validation.
-- Its no-APC/open research culture and emphasis on reproducibility align well with the repository package.
+Elsevier may offer one or more destinations after rejection. An author can accept an offered destination, revise the files, and complete the destination's submission. Transfer does not guarantee acceptance or permit simultaneous consideration. A broader applied-learning destination could be considered if offered, but the actual list and fees must be checked at that time; no particular destination is promised.
 
-Risk:
+## Primary publisher sources
 
-- JMLR emphasizes broad machine-learning interest. The decisive experiment is Pythia-14M, `N=4,K=4`; an action editor may judge empirical scope too narrow despite the theory.
-- JMLR requires its own LaTeX style and polished, complete submissions. Its author guidance notes that papers above roughly 35 pages can be harder to review.
+- Scope: https://shop.elsevier.com/journals/neurocomputing/0925-2312
+- Journal guide (access blocked during preparation): https://www.sciencedirect.com/journal/neurocomputing/publish/guide-for-authors
+- Transfer: https://www.elsevier.support/publishing/answer/what-is-the-article-transfer-service
+- Highlights: https://www.elsevier.support/publishing/answer/how-do-i-include-highlights-with-my-manuscript
+- AI policy: https://www.elsevier.com/about/policies-and-standards/generative-ai-policies-for-journals
 
-Current source:
-- https://www.jmlr.org/author-info.html
-- SCImago 2025 places JMLR in Q1; recheck at submission.
-
-**Recommendation:** first-choice submission if we keep the framing theorem/certificate-centric and the compiled paper remains concise.
-
-### 2. Neural Networks (Elsevier) — strong fit for learning dynamics + mathematical analysis
-
-Why it fits:
-
-- The journal explicitly covers deep learning algorithms and mathematical analyses of neural networks and learning systems.
-- ChronoTrace's training-dynamics geometry, certificate construction, and controlled transformer validation are central neural-learning questions.
-- 2025 JCR/SJR sources list the journal as Q1.
-
-Risk:
-
-- Reviewers may ask for a broader neural-network/model-scale study because the journal spans both theory and applications.
-
-Current scope source:
-- https://shop.elsevier.com/journals/neural-networks/0893-6080
-
-**Recommendation:** strong second target, especially if JMLR rejects mainly on breadth/audience rather than correctness.
-
-### 3. IEEE Transactions on Neural Networks and Learning Systems (TNNLS) — stretch target
-
-Why it fits:
-
-- TNNLS publishes theory, design, and applications of neural networks and related learning systems.
-- The proof-safe certificate and learning-dynamics formulation are technically aligned.
-- 2025 JCR/SJR sources list TNNLS as Q1.
-
-Risk:
-
-- Very high empirical/theoretical bar; the single-model-size terminal confirmation may be viewed as insufficient breadth.
-- Template/page constraints are likely more restrictive than the journal-neutral manuscript.
-
-**Recommendation:** only if we decide the theoretical contribution is strong enough to justify the higher breadth risk.
-
-### 4. Knowledge-Based Systems (Elsevier) — pragmatic Q1 alternative
-
-Why it fits:
-
-- The journal covers machine-learning theory, methodology, algorithms, computational intelligence, and data-driven optimization.
-- It published a directly relevant 2026 transformer data-ordering paper, so the subject is within its current editorial neighborhood.
-- 2025 JCR and SJR sources list it as Q1.
-
-Risk:
-
-- The paper must be framed as a general AI/ML methodology contribution rather than as a niche provenance artifact.
-
-Current scope/quartile source:
-- https://www.sciencedirect.com/journal/knowledge-based-systems
-- DOI of relevant ordering paper: 10.1016/j.knosys.2026.115850
-
-**Recommendation:** good pragmatic Q1 fallback if the top two venues reject on scope/breadth.
-
-## Submission sequence
-
-Recommended sequence for the current frozen paper:
-
-```text
-JMLR
-  -> Neural Networks
-  -> Knowledge-Based Systems
-```
-
-Use TNNLS as an alternative stretch path if author preference favors IEEE and stricter engineering/theory review.
-
-Do not submit simultaneously. Preserve each decision/reviewer report as a new manuscript-revision provenance record rather than changing the frozen scientific result.
-
-## What should not drive venue choice
-
-Do not choose based only on impact factor/quartile. The decisive criteria are:
-
-1. whether controlled mechanism/theory papers are in scope;
-2. whether a replay-capable `N=4` confirmation can be accepted as validation of a rigorous method rather than dismissed for benchmark breadth;
-3. page/supplement limits;
-4. code/anonymity policy;
-5. expected turnaround and revision model.
-
-## Venue-specific conversion tasks
-
-For any chosen journal:
-
-- preserve the same frozen headline metrics and claim boundary;
-- convert only format/front matter, not scientific thresholds;
-- map supplementary provenance tables to online appendix if the main-paper limit is tight;
-- keep the preregistered negative in the paper or supplement with an explicit pointer;
-- retain the access-regime statement on page 1;
-- do not remove the information-barrier section solely to save pages unless the theorem is moved intact to a clearly linked supplement.
+The software track separately requires a recognized legal software license. No license was present in the repository, so that track is not selected by default. Administrative authorship and rights declarations must be supplied by the author.

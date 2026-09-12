@@ -6,11 +6,11 @@ on:
       - "paper/**"
       - ".github/workflows/paper.yml"
   push:
-    branches:
-      - experiment/pythia-finite-pair-scale
+    branches: [main, "publication/**"]
     paths:
       - "paper/**"
       - ".github/workflows/paper.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,27 +25,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            latexmk \
-            texlive-latex-base \
-            texlive-latex-extra \
-            texlive-fonts-recommended \
-            texlive-bibtex-extra \
-            texlive-pictures
-      - name: Compile manuscript
-        working-directory: paper
-        run: latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
-      - name: Fail on unresolved citations or references
-        working-directory: paper
-        run: |
-          if grep -E "Citation .* undefined|Reference .* undefined|There were undefined references|There were undefined citations" main.log; then
-            echo "Unresolved citation/reference found"
-            exit 1
-          fi
-      - name: Report layout warnings
-        working-directory: paper
-        run: |
-          grep -E "Overfull \\hbox|Underfull \\hbox|LaTeX Warning:|Package .* Warning:" main.log || true
-      - name: Upload manuscript PDF
+            latexmk texlive-latex-base texlive-latex-extra \
+            texlive-fonts-recommended texlive-bibtex-extra \
+            texlive-pictures texlive-publishers
+      - name: Compile current manuscript and check references/layout
+        run: make -C paper check
+      - name: Upload current manuscript PDF
         uses: actions/upload-artifact@v4
         with:
           name: chronotrace-paper

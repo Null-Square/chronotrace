@@ -1,0 +1,83 @@
+\section{Residual-controlled bidirectional verification}
+\subsection{Inverse enclosure}
+\begin{lemma}[Inverse residual bound]\label{lem:inverse}
+Let $T(x)=x-\eta g(x)$, where $g$ is globally $L$-Lipschitz and $q=\eta L<1$. Then $T$ is bijective on $\R^d$, its inverse is $(1-q)^{-1}$-Lipschitz, and for approximate values $\widehat x,\widehat z$ and any $z$ with $\norm{z-\widehat z}\leq E$,
+\begin{equation}\label{eq:inverse}
+ \norm{\widehat x-T^{-1}(z)}
+ \leq\frac{\norm{T(\widehat x)-\widehat z}+E}{1-q}.
+\end{equation}
+\end{lemma}
+\begin{proof}
+For each $z$, $x\mapsto z+\eta g(x)$ is a contraction on complete Euclidean space, so it has a unique fixed point satisfying $T(x)=z$. Also,
+$\norm{T(x)-T(v)}\geq\norm{x-v}-\eta\norm{g(x)-g(v)}\geq(1-q)\norm{x-v}$.
+Apply this inequality with $v=T^{-1}(z)$, then use the triangle inequality through $\widehat z$.
+\end{proof}
+A fixed-point solve proposes $\widehat x$. Its measured residual $r$ supplies the enclosure, not its convergence flag. With a justified residual-computation allowance $\delta$, propagate
+\begin{equation}\label{eq:transport}
+ E_{\rm previous}=\frac{E+r+\delta}{1-q}.
+\end{equation}
+The allowance must cover error in the residual evaluation and the proposed iterate as needed by the chosen implementation. Iteration exhaustion leaves this inequality valid when that allowance is valid; it increases $r$ rather than authorizing exclusion. In a suffix of $M$ reversed updates with common $q$, repeated application yields
+\begin{equation}\label{eq:expansion}
+ E_0\leq (1-q)^{-M}E_M+
+ \sum_{j=1}^{M}(1-q)^{-j}(r_j+\delta_j),
+\end{equation}
+where the residuals are indexed in the corresponding reverse propagation order. This expression exposes both the benefit of small inverse residuals and the possible amplification of checkpoint uncertainty.
+
+For forward computation, if an update is $G$-Lipschitz and the current radius is $e$, then $e'=Ge+\delta_f$. The general bound is $G\leq1+\eta L$. For the convex GD problems studied here, $G=1$ is justified by the stated step-size condition. Thus an order-independent bound for $Nm$ numerical updates is $\eps_y=Nm\delta_f$ in the common-step setting. Prefix states have their own accumulated computation radii; target computation is not silently assumed exact.
+
+\subsection{The middle join}
+Fix $1\leq k<N$. For every length-$k$ prefix $p$, compute its approximate endpoint $a_p$ with radius $e_p$. For every length-$(N-k)$ suffix $s$, reverse its updates from $c$ with initial radius $r_C+\eps_y$, obtaining an approximate inverse state $b_s$ and radius $E_s$. A prefix and suffix are considered together only if their stage sets are complementary.
+
+\begin{theorem}[No-loss join and budget-safe refinement]\label{thm:no-loss}
+Under Assumption~\ref{ass:regularity}, retain each complementary pair $(p,s)$ satisfying
+\begin{equation}\label{eq:join}
+ \norm{a_p-b_s}\leq e_p+E_s.
+\end{equation}
+Then every order in $\A(y)$ survives the join. If a joined order is replayed to $\widehat x_\pi$ with endpoint error bound $e_\pi$, it can be excluded when
+\begin{equation}\label{eq:exclude}
+ \dist(\widehat x_\pi,\C(y))>e_\pi+\eps_y.
+\end{equation}
+Retaining all untested joined orders at any replay stopping point gives a live set containing $\A(y)$.
+\end{theorem}
+\begin{proof}
+Every permutation has a unique split $\pi=p+s$ with complementary stage sets. If $\pi\in\A(y)$, its endpoint lies in $B(c,r_C+\eps_y)$. Inverse transport therefore encloses its exact middle state $z$. Forward propagation encloses the same state, so $\norm{a_p-b_s}\leq\norm{a_p-z}+\norm{z-b_s}\leq e_p+E_s$. For refinement, distance to any nonempty closed set is 1-Lipschitz. Thus
+$\dist(\widehat x_\pi,\C(y))\leq\norm{\widehat x_\pi-x_\pi}+\dist(x_\pi,\C(y))\leq e_\pi+\eps_y$ for every compatible order. Neither allowed exclusion removes a member of $\A(y)$; leaving untested orders unchanged preserves this invariant.
+\end{proof}
+Implementation guards enlarge the right-hand sides of the tests. Their adequacy is a numerical assumption, not a consequence of the real-arithmetic theorem. The theorem permits unfinished inverse iterations because the residual enclosure remains available, but it requires the prefix and suffix catalogues to be complete. A truncated catalogue would need an explicit representation of all unexplored histories and is not the implemented algorithm.
+
+\begin{proposition}[Conditional order inference]
+If $\A(y)$ is nonempty and $\Live(y)$ has one element, its element is the unique compatible order. Any precedence shared by all live orders holds for every compatible order.
+\end{proposition}
+\begin{proof}
+Both statements follow from $\varnothing\ne\A(y)\subseteq\Live(y)$.
+\end{proof}
+The implementation labels a singleton that passes replay and has no untested alternatives \texttt{verified\_unique}. This denotes numerical replay consistency plus conditional alternative exclusion. The replay tolerance is a necessary enclosure test, not an unconditional existence proof that an exact endpoint lies inside the unexpanded rounding cell. The nonempty candidate-model assumption remains essential.
+
+\subsection{Algorithm and accounting}
+Algorithm~\ref{alg:chrono} states the decision procedure. Candidate generation and decisions do not receive the generating order. Batched evaluations are charged once per evaluated parameter vector, including every inverse residual check. The replay cap covers suffix replay; it is not a cap on total prefix and inverse acquisition.
+
+\begin{algorithm}[t]
+\caption{Conditional bidirectional chronology audit}\label{alg:chrono}
+\begin{algorithmic}[1]
+\Require Base, $N$ stage recipes, split $k$, observation cell, valid allowances, replay cap
+\State Acquire all length-$k$ forward prefixes with error radii; cache shared prefixes
+\State Acquire all reverse suffixes of length $N-k$ using residual-controlled inverse updates
+\State $J\gets$ all complementary prefix--suffix pairs satisfying the middle test
+\State $\Live\gets J$
+\For{candidate $\pi\in J$ in a fixed label-independent order}
+  \If{the next suffix replay exceeds the remaining replay cap}
+    \State \textbf{break} \Comment{Untested candidates remain live}
+  \EndIf
+  \State Replay its suffix from the cached prefix and propagate forward error
+  \If{the endpoint is excluded by Eq.~\eqref{eq:exclude}}
+    \State Remove $\pi$ from $\Live$
+  \EndIf
+\EndFor
+\State Return $\Live$, its common precedences, and the accounting/abstention status
+\end{algorithmic}
+\end{algorithm}
+
+Write $P(N,r)=N!/(N-r)!$ and $A(N,k)=\sum_{r=1}^k P(N,r)$. With $m$ updates per stage, prefix acquisition costs $mA(N,k)$ gradients. Inverse acquisition has $A(N,N-k)$ stage calls, but its gradient count depends on measured residual iterations and is reported directly. The split is selected without the target by minimizing $A(N,k)+cA(N,N-k)$ for a declared inverse/forward cost estimate $c$. With $N=8,c=8$, it selects $k=5$: 8,800 forward-prefix and 400 inverse-suffix stage calls. Complete shared-prefix replay costs $mA(8,8)=32\times109,600=3,507,200$ gradients.
+
+This is not a subfactorial total-computation result. The reference implementation compares all $N!$ complementary middle pairs. It stores combinatorial catalogues, and weak exclusions can leave factorially many candidates for verification. Prefix construction can be amortized across targets sharing recipes, but the reported comparison charges the cold prefix cost to every observation; target generation and exhaustive reference construction are charged separately to the evaluator.
+

@@ -1,0 +1,5 @@
+Bidirectional replay verifies training orders under explicit assumptions.
+Residual bounds retain candidates when inversion or replay is truncated.
+All 72 FP32 observations are verified in an eight-stage reference study.
+Median gradient work is 8.74 times lower than complete prefix-cached replay.
+Strong FP16 export causes abstention despite unique reference solutions.
