@@ -1,0 +1,64 @@
+{
+  "access": "Known base and stage catalogue; short replay outputs with validated arithmetic enclosures. Nonlinear cases additionally use recipe-derived matrix norms, offsets and quartic coefficients to bound remainders; no claim that short probes alone identify arbitrary nonlinear maps.",
+  "budgets": [
+    64,
+    256,
+    1024
+  ],
+  "complexity": "N^2 training-stage probe executions. Subset computation O(N*2^N*d^2), suffix compositions O(d^3) each, factorial worst-case search; full factorial point-map baseline computed separately.",
+  "created_utc": "2026-09-12T10:46:31.322239+00:00",
+  "development_seed_excluded": 41,
+  "dimension": 4,
+  "evidence_role": "fresh_v2_confirmation_after_fixing_history_dependent_target_interval",
+  "expected_codebooks": 128,
+  "expected_target_cases": 512,
+  "export_radius": 0.0,
+  "families": [
+    "synthetic_quadratic",
+    "digits_ridge",
+    "synthetic_quartic",
+    "digits_quartic"
+  ],
+  "fixed_learning_rates": {
+    "digits_ridge": "0.05/max_stage_hessian_eigenvalue",
+    "quartic_families": 0.001,
+    "synthetic_quadratic": 0.02
+  },
+  "independence": "Eight seed blocks reused across matched settings. Targets and pair decisions within a codebook are dependent. Digits uses one fixed underlying dataset.",
+  "nonlinear_analysis": "Report all 256 nonlinear cases and all budget cells without selecting successful cells or changing thresholds.",
+  "numerical_radius": 1e-10,
+  "parent_commit": "a81e2be33417c03db8df72f3e32cf0f4e8b32905",
+  "primary_affine_goal": "At least 90% full-history coverage at 1024 class-bound evaluations, zero wrong inferred pairs, zero invalid jobs; count all 256 affine targets.",
+  "protocol_version": "structured-chronotrace-v2-history-blind-target-2026-09-12",
+  "quartic_penalty": 0.05,
+  "seed_derivation": "first four SHA256 bytes, big-endian, of chronotrace-structured-confirmation-v2-blind-target:2026-09-12:{i}, i=0..7",
+  "seeds": [
+    610604685,
+    1956160709,
+    762521779,
+    1671582186,
+    2205779069,
+    34631247,
+    2204295049,
+    3164839624
+  ],
+  "source_sha256": {
+    "scripts/structured_affine_benchmark.py": "1b073c40b8c321429d615f0e6948029696200bd6bd75f27b6aaa139094341f2c",
+    "scripts/structured_affine_benchmark_v2.py": "6ce9c6b5032bf303d8c7e0e59198043e552ff4cca2de10894f430beb912da500",
+    "src/chronotrace/validated_affine.py": "13a99430f86fc204cbc676321543c6babdfb4c70a228c12b1fed1f8b36815bf7",
+    "tests/test_history_blind_target.py": "2092762f4b240b353512ec50a2a85d75101ceed93080eb230050f36a61f866d9",
+    "tests/test_structured_benchmark.py": "c26ebe0b751a671b4ba8864bb4e6ee46608e9dacaf05d7959d0b5ae05f509299",
+    "tests/test_validated_affine.py": "77964b492aa26e942c55933ccd2183d485fb4fd4082f11e0b9be6bfd2864925b"
+  },
+  "stage_counts": [
+    6,
+    8
+  ],
+  "steps_per_stage": [
+    16,
+    64
+  ],
+  "target_interval_access": "Only observed endpoint and fixed public export/numerical budgets enter observation_box. Generating-history numerical enclosures are evaluated AFTER predictions to validate the input-accuracy assumption; violations invalidate, never tune, a job.",
+  "targets_per_codebook": 4,
+  "v1_status": "Retained numerical-enclosure-oracle experiment; not the final history-blind confirmation. V1 seeds are spent."
+}
