@@ -20,3 +20,9 @@ Use `Manuscript.pdf` for reading and the LaTeX source files for editable submiss
 Confirm successful current manuscript compilation and normal/optimized native tests. Full-repository style checks are distinct from tests; passing tests does not imply every historical exploratory script is lint-clean. Source locks must not be invalidated by silent formatting changes.
 
 Submit to one journal at a time. If Elsevier offers a transfer, inspect the offered destination's scope, fees, and requirements and explicitly complete its submission. Transfer is an offer, not automatic acceptance or a right to transfer to any Elsevier journal.
+
+## AI-script and dual-use revision — 12 September 2026
+
+The Methods now explicitly identify AI-written/revised research scripts, and the end-of-paper declaration covers substantive AI-assisted manuscript drafting. Before submission, Omar Al-Tawil must verify both statements against the actual work, review and validate the code and scientific claims, and confirm truthfully the oversight and responsibility required by the journal. The current wording does not assert that those author actions have already occurred. Historical model-build identifiers are incomplete; do not invent missing versions or AI-authorship percentages.
+
+The dual-use discussion is a threat analysis, and the attached defensive protocol is not executed. Do not promote either into a completed security evaluation or claim that safety safeguards have been removed. All original results and scientific locks remain unchanged.

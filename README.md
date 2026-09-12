@@ -68,6 +68,12 @@ The earlier Pythia-14M terminal confirmation remains **27 / 32** full histories 
 
 Historical negative/common-tail results and the later nonterminal secant study remain visible; none is pooled into the current sample. Reversible optimization, temporal traces, and meet-in-the-middle search are established ideas; the paper claims a particular assumption-explicit audit construction and measured work boundary.
 
+## AI-script disclosure and security scope
+
+The Methods explicitly disclose ChatGPT's substantive role in writing and revising the experimental Python scripts, tests, analysis and plotting code; the manuscript separately discloses AI-assisted text drafting. The [revision note](docs/AI_ASSISTANCE_AND_DUAL_USE_2026_09_12.md) records the scope and remaining author-review requirements.
+
+The new dual-use discussion considers whether chronology information could help an observer who already has checkpoint and recipe access. It does **not** demonstrate LLM safeguard removal, a detachable safety layer, hidden-weight extraction, or semantic understanding of individual weights. The [defensive evaluation protocol](docs/security/CHRONOLOGY_INFORMATION_RISK_PROTOCOL.md) is proposed and unexecuted. No original result or scientific code is changed by this discussion.
+
 ## Publication status
 
 [Submission checklist](paper/SUBMISSION_CHECKLIST.md) records the remaining author approvals and journal checks. Affiliation, corresponding email, funding/conflicts, contribution declarations, rights/licensing, and final author approval must not be inferred from repository ownership. No acceptance, published DOI, external replication, or software license is asserted.
