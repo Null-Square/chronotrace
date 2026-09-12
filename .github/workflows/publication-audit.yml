@@ -1,6 +1,8 @@
 name: Publication audit
 
 on:
+  push:
+    branches: ["publication/**"]
   pull_request:
     branches: [main]
   workflow_dispatch:
