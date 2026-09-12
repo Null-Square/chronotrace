@@ -7,12 +7,12 @@ inverse GD. A failed inverse solve enlarges uncertainty; it never drops a word.
 """
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
-import math
 import hashlib
 import json
+import math
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 
 import numpy as np
 from scipy.spatial import cKDTree
@@ -96,7 +96,11 @@ class GradientDynamics:
         """
         if not math.isfinite(residual_tolerance) or residual_tolerance < 0:
             raise ValueError('residual tolerance must be finite and nonnegative')
-        if isinstance(max_iterations, bool) or not isinstance(max_iterations, int) or max_iterations < 1:
+        if (
+            isinstance(max_iterations, bool)
+            or not isinstance(max_iterations, int)
+            or max_iterations < 1
+        ):
             raise ValueError('max_iterations must be positive')
         z = np.array(y, dtype=np.float64, copy=True)
         e = np.array(error, dtype=np.float64, copy=True)
@@ -211,14 +215,16 @@ def build_prefix_catalogue(dynamics: GradientDynamics, depth: int) -> PrefixCata
         for j in range(n):
             ids = [i for i, w in enumerate(words) if j not in w]
             values, bounds = dynamics.forward(j, states[ids], errors[ids])
-            next_states.append(values); next_errors.append(bounds)
+            next_states.append(values)
+            next_errors.append(bounds)
             next_words.extend(words[i]+(j,) for i in ids)
             calls += len(ids)
         words = next_words
         states = np.concatenate(next_states)
         errors = np.concatenate(next_errors)
     return PrefixCatalogue(dynamics.names, depth, tuple(words), states, errors, calls,
-        dynamics.gradient_evaluations-initial, time.perf_counter()-started, id(dynamics), dynamics_signature(dynamics))
+        dynamics.gradient_evaluations-initial, time.perf_counter()-started,
+        id(dynamics), dynamics_signature(dynamics))
 
 
 @dataclass(frozen=True)
@@ -287,8 +293,10 @@ def join_chronology(dynamics: GradientDynamics, catalogue: PrefixCatalogue,
             x, e, missing = dynamics.inverse(j, states[ids], errors[ids],
                 residual_tolerance=residual_tolerance, max_iterations=inverse_iterations)
             nw.extend(words[i]+(j,) for i in ids)
-            ns.append(x); ne.append(e)
-            inverse_calls += len(ids); misses += missing
+            ns.append(x)
+            ne.append(e)
+            inverse_calls += len(ids)
+            misses += missing
         words, states, errors = nw, np.concatenate(ns), np.concatenate(ne)
     inverse_seconds = time.perf_counter()-started
     inverse_gradients = dynamics.gradient_evaluations-initial
@@ -337,7 +345,8 @@ def join_chronology(dynamics: GradientDynamics, catalogue: PrefixCatalogue,
                     values[ids], bounds[ids] = dynamics.forward(j, values[ids], bounds[ids])
                     replay_calls += len(ids)
         keep = observation.distance(values) <= bounds+endpoint_allowance+join_allowance
-        checked = len(testing); compatible = int(keep.sum())
+        checked = len(testing)
+        compatible = int(keep.sum())
         retained.extend(tuple(dynamics.names[j] for j in catalogue.words[p]+s)
                         for (p,s),ok in zip(testing, keep, strict=True) if ok)
     retained.extend(tuple(dynamics.names[j] for j in catalogue.words[p]+s) for p,s in remaining)
@@ -353,7 +362,8 @@ def join_chronology(dynamics: GradientDynamics, catalogue: PrefixCatalogue,
                   else 'ambiguous' if not remaining else 'budget_abstention')
     return JoinResult(status, unique, tuple(retained), relations, len(joins), checked,
         compatible, excluded, catalogue.stage_executions, inverse_calls, inverse_gradients,
-        replay_calls, replay_gradients, catalogue.gradient_evaluations+inverse_gradients+replay_gradients,
+        replay_calls, replay_gradients,
+        catalogue.gradient_evaluations+inverse_gradients+replay_gradients,
         misses, float(np.max(errors)), minimum_margin, bool(remaining), inverse_seconds,
         join_seconds, time.perf_counter()-started, minimum_separation)
 

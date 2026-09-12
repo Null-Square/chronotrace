@@ -1,0 +1,8 @@
+{
+  "change": "native presentation-only formatting and unused import removal",
+  "non_import_AST_identical": true,
+  "original_sha256": "1895665de728e62d824301b5130a4c693064e0f20a3eb41d97ad8481803e25d5",
+  "native_presented_sha256": "8c996e6df37833adef53ae5b119cad6822e4c1daa174f2ee82a237411d6f8437",
+  "scientific_source": "unchanged in Supplement S1 and commit 1d9f222739c097291a6b843f020413fd311053ef",
+  "new_scientific_measurements": false
+}

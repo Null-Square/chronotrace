@@ -1,17 +1,27 @@
 from itertools import permutations
+
 import numpy as np
 import pytest
 
 from chronotrace.geometry.bidirectional import (
-    GradientDynamics, ObservationCell, checkpoint_cell,build_prefix_catalogue,
-    join_chronology,estimated_work_split,pipeline_roundoff_bound)
+    GradientDynamics,
+    ObservationCell,
+    build_prefix_catalogue,
+    checkpoint_cell,
+    estimated_work_split,
+    join_chronology,
+    pipeline_roundoff_bound,
+)
 
 
 def affine(seed=0,n=4,steps=3,eta=.08,commuting=False):
     rng=np.random.default_rng(seed)
-    hs=[];bs=[]
-    for j in range(n):
-        z=rng.normal(size=(3,3));h=z.T@z;h*=.7/np.linalg.norm(h,2)
+    hs=[]
+    bs=[]
+    for _j in range(n):
+        z=rng.normal(size=(3,3))
+        h=z.T@z
+        h*=.7/np.linalg.norm(h,2)
         hs.append(np.zeros_like(h) if commuting else h)
         bs.append(rng.normal(size=3))
     def grad(j,x): return x@hs[j].T-bs[j]
@@ -23,7 +33,8 @@ def affine(seed=0,n=4,steps=3,eta=.08,commuting=False):
 def independent_end(d,hs,bs,word):
     x=d.base.copy()
     for j in word:
-        for _ in range(d.steps): x=x-d.eta*(hs[j]@x-bs[j])
+        for _ in range(d.steps):
+            x=x-d.eta*(hs[j]@x-bs[j])
     return x
 
 
@@ -55,7 +66,8 @@ def test_inverse_enclosure_even_when_solver_exhausts(seed,max_iterations):
     y=np.stack([independent_end(d,hs,bs,(1,)) for _ in range(5)])
     # Forward from a non-base state with an independent implementation.
     y=x.copy()
-    for _ in range(d.steps): y=y-d.eta*(y@hs[1].T-bs[1])
+    for _ in range(d.steps):
+        y=y-d.eta*(y@hs[1].T-bs[1])
     noise=rng.normal(size=y.shape)*1e-5
     inv,e,_=d.inverse(1,y+noise,np.linalg.norm(noise,axis=1),max_iterations=max_iterations)
     assert np.all(np.linalg.norm(inv-x,axis=1)<=e+1e-12)
@@ -109,32 +121,41 @@ def test_work_accounting():
 
 
 def test_in_place_gradient_does_not_mutate_state():
-    def grad(j,x): x[:]=.1;return x
+    def grad(j,x):
+        x[:]=.1
+        return x
     d=GradientDynamics(('a','b'),np.zeros(2),3,.1,np.zeros(2),grad,'constant map',True)
     cat=build_prefix_catalogue(d,1)
     np.testing.assert_array_equal(d.base,np.zeros(2))
-    x=np.ones((1,2));d.grad(0,x);np.testing.assert_array_equal(x,np.ones((1,2)))
+    x=np.ones((1,2))
+    d.grad(0,x)
+    np.testing.assert_array_equal(x,np.ones((1,2)))
     cell=checkpoint_cell(np.full(2,-.06),'fp64')
     result=join_chronology(d,cat,cell)
     assert len(result.live_orders)==2
 
 
 def test_reject_wrong_dynamics_catalogue():
-    d,_,_=affine(1);other,_,_=affine(2)
+    d,_,_=affine(1)
+    other,_,_=affine(2)
     cat=build_prefix_catalogue(d,2)
-    with pytest.raises(ValueError):join_chronology(other,cat,checkpoint_cell(np.zeros(3),'fp64'))
+    with pytest.raises(ValueError):
+        join_chronology(other,cat,checkpoint_cell(np.zeros(3),'fp64'))
 
 
 @pytest.mark.parametrize('depth',[0,4,-1,True,1.5])
 def test_bad_depth(depth):
     d,_,_=affine()
-    with pytest.raises(ValueError):build_prefix_catalogue(d,depth)
+    with pytest.raises(ValueError):
+        build_prefix_catalogue(d,depth)
 
 
 @pytest.mark.parametrize('bad',[float('nan'),float('inf'),-1.])
 def test_bad_allowance(bad):
-    d,hs,bs=affine();cat=build_prefix_catalogue(d,2)
-    with pytest.raises(ValueError):join_chronology(d,cat,checkpoint_cell(d.base,'fp64'),join_allowance=bad)
+    d,hs,bs=affine()
+    cat=build_prefix_catalogue(d,2)
+    with pytest.raises(ValueError):
+        join_chronology(d,cat,checkpoint_cell(d.base,'fp64'),join_allowance=bad)
 
 
 @pytest.mark.parametrize('kw',[
@@ -145,32 +166,40 @@ def test_bad_dynamics(kw):
     args=dict(names=('a','b'),base=np.zeros(2),steps=3,eta=.1,lipschitz=np.array([1.,1.]),
               gradient=lambda j,x:x,regularity_source='test')
     args.update(kw)
-    with pytest.raises(ValueError):GradientDynamics(**args)
+    with pytest.raises(ValueError):
+        GradientDynamics(**args)
 
 
 @pytest.mark.parametrize('precision,values',[
     ('fp8',np.zeros(2)),('fp32',np.array([.1])),('fp16',np.array([65504.])),
     ('fp32',np.array([float('nan')])),('fp64',np.array([]))])
 def test_bad_observation(precision,values):
-    with pytest.raises(ValueError):checkpoint_cell(values,precision)
+    with pytest.raises(ValueError):
+        checkpoint_cell(values,precision)
 
 
 @pytest.mark.parametrize('n',range(2,11))
 def test_split_cost_optimality(n):
     import math
     chosen=estimated_work_split(n,8)
-    cost=lambda k:sum(math.perm(n,r) for r in range(1,k+1))+8*sum(math.perm(n,r) for r in range(1,n-k+1))
+    def cost(k):
+        return sum(math.perm(n,r) for r in range(1,k+1))+8*sum(
+            math.perm(n,r) for r in range(1,n-k+1)
+        )
     assert cost(chosen)==min(cost(k) for k in range(1,n))
 
 
 def test_outside_model_rejected():
-    d,hs,bs=affine();cat=build_prefix_catalogue(d,2)
+    d,hs,bs=affine()
+    cat=build_prefix_catalogue(d,2)
     r=join_chronology(d,cat,checkpoint_cell(np.full(3,100.),'fp64'))
     assert r.status=='inconsistent_assumptions'
     assert r.unique_order is None
 
 @pytest.mark.parametrize('field,value',[('eta',.02),('steps',5),('roundoff_allowance',.1)])
 def test_metadata_changes_invalidate_catalogue(field,value):
-    d,_,_=affine();cat=build_prefix_catalogue(d,2)
+    d,_,_=affine()
+    cat=build_prefix_catalogue(d,2)
     setattr(d,field,value)
-    with pytest.raises(ValueError):join_chronology(d,cat,checkpoint_cell(d.base,'fp64'))
+    with pytest.raises(ValueError):
+        join_chronology(d,cat,checkpoint_cell(d.base,'fp64'))
