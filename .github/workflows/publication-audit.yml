@@ -1,0 +1,55 @@
+name: Publication audit
+
+on:
+  push:
+    branches: ["publication/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Archive exact source commit
+        run: |
+          git rev-parse HEAD > SOURCE_COMMIT.txt
+          git archive --format=zip HEAD -o chronotrace-source.zip
+          sha256sum chronotrace-source.zip > SOURCE_SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: publication-source-snapshot
+          path: |
+            chronotrace-source.zip
+            SOURCE_COMMIT.txt
+            SOURCE_SHA256.txt
+          retention-days: 30
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install repository development dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Full repository tests
+        run: python -m pytest -q
+      - name: Optimized-mode full repository tests
+        run: python -O -m pytest -q
+      - name: Current and historical evidence audits
+        run: |
+          python scripts/audit_publication.py
+          python scripts/audit_release.py
+          python scripts/generate_release_assets.py --check

@@ -1,0 +1,81 @@
+{
+  "protocol_version": "pythia-14m-reverse-peeling-armijo-diagnostic-v1",
+  "freeze_status": "frozen_before_any_armijo_pythia_output",
+  "experiment_role": "spent_history_solver_diagnostic",
+  "purpose": "determine whether the failed ABCD reverse-peeling smoke was caused by non-contractive Picard iteration rather than inability to numerically recover the known true ABC predecessor of the final D update",
+  "source_failed_smoke_run_id": 33274469711,
+  "source_failed_smoke_artifact_id": 9721377079,
+  "source_failed_smoke_selection": "configs/pythia_14m_reverse_peeling_smoke.selection.json",
+  "source_failed_smoke_result": "failed_only_all_candidate_inverses_converged_check_while_D_and_ABC_ranked_first",
+  "model": "EleutherAI/pythia-14m-deduped",
+  "revision": "step143000",
+  "precision": "fp64",
+  "base_parameter_sha256_fp64": "f7973f1dd58380b5d8b0e10f54e3c45714c1fed90083922c8e69cb0af47b9b86",
+  "base_parameter_sha256_fp32": "cba585ef12f0a770686bffb9d1c1d00e11400106b46d943c1cae04fa7e0df2ce",
+  "tokenizer_fingerprint": "c08d95c22b6ea19a127c2e46b72a5229543eee2d35949b80334388b5ff89e51a",
+  "codebook_count_per_kind": 16,
+  "learning_rate": 0.0001,
+  "updates_per_stage": 1,
+  "pilot_codebook_seed": 1011473075,
+  "pilot_codebook_sha256": "6424c45a6a34eddc0f80d81e93d2f2e292909c44c5be35bc3ba927e40ef1d409",
+  "pilot_dataset_sha256": {
+    "stage_a": "5e75b1e39ff9857793f8ea2667abbe844f64f83a2128f773198fa929814be3dd",
+    "stage_b": "27531392f09f7993531df66ca2b841fbf1b85c4edd3cb5333099bb2cdc9a2df9",
+    "stage_c": "30f1ef52773e49cdd54894a1d33c51562accb2c933225e795cc8e20df4ec65af",
+    "stage_d": "a802b2d5b38a032defd97aeebfcb82df6defa5e32b819338ed226927a6d4c28a",
+    "worlds": "d3b195e900c2ccbe3d70b7454927f5a7b01cdaf7c2c7108270cd0d344f830e6f"
+  },
+  "confirmation_codebooks_prohibited": [4294917749, 3885207466, 402469483, 2000073798],
+  "confirmation_codebooks_observed": false,
+  "stage_randomness": {"A": 1101, "B": 2203, "C": 3307, "D": 4409},
+  "known_history": "ABCD",
+  "known_predecessor": "ABC",
+  "diagnosed_stage": "D",
+  "target_endpoint_sha256": "eaf246430f46da1550cbaa9b5c25695f66f370dd09a51c747214a84371ef3e8f",
+  "ground_truth_policy": "generate ABC from the frozen base with A then B then C, apply D once, and require the resulting ABCD target to match the frozen endpoint hash exactly; ABC is used only to assess solver error and never to initialize or steer the solver",
+  "inverse_equation": "F(x)=x-y-eta*grad_L_D(x)=0",
+  "inverse_potential": "Psi_y(x)=0.5*||x-y||_2^2-eta*L_D(x)",
+  "initial_state": "target_y",
+  "solver": "steepest_descent_on_inverse_potential_with_Armijo_backtracking",
+  "solver_parameters": {
+    "initial_step": 1.0,
+    "armijo_constant": 0.0001,
+    "shrink_factor": 0.5,
+    "minimum_step": 9.5367431640625e-7,
+    "max_iterations": 100,
+    "stop_residual_ratio_to_initial": 0.0001
+  },
+  "solver_randomness_rule": "reset the D stage seed before every loss or gradient evaluation so line-search evaluations see the identical stochastic realization",
+  "reported_diagnostics": [
+    "ABC_predecessor_sha256",
+    "ABCD_replay_exact",
+    "initial_and_final_inverse_residual_norm",
+    "inverse_residual_ratio",
+    "initial_and_final_distance_to_true_ABC",
+    "predecessor_distance_ratio",
+    "inverse_potential_trace",
+    "accepted_step_trace",
+    "backtracking_count_trace",
+    "forward_reconstruction_error_from_recovered_state",
+    "loss_and_gradient_evaluation_counts"
+  ],
+  "solver_viability_requires_all": [
+    "ABCD target endpoint hash exactly matches the frozen replay hash",
+    "Armijo line search never fails",
+    "inverse potential is monotonically non-increasing up to FP64 tolerance",
+    "final inverse residual norm is at most 1 percent of its initial value",
+    "final distance to true ABC is at most 1 percent of the initial target-to-ABC distance",
+    "forward reconstruction error from the recovered state is at most 1 percent of the initial inverse residual norm"
+  ],
+  "interpretation": {
+    "pass": "Picard failure is a solver/contraction failure; freeze a new four-candidate Armijo smoke on the same spent ABCD history before any all-24 experiment",
+    "fail": "Do not keep tuning inverse solvers. Pivot from explicit inverse recovery toward forward reachable-set residual or Jacobian-conditioned mode scoring on spent data."
+  },
+  "anti_tuning_rules": [
+    "do not change line-search constants, stopping ratio, iteration budget, initialization, or pass thresholds after observing output",
+    "do not initialize from ABC or any K3 predecessor reference",
+    "do not evaluate A/B/C candidate inverses in this diagnostic",
+    "do not launch either all-24 protocol regardless of this diagnostic outcome",
+    "do not touch held-out confirmation codebooks"
+  ]
+}

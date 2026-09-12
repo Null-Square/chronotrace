@@ -1,0 +1,33 @@
+\begin{tikzpicture}[
+  node distance=7mm and 9mm,
+  box/.style={draw, rounded corners, align=center, inner sep=5pt, minimum height=9mm},
+  small/.style={font=\footnotesize},
+  arrow/.style={-{Latex[length=2mm]}, thick},
+  note/.style={font=\scriptsize, align=center}
+]
+\node[box] (base) {Known base\\$\theta_0$};
+\node[box, right=of base] (stages) {Known candidate stages\\$F_A,F_B,F_C,F_D$};
+\node[box, right=of stages] (hidden) {Hidden chronology\\$\pi$};
+\node[box, right=of hidden] (target) {Observed final weights\\$y=E(\pi)$};
+
+\node[box, below=12mm of stages] (basis) {Exact ordered interactions\\through degree $K-1$};
+\node[box, right=of basis] (witness) {Freeze unit witness bank\\before higher-order output};
+\node[box, right=of witness] (lift) {Stream witness-projected\\degree-$K$ active lifts};
+\node[box, right=of lift] (lp) {Proof-safe local-order LP\\for both pair orientations};
+\node[box, right=of lp] (decision) {Certified precedence edges\\total order or abstain};
+
+\draw[arrow] (base) -- (stages);
+\draw[arrow] (stages) -- (hidden);
+\draw[arrow] (hidden) -- (target);
+\draw[arrow] (base.south) |- (basis.west);
+\draw[arrow] (stages.south) -- (basis.north);
+\draw[arrow] (basis) -- (witness);
+\draw[arrow] (witness) -- (lift);
+\draw[arrow] (target.south) |- (lift.north);
+\draw[arrow] (lift) -- (lp);
+\draw[arrow] (lp) -- (decision);
+
+\node[note, above=2mm of hidden] {hidden from decision rule};
+\node[note, below=2mm of decision] {label-blind: test $i\!<\!j$ and $j\!<\!i$ independently};
+\node[note, below=4mm of base, xshift=12mm] {replay-capable white-box access};
+\end{tikzpicture}

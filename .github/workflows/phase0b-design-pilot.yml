@@ -1,18 +1,7 @@
 name: Phase-0b Washout Design Pilot
 
 on:
-  push:
-    branches: [experiment/phase0b-design]
-    paths:
-      - ".github/workflows/phase0b-design-pilot.yml"
-      - "configs/phase0b_design.yaml"
-      - "scripts/phase0b_pilot_endpoint.py"
-      - "src/chronotrace/config.py"
-      - "src/chronotrace/data.py"
-      - "src/chronotrace/training.py"
-      - "src/chronotrace/features.py"
-      - "src/chronotrace/detector.py"
-      - "src/chronotrace/manifest.py"
+  workflow_dispatch:
 
 concurrency:
   group: phase0b-design-pilot-${{ github.ref }}

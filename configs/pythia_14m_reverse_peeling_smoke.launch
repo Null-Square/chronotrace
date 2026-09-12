@@ -1,0 +1,13 @@
+protocol=configs/pythia_14m_reverse_peeling_smoke.lock.json
+protocol_freeze_commit=8137fc6a8811bfe53ec40b97dc353dd3a15dca67
+theory_note=docs/REVERSE_OPERATOR_PEELING.md
+toy_theorem_ci=33274026665
+runner=scripts/pythia_14m_reverse_peeling_smoke.py
+runner_commit=ee67a6713bfc189975d651bde388b96ebe49d6ce
+runner_ci=33274418266
+workflow=.github/workflows/pythia-14m-reverse-peeling-smoke.yml
+workflow_commit=9b0e91736b2d7b6378d9b6105ae0fef73fa52c32
+workflow_ci=33274446042
+target_history=ABCD
+pilot_codebook_seed=1011473075
+confirmation_codebooks_observed=false

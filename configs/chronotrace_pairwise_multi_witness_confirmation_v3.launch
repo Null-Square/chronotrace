@@ -1,0 +1,15 @@
+protocol=chronotrace-pairwise-multi-witness-confirmation-32-v3
+launch_gate_head=336579f49388571ad01dd199ccc05fcf64ef68e1
+launch_gate_ci_run=33418135031
+launch_gate_ci_conclusion=success
+confirmation_case_count=32
+pairwise_decision_count=192
+orientation_class_lp_solve_count=384
+seed_job_count=4
+targets_per_seed=8
+total_expected_stage_executions=384
+fresh_seeds=2186192236,1368008047,92712904,1944430236
+spent_seeds_excluded=1011473075,4294917749,3885207466,402469483,2000073798
+no_intermediate_adaptation=true
+fresh_confirmation_outputs_observed_before_launch=false
+fresh_confirmation_launch_authorized=true

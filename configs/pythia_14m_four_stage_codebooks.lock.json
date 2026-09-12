@@ -1,0 +1,81 @@
+{
+  "protocol_version": "pythia-14m-four-stage-codebooks-v1",
+  "freeze_status": "frozen_before_any_four_stage_model_outputs",
+  "purpose": "freeze fresh tokenizer-safe A/B/C/D codebooks for the Pythia-14M K2-versus-K3 chronology experiment without observing model chronology outcomes",
+  "derivation_namespace": "chronotrace-pythia-14m-four-stage-k23-v1",
+  "derivation_workflow_run_id": 33264448435,
+  "derivation_artifact_id": 9718213000,
+  "derivation_artifact_zip_sha256": "ce233af134f656b7e211739c2f487d210831855e2c68851abe842a2a8361bf09",
+  "source_protocol": "configs/pythia_14m_t2.lock.json",
+  "source_protocol_sha256": "6eb95c404243cd64b74f4b761d99ae2db3c255c8ce68ce443c41f0c29426b7ab",
+  "model": "EleutherAI/pythia-14m-deduped",
+  "revision": "step143000",
+  "tokenizer_fingerprint": "c08d95c22b6ea19a127c2e46b72a5229543eee2d35949b80334388b5ff89e51a",
+  "codebook_count_per_kind": 16,
+  "stage_semantics": {
+    "A": "alias_to_entity",
+    "B": "entity_to_signal",
+    "C": "signal_to_zone",
+    "D": "zone_to_alias"
+  },
+  "eligibility_rule": "build the existing tokenizer-safe two-token codebook, then require exact token-boundary stability in the new D-stage zone prompt contexts and alias completion context; eligibility uses tokenizer behavior only",
+  "previous_seed_exclusion_protocols": [
+    "configs/pythia_14m_t2.lock.json",
+    "configs/pythia_14m_t2b_lr.lock.json",
+    "configs/pythia_14m_precision_gate.lock.json"
+  ],
+  "candidate_count_examined": 4,
+  "rejected_candidates": [],
+  "accepted": [
+    {
+      "index": 0,
+      "seed": 4294917749,
+      "codebook_sha256": "e6f411a9ffc667155ddd21324328bac0060b0fdd5cc91fc2fd343c57178f966c",
+      "dataset_sha256": {
+        "worlds": "faf06357ea9e0527e7508118d3415bd796c5f0d53359fa7763f769b9793e1a42",
+        "stage_a": "0fc5099908d7d920ee2d09bededed107f4978654d2eaaf99addf837cb16eb5c5",
+        "stage_b": "b8b4de088de97d7da5323030f7c76038bbe6fa1f6b2307b427ea07556a403bd0",
+        "stage_c": "51c5c955a2e69975f53dbdfb508f289b13ef0647d616073061a41e9aa630904c",
+        "stage_d": "26b6631e0a0a269c82c6c33292c33a3214e5f5129dbb62d65f341cb8431adc9c"
+      }
+    },
+    {
+      "index": 1,
+      "seed": 3885207466,
+      "codebook_sha256": "bed7280f77a51d132900d4c5509d6b37d7c176158d02ad99e811801c228fbf71",
+      "dataset_sha256": {
+        "worlds": "f0288541c11897532e89edbc6c0cce64d5a09c384e541ff3cc7e833242d84e38",
+        "stage_a": "ac0f28f46e4c67bb3c8aa2d86097f17ffd30ed2361b79d888d52941687b7102c",
+        "stage_b": "b94fada0122e8cf05a9d5908450ad111efe15e6f270647d7acea2e95a47a2d9b",
+        "stage_c": "ae7f228aaaa670d523aec1a9675966e2392b8f73eb1b091e27c412238496fe79",
+        "stage_d": "e7dfbc2321920eb572f75e5985d6c858a3c934abab41956c4b78bc627be7f9a8"
+      }
+    },
+    {
+      "index": 2,
+      "seed": 402469483,
+      "codebook_sha256": "70d2073d21bb17d5d9e0582c5d1b34be30dce52387ebf4cbfe15b5f0a705eff2",
+      "dataset_sha256": {
+        "worlds": "e3394e1d848b0f240a23f8e37c6e837b13783c5870e64d5ec26b2ea50de2cd5a",
+        "stage_a": "1c1612d3923e13130f34d7e67f68b5d6bd189fcc02593000edb3dc78aa51434c",
+        "stage_b": "3c2dcda6cd68683f0e490d1c221f295cc6543bba881bf77c44b21199ad5c15fd",
+        "stage_c": "8b0d71733c041dc5b6c38d782bf85268c1abbfb0515ff923c746d4c03cd95726",
+        "stage_d": "9831d6865997094d75c681c81c20c89496a7db7d36277ada51cfa25983095b45"
+      }
+    },
+    {
+      "index": 3,
+      "seed": 2000073798,
+      "codebook_sha256": "334d6788b877bde814e4ad2a56ffe62f1d40672ca94f28f41517dd3f8ba0079c",
+      "dataset_sha256": {
+        "worlds": "bfe2b174daba4d6321b6345d04553f9f5cbe508a0fb069602865ade1a48fa944",
+        "stage_a": "1ce627cc377b24d03a2db3ba305815656a882befc8045aaa41c8fa2c6a274f57",
+        "stage_b": "6c8606f1fc21950323637c55c9d67e606c6bcf6195ea71a50a527f8e2d15ce41",
+        "stage_c": "e2edc0c192ff54a15d13569917e22d2c8269d346122a7cc17573ce56b706d16d",
+        "stage_d": "808b5702128d041716150685d5ce0bfb1371a8d4a2a0355dfe4442a64474249c"
+      }
+    }
+  ],
+  "scientific_outcomes_observed": false,
+  "selection_rule": "use all four accepted codebooks in derivation order; do not replace or select them based on any model outcome"
+}

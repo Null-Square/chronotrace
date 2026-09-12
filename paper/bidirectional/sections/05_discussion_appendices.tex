@@ -1,0 +1,61 @@
+\section{Discussion and limitations}
+\paragraph{What is measurably useful.}
+For a known-recipe audit, complete enumeration supplies an expensive reference answer. The measured work and runtime reductions show that explicitly joining forward and inverse information can reach the same unique answer more cheaply in a controlled, nontrivial learning regime. The improvement concerns training-stage computation under these conditions. It is not evidence of general commercial return, production robustness, or a new lower bound on sequence-search complexity.
+
+\paragraph{Why the precision boundary matters.}
+Equation~\eqref{eq:expansion} makes checkpoint uncertainty and training contraction interact. Reversing a more contractive sequence amplifies observation uncertainty. The FP16 failures retain tens of thousands of alternatives even though only one candidate is compatible with the exact numerical reference. Tighter set transport, anisotropic enclosures, or adaptive splitting could improve this boundary, but such extensions have not been evaluated here. Nor does success at FP32 imply that a real FP32-trained pipeline can be inverted with the same recipe.
+
+\paragraph{Assumption validity and model mismatch.}
+Known executable maps are not enough for the guarantee: correct global regularity and numerical bounds are also required. A declaration of nonexpansiveness must be justified by the dynamics, not inferred from a few observed contractions. Unknown minibatches, persistent optimizer state, repeated or missing stages, an unknown base, and export transformations beyond the specified formats fall outside the confirmed model. Tests reject several malformed and inconsistent inputs, but the experiments do not calibrate false acceptance for realistic out-of-model processes. Even a unique in-model explanation is not proof that the true process was in model.
+
+\paragraph{Numerical and statistical confidence.}
+The exact-arithmetic invariant is proved, and exhaustive small references exercise the implemented decisions. Fixed numerical guards and numerically estimated spectral norms are nevertheless not formal floating-point verification. Source hashes establish artifact identity, not mathematical truth. Reproduction in one environment does not replace specialist proof review or external replication. The shared dataset, twelve sampled primary orders, and head-only bridge limit statistical generalization. A much wider task suite, larger components, and calibrated temporal baselines would be needed for a broad forensic claim.
+
+\paragraph{Cost and comparison boundaries.}
+Complete middle matching remains factorial, and the current storage pattern is combinatorial. The timing study does not benchmark standalone ranked replay. Ranked retrieval wins in the strong-FP16 cell and can be preferable when finding one plausible explanation is sufficient. ChronoTrace is useful when conditional exclusion of alternatives is required and known dynamics permit tight enough inverse transport. Applications should choose the weaker or stronger output deliberately rather than conflate them.
+
+\section{Conclusion}
+ChronoTrace combines forward prefixes, residual-controlled inverse suffixes, and checkpoint rounding cells to perform conditional training-order verification without first replaying every complete history. Its no-loss invariant makes nonconvergence and replay-budget exhaustion explicit sources of uncertainty rather than hidden exclusions. In the reported eight-stage reference problems, all FP32 observations are uniquely verified with a median 8.74-fold reduction in gradient work; a small serial study measures a 7.33-fold median speedup over exhaustive replay. The strong-FP16 failure and the limited frozen-encoder bridge delimit that result. The supported contribution is a reproducible, assumption-explicit audit method with measured computational value, not unrestricted model provenance or universally efficient history recovery.
+
+\section*{Data and code availability}
+The native implementation, tests, theory note, and manuscript source are maintained in \url{https://github.com/Null-Square/chronotrace}. The publication preparation is tracked in pull request 16. The frozen engine commit is recorded in Supplement S1 and the repository evidence ledger. Supplement S1 is the accompanying complete research archive, containing the locally locked protocols, experimental drivers, dependency pins, raw candidate-distance arrays, live sets, and artifact verifier. The supplementary README specifies exact hashes and reproduction commands. The source dataset is public and separately attributed~\cite{digits1998,sklearndigits}.
+
+\appendix
+\section{Implementation and reproducibility details}
+The frozen primary protocol SHA-256 is
+\begin{quote}\small\ttfamily
+931b5e2caa42a9d707ade143b9da9a22360ee0f10e9255dfe21a9c508ac1a0e5.
+\end{quote}
+The record-file SHA-256 is
+\begin{quote}\small\ttfamily
+0da6ba2e6b06e65d1d640bfa79ea8cce187a2079cce3dbc9bbd26e336efb5181.
+\end{quote}
+The 12 primary seeds are 352021688, 399760960, 500317727, 570978561, 615840300, 925333088, 953947831, 1560033684, 1681784917, 1832827134, 1906214354, and 2003918457. The target-order generator uses \texttt{default\_rng(seed XOR 0x52ac9481)}. A source-lock check precedes execution, and the runner refuses dataset or declared dependency-version drift. Original output directories are not reused for reruns.
+
+The 124 bidirectional test items include all 24 four-stage orders on 12 affine problems at three precisions (864 order-level comparisons), exhausted inverse iterations, genuine ambiguity, replay caps, rounding cells, mutation isolation, invalid inputs, and accounting. The accompanying standalone workspace passes 1,073 test items, including earlier secant and closure tests. These counts describe different test collections from the native repository regression suite. An additional publication-branch CI run executes the full native repository tests in normal and optimized Python; this is software validation, not new scientific sample size.
+
+A compact independent audit extracts Supplement S1, installs the pinned requirements, and runs:
+\begin{verbatim}
+export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
+export PYTHONPATH=src:scripts
+python scripts/verify_bidirectional_artifacts.py --root .
+python -m pytest -q tests
+python -O -m pytest -q tests
+\end{verbatim}
+The verifier checks seven primary source hashes, the complete 144-case grid, 72 raw problem files, candidate-set retention, work identities, and reported decisions. It recomputes conclusions from stored distances; it does not independently regenerate those distances. The full training/reference runner is required for computational replication:
+\begin{verbatim}
+python scripts/run_bidirectional_confirmation.py \
+  --config configs/bidirectional_v1.lock.json \
+  --output artifacts/independent_rerun --workers 1
+\end{verbatim}
+The evaluator's exhaustive computation is intentionally outside the decoder's budget, and its output must not be fed back into decisions. Hardware, operating system, BLAS implementation, and CPU affinity should be recorded for any new runtime study.
+
+\section{Neural-bridge protocol}
+A fixed split generator with seed 2026091257 partitions the 1,797 examples into 718 encoder-training, 719 head-adaptation, and 360 held-out examples. The encoder is a scikit-learn multilayer perceptron with 16 tanh hidden units, Adam learning rate 0.01, regularization 0.001, batch size 64, 200-epoch limit, seed 71907, tolerance $10^{-6}$, no early stopping, and patience 200. Features are frozen before the six fresh head-seed runs. The audited softmax head starts from zero and uses 32 updates per stage at duration 10. The protocol and raw files disclose the complete six-seed list and separately retained pilot failures. Its primary scientific claim is head-only recovery; encoder-training randomness is not independently replicated across the six targets.
+
+\section{Historical evidence boundary}
+Earlier repository results concern different methods and access regimes. A four-stage Pythia-14M terminal witness experiment reports 27/32 full histories; later logical closure yields 28/32 post hoc, while stored discrete endpoint statistics resolve 32/32. These terminal comparisons already acquire complete candidate endpoints and therefore do not establish the current bidirectional efficiency claim. A subsequent 1,440-case nonterminal secant study uses small reference problems and is likewise not pooled with the primary bidirectional confirmation. Original protocol locks and outcomes remain unchanged. The current article is based on the bidirectional study and its supplementary evidence rather than the superseded manuscript narrative.
+
+\section*{Declaration of generative AI and AI-assisted technologies in manuscript preparation}
+ChatGPT (OpenAI) supported manuscript organization, drafting, literature discovery, reference organization, mathematical exposition, and preparation of reproducible data-visualization code. Its role in the research process is described in the Methods. AI assistance does not constitute independent peer review or external replication, and no AI system is credited as an author. The human author remains responsible for the accuracy, interpretation, originality, and final approval of the submitted work.
+

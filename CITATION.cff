@@ -1,9 +1,14 @@
 cff-version: 1.2.0
-title: ChronoTrace
+message: "Cite the exact software commit and the associated unpublished manuscript. No journal acceptance or DOI is claimed."
+title: "ChronoTrace: Conditional training-order verification by bidirectional replay"
 type: software
-message: "If you use ChronoTrace, cite this repository and the associated paper when available."
 authors:
-  - name: NullSquare
+  - family-names: Al-Tawil
+    given-names: Omar
 repository-code: "https://github.com/Null-Square/chronotrace"
-version: 0.1.0
-date-released: 2026-08-28
+abstract: "Conditional endpoint auditing for known deterministic training-stage recipes, with residual-controlled inverse suffixes and explicit ambiguity."
+keywords:
+  - training chronology
+  - model auditing
+  - inverse learning dynamics
+  - set-membership inference

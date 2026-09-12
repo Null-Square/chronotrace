@@ -1,0 +1,104 @@
+name: Pythia 14M FP32-FP64 precision gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONHASHSEED: "0"
+  ATEN_CPU_CAPABILITY: default
+  MKL_CBWR: COMPATIBLE
+  MKL_DYNAMIC: "FALSE"
+  OMP_DYNAMIC: "FALSE"
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  NUMEXPR_NUM_THREADS: "1"
+  TOKENIZERS_PARALLELISM: "false"
+
+concurrency:
+  group: pythia-14m-precision-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  precision:
+    name: seed-${{ matrix.codebook_seed }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        codebook_seed:
+          - 1208340830
+          - 2712532023
+          - 798146982
+          - 3670363774
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.16"
+          cache: pip
+      - name: Install pinned CPU PyTorch
+        run: >-
+          python -m pip install
+          --index-url https://download.pytorch.org/whl/cpu
+          "torch==2.13.0+cpu"
+      - name: Install pinned scale stack
+        run: >-
+          python -m pip install
+          "transformers==5.16.1"
+          "tokenizers==0.23.1"
+          "huggingface-hub==1.29.0"
+          "safetensors==0.8.0"
+      - name: Install ChronoTrace
+        run: python -m pip install -e ".[mvp]"
+      - name: Run frozen precision seed replay
+        run: >-
+          python scripts/pythia_14m_precision_gate.py
+          --protocol configs/pythia_14m_precision_gate.lock.json
+          --codebook-seed ${{ matrix.codebook_seed }}
+          --output precision-${{ matrix.codebook_seed }}.json
+          --threads 1
+      - name: Upload precision seed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pythia-14m-precision-${{ matrix.codebook_seed }}
+          path: precision-${{ matrix.codebook_seed }}.json
+          if-no-files-found: error
+
+  aggregate:
+    name: aggregate-frozen-precision-gate
+    needs: precision
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.16"
+          cache: pip
+      - name: Install ChronoTrace
+        run: python -m pip install -e .
+      - name: Download all precision seed evidence
+        uses: actions/download-artifact@v5
+        with:
+          pattern: pythia-14m-precision-*
+          path: precision-slices
+          merge-multiple: true
+      - name: Aggregate without scientific retuning
+        run: >-
+          python scripts/aggregate_pythia_14m_precision_gate.py
+          --protocol configs/pythia_14m_precision_gate.lock.json
+          --input-dir precision-slices
+          --output pythia-14m-precision-aggregate.json
+      - name: Upload aggregate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pythia-14m-precision-aggregate
+          path: pythia-14m-precision-aggregate.json
+          if-no-files-found: error

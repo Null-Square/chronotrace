@@ -1,0 +1,43 @@
+{
+  "selection_version": "pythia-14m-forward-reachable-residual-smoke-selection-v1",
+  "source_run_id": 33279118644,
+  "source_artifact_id": 9722492236,
+  "source_artifact_digest": "sha256:13682a3210d78bffeb7010a6b49a1f1a68b8fbeaff39f8c6c555c2df82e4aafd",
+  "source_result_raw_sha256": "06aa7e46fe2fcb4396e18dc1bff43c0f16f8333a31cbbb993ccf8eb75f08e30f",
+  "source_result_canonical_sha256": "9cc1c6775f04b6d3d4884ccfcd5ffe4bdf3af574633e31651aa5c6f7ab8294f4",
+  "confirmation_codebooks_observed": false,
+  "target_endpoint_replay_exact": true,
+  "smoke_pass_all": true,
+  "candidate_gradient_evaluations": 24,
+  "true_predecessor_reconstruction_relative_error": 6.884478981323439e-14,
+  "k3_baseline": {
+    "prediction": "BACD",
+    "best_error": 0.1255979455546993,
+    "runner_up_error": 0.1256380995497889,
+    "margin": 0.00004015399508960904,
+    "true_candidate_error": 0.12730869833455544,
+    "frozen_baseline_reproduced": true
+  },
+  "decision": {
+    "selected_history": "ABCD",
+    "selected_predecessor": "ABC",
+    "selected_final_stage": "D",
+    "best_residual": 2.4301831612754385e-10,
+    "best_relative_residual": 1.9676430366788988e-13,
+    "runner_up_history": "ABDC",
+    "runner_up_residual": 0.011605367218075462,
+    "global_margin": 0.011605366975057147,
+    "target_only_noise_radius": 0.005802683487528573,
+    "identifiable": true
+  },
+  "stage_minima": {
+    "A": {"history": "CBDA", "residual": 0.029678378794426214},
+    "B": {"history": "ADCB", "residual": 0.027182280188443996},
+    "C": {"history": "ABDC", "residual": 0.011605367218075462},
+    "D": {"history": "ABCD", "residual": 2.4301831612754385e-10}
+  },
+  "scientific_interpretation": "On the pre-frozen spent ABCD history, direct degree-three endpoint decoding reproduces the known wrong BACD prediction, while finite transition-consistency scoring over the exact K3 three-stage predecessor codebook uniquely recovers ABCD with numerical-zero residual and a large positive margin, using one gradient evaluation per finite history hypothesis and no inverse solve.",
+  "interpretation_scope": "one already-spent Pythia-14M history only; this establishes a mechanism result, not all-history accuracy, polynomial scaling, held-out generalization, or novelty",
+  "next_step": "freeze_all24_spent_forward_reachable_margin_map",
+  "heldout_confirmation_launch_authorized": false
+}

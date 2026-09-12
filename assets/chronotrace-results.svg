@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+<title id="title">ChronoTrace frozen fresh confirmation results</title>
+<desc id="desc">ChronoTrace certified 27 of 32 complete histories and 182 of 192 pairwise precedences, with 5 abstentions and 0 contradictions.</desc>
+<style>
+  text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; fill: #172033; }
+  .title { font-size: 38px; font-weight: 750; } .subtitle { font-size: 20px; fill: #526070; }
+  .metric { font-size: 42px; font-weight: 750; } .label { font-size: 16px; fill: #5b6573; }
+  .seed { font-size: 17px; font-weight: 650; } .value { font-size: 17px; font-weight: 650; }
+  .footer { font-size: 18px; font-weight: 650; } .card { fill: #f7f9fc; stroke: #d8dee9; }
+  .barbg { fill: #e8edf4; } .bar { fill: #3159c8; }
+</style>
+<rect width="1200" height="630" rx="28" fill="#ffffff"/>
+<text x="60" y="72" class="title">ChronoTrace — frozen fresh confirmation</text>
+<text x="60" y="108" class="subtitle">Label-blind Pythia-14M chronology certificates · N = K = 4 · replay-capable access</text>
+<rect x="60" y="145" width="330" height="150" rx="18" class="card"/>
+<rect x="435" y="145" width="330" height="150" rx="18" class="card"/>
+<rect x="810" y="145" width="330" height="150" rx="18" class="card"/>
+<text x="90" y="215" class="metric">27/32</text>
+<text x="90" y="255" class="label">complete histories certified (84.4%)</text>
+<text x="465" y="215" class="metric">182/192</text>
+<text x="465" y="255" class="label">pairwise precedences certified (94.8%)</text>
+<text x="840" y="215" class="metric">0</text>
+<text x="840" y="255" class="label">contradictory certified pairs</text>
+<text x="60" y="338" class="subtitle">Complete-history coverage by fresh seed</text>
+<text x="75" y="385" class="seed">2186192236</text><rect x="330" y="363" width="420" height="26" rx="6" class="barbg"/><rect x="330" y="363" width="315.0" height="26" rx="6" class="bar"/><text x="775" y="385" class="value">6/8 histories</text><text x="75" y="433" class="seed">1368008047</text><rect x="330" y="411" width="420" height="26" rx="6" class="barbg"/><rect x="330" y="411" width="367.5" height="26" rx="6" class="bar"/><text x="775" y="433" class="value">7/8 histories</text><text x="75" y="481" class="seed">92712904</text><rect x="330" y="459" width="420" height="26" rx="6" class="barbg"/><rect x="330" y="459" width="315.0" height="26" rx="6" class="bar"/><text x="775" y="481" class="value">6/8 histories</text><text x="75" y="529" class="seed">1944430236</text><rect x="330" y="507" width="420" height="26" rx="6" class="barbg"/><rect x="330" y="507" width="420.0" height="26" rx="6" class="bar"/><text x="775" y="529" class="value">8/8 histories</text>
+<text x="60" y="590" class="footer">5 conservative abstentions · 10 ambiguous pair decisions · preregistered tier: STRONG</text>
+</svg>

@@ -1,0 +1,66 @@
+{
+  "protocol_version": "pythia-14m-state-conditioned-map-v1",
+  "freeze_status": "frozen_before_independent_chronology_outcomes",
+  "purpose": "test whether the state-conditioned interaction mechanism inferred from the original 14M instance repeats across fresh tokenizer-safe synthetic instances and stage lengths",
+  "source_hypothesis_run_id": 33243747235,
+  "source_portable_gate_run_id": 33219286064,
+  "base_scale_lock": "configs/pythia_scale.lock.json",
+  "model": "EleutherAI/pythia-14m-deduped",
+  "revision": "step143000",
+  "learning_rate": 0.0001,
+  "optimizer": "plain_sgd_no_momentum_no_weight_decay",
+  "precision": "fp32",
+  "stages": ["A", "B", "C"],
+  "ground_truth_histories": ["ABC", "ACB", "BAC", "BCA", "CAB", "CBA"],
+  "codebook_count_per_kind": 16,
+  "codebook_seed_derivation": {
+    "method": "first four big-endian uint32 words of SHA256(label)",
+    "label": "chronotrace-t2-independent-codebooks-v1",
+    "sha256": "3c49dab384e147a6a0f59ac907241b7992399a0fbdbd91da5a3c9d8d4e1fc313",
+    "seeds": [1011473075, 2229356454, 2700450505, 119806841]
+  },
+  "stage_lengths": [1, 2, 4, 8, 16, 32],
+  "stage_randomness": {
+    "A": 1101,
+    "B": 2203,
+    "C": 3307,
+    "rule": "stage-specific seed is reset on every stage-map invocation so stochasticity cannot encode macro position"
+  },
+  "tokenizer_fingerprint": "c08d95c22b6ea19a127c2e46b72a5229543eee2d35949b80334388b5ff89e51a",
+  "base_parameter_sha256": "cba585ef12f0a770686bffb9d1c1d00e11400106b46d943c1cae04fa7e0df2ce",
+  "portable_numerics": {
+    "ATEN_CPU_CAPABILITY": "default",
+    "MKL_CBWR": "COMPATIBLE",
+    "MKL_DYNAMIC": "FALSE",
+    "OMP_DYNAMIC": "FALSE",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "intraop_threads": 1,
+    "interop_threads": 1,
+    "mkldnn_enabled": false,
+    "deterministic_algorithms": true
+  },
+  "reported_metrics": [
+    "full_order_correct_of_6",
+    "first_stage_correct_of_6",
+    "pairwise_precedence_accuracy",
+    "mean_kendall_tau",
+    "tail_swap_only_error_count",
+    "minimum_finite_pair_signature_separation",
+    "maximum_exact_third_order_residual_norm",
+    "prefix_relative_commutator_drift",
+    "prefix_base_conditioned_cosine",
+    "prefix_tail_alignment_coefficient",
+    "prefix_tail_midpoint_bias_coefficient",
+    "prefix_tail_robustness=alignment-abs(midpoint_bias)"
+  ],
+  "pre_registered_checks": {
+    "check_1": "for each seed, if a first full-order failure occurs within the sampled lengths, at least one shared-prefix tail robustness value is <= 0 at that first failure",
+    "check_2": "across all errors in the map, at least 75 percent preserve the first stage and differ from truth only by swapping positions 2 and 3",
+    "check_3": "after full-order failures begin, first-stage recovery remains higher than full-order recovery in at least three of four independent codebooks",
+    "check_4": "report, without selection, whether increasing stage length tends to reduce base/conditioned commutator alignment and increase relative commutator drift"
+  },
+  "selection_rule": "none; all four codebooks and all six stage lengths must be reported regardless of outcome",
+  "scale_decision": "31M remains blocked until T2 is interpreted and the theory is revised or retained"
+}

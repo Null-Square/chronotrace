@@ -1,0 +1,75 @@
+{
+  "selection_version": "pythia-14m-projected-k4-pairwise-multi-witness-posthoc-selection-v1",
+  "analysis_role": "posthoc_spent_methodology_development_not_confirmation",
+  "source_run_id": 33327336769,
+  "source_job_id": 99299704409,
+  "source_artifact_id": 9736705289,
+  "source_artifact_digest": "sha256:7f9ccd4ef5627eee04fd85b6a506750fef20866bc7091fb985b4ab2368ef17a1",
+  "source_preregistered_result": "scientific_negative_single_witness",
+  "spent_seed": 1011473075,
+  "target_history": "ABCD",
+  "new_model_executions": 0,
+  "witness_bank_freeze": "all four K3 unit witnesses were fixed before any K4 output",
+  "certificate_form": "proof-safe infinity-norm multi-witness local-order LP applied to the wrong precedence class for each unordered stage pair",
+  "numerical_elimination_guard": 1e-6,
+  "local_order_certificate_guard": 1e-10,
+  "pairwise_wrong_relation_results": {
+    "AB": {
+      "true_relation": ["A", "B"],
+      "wrong_relation": ["B", "A"],
+      "terminal_multi_witness_optimum": 0.002619401592967135,
+      "conservative_guarded_lower_bound": 0.002619401492967135,
+      "direct_exact_wrong_class_euclidean_distance": 0.0265052030366609,
+      "wrong_relation_certified_impossible": true
+    },
+    "AC": {
+      "true_relation": ["A", "C"],
+      "wrong_relation": ["C", "A"],
+      "terminal_multi_witness_optimum": 0.002612375059584367,
+      "conservative_guarded_lower_bound": 0.002612374959584367,
+      "direct_exact_wrong_class_euclidean_distance": 0.029580652463005667,
+      "wrong_relation_certified_impossible": true
+    },
+    "AD": {
+      "true_relation": ["A", "D"],
+      "wrong_relation": ["D", "A"],
+      "terminal_multi_witness_optimum": 0.002612375059584367,
+      "conservative_guarded_lower_bound": 0.002612374959584367,
+      "direct_exact_wrong_class_euclidean_distance": 0.029678378790026987,
+      "wrong_relation_certified_impossible": true
+    },
+    "BC": {
+      "true_relation": ["B", "C"],
+      "wrong_relation": ["C", "B"],
+      "terminal_multi_witness_optimum": 0.0020948424275606466,
+      "conservative_guarded_lower_bound": 0.0020948423275606465,
+      "direct_exact_wrong_class_euclidean_distance": 0.026332509377329845,
+      "wrong_relation_certified_impossible": true
+    },
+    "BD": {
+      "true_relation": ["B", "D"],
+      "wrong_relation": ["D", "B"],
+      "terminal_multi_witness_optimum": 0.0020944003468495722,
+      "conservative_guarded_lower_bound": 0.002094400246849572,
+      "direct_exact_wrong_class_euclidean_distance": 0.02617395705977889,
+      "wrong_relation_certified_impossible": true
+    },
+    "CD": {
+      "true_relation": ["C", "D"],
+      "wrong_relation": ["D", "C"],
+      "terminal_multi_witness_optimum": 0.0006986369053447774,
+      "conservative_guarded_lower_bound": 0.0006986368053447774,
+      "direct_exact_wrong_class_euclidean_distance": 0.011605367220220871,
+      "wrong_relation_certified_impossible": true
+    }
+  },
+  "minimum_wrong_relation_guarded_lower_bound": 0.0006986368053447774,
+  "minimum_margin_over_elimination_guard": 0.0006976368053447774,
+  "all_six_wrong_relations_certified_impossible": true,
+  "all_true_relation_classes_have_zero_distance_lower_bound": true,
+  "full_chronology_certified_by_pairwise_exclusion": true,
+  "certified_chronology": "ABCD",
+  "scientific_interpretation": "The preregistered single-witness K4 diagnostic remains a scientific negative, but the bank of four witnesses that was already frozen before K4 output is sufficient, when combined proof-safely, to exclude the wrong orientation of every stage pair on the spent target. Their conjunction uniquely certifies ABCD. This result is methodology development on spent data, not confirmation.",
+  "confirmation_codebooks_observed": false,
+  "heldout_confirmation_launch_authorized": false
+}

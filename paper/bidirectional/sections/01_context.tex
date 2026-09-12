@@ -1,0 +1,56 @@
+\section{Introduction}
+Training pipelines often apply several adaptation stages to a common base. Even when the stage catalogue is known, an auditor may lack a reliable record of their order. The corresponding inverse question is narrower than identifying training data or establishing ownership: which permutations of the declared stages remain compatible with the final checkpoint? A useful answer may be a unique chronology, a partial order, or an explicit statement that the available evidence is insufficient.
+
+Order-dependent learning and temporal information in trained models are not new phenomena. Reversible optimization has been used to differentiate through known training trajectories~\cite{maclaurin2015}. Temporal activation probes can recover acquisition-time information in language models~\cite{fresh2025}, while order correlations can support provenance testing when a randomized training transcript is known~\cite{palimpsest2025}. These results motivate endpoint auditing but do not remove the distinction between finding one matching history and excluding every alternative in a specified candidate model.
+
+Exhaustive replay resolves this distinction directly: execute every possible history and compare its endpoint with the observation. Shared prefixes reduce redundant work, but the number of stage executions remains combinatorial. Approximate forward surrogates can rank candidates cheaply, yet a poor ranking or a loose approximation bound may respectively waste replay or prevent conservative exclusions. This paper investigates a different use of known training dynamics: compute candidate prefixes forward, undo candidate suffixes with explicit uncertainty, and reject incompatible combinations at their meeting point.
+
+ChronoTrace is a set-valued auditor. It never interprets an unconverged inverse solve as evidence against a history, and it retains untested survivors when the replay cap is exhausted. Final verification uses the coordinate-wise rounding cell of the observed checkpoint, rather than treating export error as a freely tuned tolerance. The guarantee is conditional: the base, stage recipes, regularity bounds, and computation-error allowances must be valid, and the true process must belong to the declared candidate model. A unique output does not establish legal provenance or show that an unmodelled process could not produce the same endpoint.
+
+The paper makes three scoped contributions. First, it formulates residual-controlled bidirectional joins for unknown-order endpoint auditing, with a no-loss result for compatible histories and a precise account of budget-induced abstention. Second, it supplies a reproducible evaluation that separates gradient work, actual runtime, first-match retrieval, and alternative exclusion. Third, it measures a failure boundary: stronger training combined with FP16 export makes the current inverse enclosures too broad, although the exhaustive candidate set remains uniquely identifiable. The proof ingredients---contraction mappings, inverse residual bounds, meet-in-the-middle enumeration, and set membership---are established tools; the claim concerns their particular audited composition and measured utility.
+
+The main experiment concerns 64-dimensional logistic models, not large language models. An additional experiment audits only a 170-parameter head on a frozen learned encoder. These scales permit complete small-model references that would be impractical for larger pipelines. They provide controlled evidence about the mechanism and its cost, rather than a demonstration of production-ready reconstruction of arbitrary training histories.
+
+\section{Related work}
+\paragraph{Temporal information and provenance.}
+\citet{fresh2025} show that training-order recency is linearly represented in language-model activations and study acquisition-time probes. This is a close inverse-temporal neighbour, so temporal traces themselves cannot establish novelty here. \citet{palimpsest2025} exploit correlations with a known randomized training order for black-box provenance testing. Proof-of-Learning instead uses records from training to support verification~\cite{jia2021}. ChronoTrace assumes neither a supplied order nor an intermediate checkpoint transcript, but requires substantially stronger access to a known base, gradients, and reproducible stage recipes. No empirical superiority over temporal probes or provenance systems is claimed; the present evaluation addresses a different, explicitly constrained output.
+
+\paragraph{Forward order selection.}
+Noncommuting gradient dynamics and Lie brackets explain order effects in multi-domain learning~\cite{rukhovich2025}. Geometric methods also predict favourable sequential training orders~\cite{sweeney2026}. These works principally concern choosing an order to improve learning. ChronoTrace infers an unknown order from an endpoint. This distinction does not make commutator reasoning new; indeed, the current decoder avoids relying on a global low-order commutator approximation for its main exclusion mechanism.
+
+\paragraph{Reversibility and switching sequences.}
+\citet{maclaurin2015} reverse known optimization trajectories for hyperparameter gradients. ChronoTrace uses approximate inversion of candidate suffixes, with residual bounds that remain valid before a numerical solver converges. Unknown sequence inference also appears in set-membership identification of switched systems. For example, \citet{ozay2015} infer subsystem models and switching sequences from noisy input--output data. Here the nonlinear stage maps are known and only their order is unknown; the observed training state is the endpoint rather than a full trajectory. Classical split enumeration~\cite{horowitz1974} supplies the computational pattern, not an additional novelty claim.
+
+\paragraph{Position of the evidence.}
+A same-information first-match baseline is essential because exhaustive candidate acquisition can make an elaborate inverse certificate unnecessary. We therefore compare against complete prefix-cached replay and second-order ranked replay, explicitly distinguishing their outputs. The earlier ChronoTrace secant certificate is retained as an internal ablation, not presented as an independent state-of-the-art comparator. Establishing performance against broader learned temporal decoders is outside this experiment and remains a limitation.
+
+\section{Problem formulation and access assumptions}
+Let $\theta_0\in\R^d$ be a known base state and let $\{1,\ldots,N\}$ index distinct training stages. Stage $i$ consists of $m_i$ gradient-descent updates,
+\begin{equation}
+ T_i(x)=x-\eta_i g_i(x),\qquad F_i=T_i^{m_i}.
+\end{equation}
+The experiments use fixed full-batch gradients within each stage. For an order $\pi\in\perm_N$, define
+\begin{equation}
+ x_\pi=F_{\pi_N}\circ\cdots\circ F_{\pi_1}(\theta_0).
+\end{equation}
+Each stage occurs exactly once. The observation is a finite exported checkpoint $y$, with a known coordinate-wise rounding cell $\C(y)$. A declared endpoint-computation allowance $\eps_y$ accounts for the discrepancy between exact dynamics and the numerically generated checkpoint before export. The compatible model class is
+\begin{equation}\label{eq:compatible}
+ \A(y)=\{\pi\in\perm_N:\dist(x_\pi,\C(y))\leq\eps_y\}.
+\end{equation}
+The auditor returns a superset $\Live(y)\supseteq\A(y)$. A precedence $a\prec b$ is reported only when it holds in every live order. If the model is assumed to contain the generating history and the live set is a singleton, that order is conditionally identified. An empty live set indicates inconsistency among the observation and assumptions, not which assumption failed.
+
+\begin{assumption}\label{ass:regularity}
+The base and recipes are fixed and known; each $g_i:\R^d\to\R^d$ is globally $L_i$-Lipschitz, and $q_i=\eta_i L_i<1$. Every used error allowance bounds the corresponding computation error in Euclidean norm.
+\end{assumption}
+The mathematical results apply to real-valued dynamics under Assumption~\ref{ass:regularity}. The reference implementation uses inflated numerical norm estimates and fixed guards, not outward-rounded interval arithmetic. Consequently, its numerical certificates are conditional on those allowances. The experiments audit deterministic plain GD; they do not justify applying the same routine to an unobserved momentum state, Adam, changing unknown minibatches, or an unknown base. A metadata signature catches ordinary recipe changes after prefix acquisition but does not authenticate hidden mutation within an arbitrary callback.
+
+\subsection{Observation sets}
+For an observed FP16 or FP32 coordinate $y_j$, let $y_j^-$ and $y_j^+$ be the adjacent representable values. A conservative closed rounding interval is
+\begin{equation}\label{eq:cell}
+ C_j=[(y_j^-+y_j)/2,\,(y_j+y_j^+)/2],\qquad
+ \C(y)=\prod_{j=1}^d C_j.
+\end{equation}
+Both ties are included. Values whose neighbours overflow to infinity are rejected rather than assigned an unjustified finite interval. An FP64 observation is treated as a point with separate computation allowances. If $c$ is the box centre and $r_C$ its Euclidean half-diagonal, then $\C(y)\subseteq B(c,r_C)$. Inverse transport uses this enclosing ball; final replay uses the box itself. No hidden unrounded target is used to choose these intervals.
+
+Training precision and observation precision are separate variables. All reported primary training, probing, inversion, and replay use FP64. FP32 and FP16 label only conversion of the observed final checkpoint. The results therefore cannot be interpreted as evidence for reconstruction of FP16-trained trajectories.
+

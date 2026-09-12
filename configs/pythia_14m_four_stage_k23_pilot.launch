@@ -1,0 +1,7 @@
+launch pythia-14m-four-stage-fp64-k23-pilot-v1
+pilot_codebook_seed=1011473075
+confirmation_codebooks_observed=false
+scientific_settings=frozen
+superseded_full_vector_run=33266169316
+candidate_scoring=exact_quadratic_form_equivalent_to_full_parameter_l2
+quadratic_scorer_ci=33267578317

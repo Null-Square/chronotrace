@@ -1,0 +1,10 @@
+protocol=configs/pythia_14m_local_commutator_pilot.lock.json
+protocol_freeze_commit=b74d62bce2937cf2eb16f3c0cbf5651c643af8ec
+runner=scripts/pythia_14m_local_commutator_pilot.py
+runner_commit=c98c62d339fe1369c5633ba717b64b93d6dddb90
+workflow=.github/workflows/pythia-14m-local-commutator-pilot.yml
+workflow_commit=9c3826a0bc9f16a91a11749aca281c64681a55f2
+algebra_test_commit=d67ec8104af62e34bb2a914bf70fa511de5d380b
+prelaunch_ci_run=33271195026
+prelaunch_ci_conclusion=success
+confirmation_codebooks_observed=false

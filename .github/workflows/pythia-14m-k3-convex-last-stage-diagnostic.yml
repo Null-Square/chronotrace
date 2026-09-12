@@ -1,0 +1,77 @@
+name: Pythia 14M K3 convex last-stage diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - experiment/pythia-finite-pair-scale
+    paths:
+      - configs/pythia_14m_k3_convex_last_stage_diagnostic.launch
+
+permissions:
+  contents: read
+
+env:
+  PYTHONHASHSEED: "0"
+  ATEN_CPU_CAPABILITY: default
+  MKL_CBWR: COMPATIBLE
+  MKL_DYNAMIC: "FALSE"
+  OMP_DYNAMIC: "FALSE"
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  NUMEXPR_NUM_THREADS: "1"
+  TOKENIZERS_PARALLELISM: "false"
+
+concurrency:
+  group: pythia-14m-k3-convex-last-stage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  k3-convex-last-stage-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.16"
+          cache: pip
+      - name: Install pinned CPU PyTorch
+        run: >-
+          python -m pip install
+          --index-url https://download.pytorch.org/whl/cpu
+          "torch==2.13.0+cpu"
+      - name: Install pinned scale stack
+        run: >-
+          python -m pip install
+          "transformers==5.16.1"
+          "tokenizers==0.23.1"
+          "huggingface-hub==1.29.0"
+          "safetensors==0.8.0"
+      - name: Install ChronoTrace test and MVP stack
+        run: python -m pip install -e ".[mvp,dev]"
+      - name: Lint
+        run: ruff check .
+      - name: Unit and drift tests
+        run: pytest
+      - name: Optimized-mode tests
+        env:
+          PYTHONOPTIMIZE: "1"
+        run: pytest
+      - name: Run frozen K3 convex last-stage diagnostic
+        run: >-
+          python scripts/pythia_14m_k3_convex_last_stage_diagnostic.py
+          --protocol configs/pythia_14m_k3_convex_last_stage_diagnostic.lock.json
+          --k23-protocol configs/pythia_14m_four_stage_k23_pilot.lock.json
+          --all24-selection configs/pythia_14m_forward_reachable_all24.selection.json
+          --affine-selection configs/pythia_14m_k3_affine_last_stage_diagnostic.selection.json
+          --output pythia-14m-k3-convex-last-stage-diagnostic.json
+          --threads 1
+      - name: Upload K3 convex last-stage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pythia-14m-k3-convex-last-stage-diagnostic
+          path: pythia-14m-k3-convex-last-stage-diagnostic.json
+          if-no-files-found: warn

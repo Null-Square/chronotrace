@@ -1,0 +1,21 @@
+{
+  "provenance_version": "chronotrace-confirmation-v1-spent-provenance-v1",
+  "status": "v1_confirmation_seeds_spent_not_eligible_for_final_confirmation",
+  "marker_commit": "0dbd6fb963caadab6e66fd9f3e216464016f089a",
+  "marker_commit_message": "launch frozen 32-case pairwise multi-witness confirmation",
+  "workflow_run_id": 33361355778,
+  "workflow_conclusion": "failure_at_aggregate_after_all_seed_jobs_completed",
+  "seed_jobs": {
+    "4294917749": {"job_id": 99393187501, "runner_step_completed": true, "artifact_upload_completed": true},
+    "3885207466": {"job_id": 99393187452, "runner_step_completed": true, "artifact_upload_completed": true},
+    "402469483": {"job_id": 99393187389, "runner_step_completed": true, "artifact_upload_completed": true},
+    "2000073798": {"job_id": 99393187554, "runner_step_completed": true, "artifact_upload_completed": true}
+  },
+  "aggregate_job_id": 99395108726,
+  "aggregate_conclusion": "failure",
+  "scientific_outputs_used_for_v3_method_tuning": false,
+  "audit_scope": "workflow and job status/provenance only; numeric seed artifacts are not consulted for v3 method design or fresh-seed selection",
+  "reason_v1_not_final_confirmation": "the v1 runner selected the class to test using the known generating chronology; a deployable inverse decoder must make pair decisions label-blind by testing both orientations before consulting the truth label",
+  "disposition": "preserve v1 as development/spent provenance; do not report its cases as untouched confirmation of the label-blind method",
+  "final_confirmation_requirement": "use a freshly preregistered deterministic seed set disjoint from the spent development seed and all four v1 seeds"
+}

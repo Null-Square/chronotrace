@@ -1,0 +1,66 @@
+{
+  "dataset_sha256": "f6d9e39f37dc45d327f6db33428ee58970ccceabb2535a5c179de35886b70443",
+  "durations": [
+    5.0,
+    10.0,
+    20.0
+  ],
+  "evidence_role": "locally_locked_fresh_seed_not_external_preregistration",
+  "families": [
+    "digits_parity",
+    "digits_highlow"
+  ],
+  "independence_unit": "seed_cluster; shared finite digits dataset",
+  "inverse_cost_estimate": 8.0,
+  "inverse_iterations": 24,
+  "join_allowance": 1e-10,
+  "max_replay_gradients": 300000,
+  "n": 8,
+  "old_node_budget": 20000,
+  "precisions": [
+    "fp32",
+    "fp16"
+  ],
+  "primary_endpoints": [
+    "unique_verified_coverage",
+    "wrong_certificates",
+    "oracle_set_retention",
+    "gradient_work_vs_exhaustive",
+    "equal_work_ranked_retrieval",
+    "heldout_classifier_accuracy"
+  ],
+  "ranked_budget_rule": "same_as_realized_bidirectional_gradient_work_including_prefix_build",
+  "residual_tolerance": 1e-12,
+  "seeds": [
+    352021688,
+    399760960,
+    500317727,
+    570978561,
+    615840300,
+    925333088,
+    953947831,
+    1560033684,
+    1681784917,
+    1832827134,
+    1906214354,
+    2003918457
+  ],
+  "source_sha256": {
+    "scripts/bidirectional_models.py": "ca3e979616ca3e1c15ef1259df35d6f7998afe6311dc7c137786a1454e0352bd",
+    "scripts/exact_baselines.py": "1ff6e21d2d0a5b8fb3062b9b1a9b1324d146037a78a26003b7e08ca1bf0b5643",
+    "scripts/nonterminal_reference_models.py": "60b0066fc88644e23d5a7bb3e200cf88900c7398673de955f232fbafb1e11e22",
+    "scripts/run_bidirectional_confirmation.py": "c91ad0e4b42a8b0812375a7cebf8bd7d8a886524e2bba6f90b3a13c389b5a7b4",
+    "src/chronotrace/geometry/bidirectional.py": "1895665de728e62d824301b5130a4c693064e0f20a3eb41d97ad8481803e25d5",
+    "src/chronotrace/geometry/budgeted_secant.py": "cbdc482c5b6ad013265b124b0457c888dd6155a83a4d999acd86873ed2b100bf",
+    "src/chronotrace/geometry/certificate_postprocess.py": "036f46ab74fb475089d480154e247cd2a78444465178799268d4329429806a32"
+  },
+  "steps": 32,
+  "stress_cell": "duration20_fp16_retained_regardless_of_outcome",
+  "targets_per_problem": 1,
+  "version": "bidirectional_v1",
+  "versions": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "sklearn": "1.8.0"
+  }
+}

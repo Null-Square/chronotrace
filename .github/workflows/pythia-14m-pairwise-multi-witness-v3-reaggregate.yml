@@ -1,0 +1,45 @@
+name: Pythia 14M pairwise multi-witness v3 reaggregate
+
+on:
+  push:
+    branches:
+      - experiment/pythia-finite-pair-scale
+    paths:
+      - configs/chronotrace_pairwise_multi_witness_confirmation_v3.reaggregate.launch
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  aggregate-existing-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.16"
+          cache: pip
+      - name: Install ChronoTrace
+        run: python -m pip install -e .
+      - name: Download frozen fresh seed evidence from scientific run
+        uses: actions/download-artifact@v4
+        with:
+          pattern: confirmation-v3-seed-*
+          path: seed-results
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 33418210637
+      - name: Aggregate existing frozen fresh confirmation evidence
+        run: >-
+          python scripts/analyze_pairwise_multi_witness_confirmation_suite_v3.py
+          --lock configs/chronotrace_pairwise_multi_witness_confirmation_v3.lock.json
+          --inputs seed-results/*.json
+          --output chronotrace-pairwise-multi-witness-confirmation-v3-selection.json
+      - name: Upload corrected aggregate selection
+        uses: actions/upload-artifact@v4
+        with:
+          name: chronotrace-pairwise-multi-witness-confirmation-v3-selection
+          path: chronotrace-pairwise-multi-witness-confirmation-v3-selection.json
+          if-no-files-found: error

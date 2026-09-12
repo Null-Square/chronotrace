@@ -1,0 +1,41 @@
+{
+  "selection_version": "pythia-14m-reverse-peeling-armijo-diagnostic-selection-v1",
+  "source_run_id": 33277162152,
+  "source_artifact_id": 9722039411,
+  "source_artifact_digest": "sha256:67a023e0d41fc81d184ee475ffa1bdd7a8931c6f99af2afe821d5e0641a11e48",
+  "source_result_raw_sha256": "f27807c69aee920ec3002cbb82e079d439490f93d179e780ea097cbd32acc117",
+  "source_result_canonical_sha256": "b21e72e2394cf124a232eb6826e073b26d8df639d702638dcd03e96c57bc52dd",
+  "protocol_sha256": "67523c497e94945c22e4faf1c100ba1a5489b908b4905468f959c8a2221f7a21",
+  "confirmation_codebooks_observed": false,
+  "target_endpoint_replay_exact": true,
+  "solver_viability_pass_all": false,
+  "passed_frozen_checks": [
+    "target_endpoint_replay_exact",
+    "line_search_never_failed",
+    "inverse_potential_monotone"
+  ],
+  "failed_frozen_checks": [
+    "inverse_residual_reduced_100x",
+    "predecessor_distance_reduced_100x",
+    "forward_reconstruction_error_within_1pct_initial_residual"
+  ],
+  "solver_summary": {
+    "iterations": 100,
+    "stop_reached": false,
+    "line_search_failed": false,
+    "initial_residual_norm": 0.02019373957030215,
+    "final_residual_norm": 0.032073311837988366,
+    "inverse_residual_ratio": 1.5882799580696219,
+    "initial_target_to_predecessor_distance": 0.01838234423903992,
+    "final_distance_to_true_predecessor": 0.07329700615047308,
+    "predecessor_distance_ratio": 3.987359022186457,
+    "forward_reconstruction_error": 0.03207331183798838,
+    "forward_error_ratio_to_initial_residual": 1.5882799580696225,
+    "loss_evaluations": 503,
+    "gradient_evaluations": 102
+  },
+  "scientific_interpretation": "Armijo descent makes the inverse potential monotone and never fails line search, but it does not approach the true ABC predecessor or reduce the inverse residual under the frozen budget. This rules out further inverse-solver tuning on this spent history under the precommitted protocol.",
+  "next_step": "pivot_to_finite_forward_reachable_residual_scoring_on_the_same_spent_ABCD_history",
+  "all24_inverse_launch_authorized": false,
+  "heldout_confirmation_launch_authorized": false
+}

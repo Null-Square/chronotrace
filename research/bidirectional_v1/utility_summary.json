@@ -1,0 +1,62 @@
+{
+  "primary": {
+    "cases": 144,
+    "targets": 72,
+    "seed_clusters": 12,
+    "fp32_verified": 72,
+    "fp32_ranked_retrieved": 9,
+    "fp32_cases": 72,
+    "total_verified": 120,
+    "total_ranked_retrieved": 23,
+    "old_verified": 0,
+    "wrong_full": 0,
+    "wrong_pairs": 0,
+    "certified_pairs": 3360,
+    "oracle_set_violations": 0,
+    "complete_endpoint_catalogues": 72,
+    "endpoints_per_catalogue": 40320,
+    "fp32_median_exhaustive_to_new_work": 8.73815960643158,
+    "fp32_work_ratio_range": [8.212813787935556, 9.135260302303351],
+    "fp32_paired_gain": 0.875,
+    "fp32_paired_cluster_bootstrap_ci95": [0.7638888888888888, 0.9722222222222223],
+    "bootstrap_replicates": 20000,
+    "bootstrap_seed": 55167,
+    "bootstrap_scope": "paired seed-cluster descriptive interval on fixed dataset; not independent datasets",
+    "all_complete_oracles_unique": true,
+    "loss_reduction_range": [0.0902766007877428, 0.39533229345886034],
+    "holdout_accuracy_range": [0.7333333333333333, 0.8777777777777778]
+  },
+  "neural_bridge": {
+    "cases": 12,
+    "targets": 6,
+    "verified": 12,
+    "wrong_full": 0,
+    "wrong_pairs": 0,
+    "head_parameters": 170,
+    "audited_scope": "head only; fixed learned encoder",
+    "loss_reduction_range": [0.7231456746185485, 0.7246438713352812],
+    "holdout_accuracy_range": [0.9583333333333334, 0.9694444444444444],
+    "cases_with_full_oracle": 2,
+    "all_supplied_oracles_match": true,
+    "ranked_reaches_true_history": 2,
+    "baseline_caveat": "true-history ranked replay cost, not actual retrieval except oracle-checked target"
+  },
+  "serial_timing": {
+    "cases": 8,
+    "median_speedup": 7.327355877344884,
+    "speedup_range": [6.699236486881318, 15.462859600264268],
+    "median_new_seconds": 1.8237009709999938,
+    "median_exhaustive_seconds": 13.213720466499922,
+    "all_outputs_repeat_and_match_oracle": true,
+    "evidence_role": "serial timing and same-environment repeat on spent inputs; not new independent cases"
+  },
+  "validation": {
+    "new_tests": 124,
+    "available_suite_tests": 1073,
+    "normal_passed": true,
+    "optimized_passed": true,
+    "formal_floating_point_proof": false,
+    "external_replication": false,
+    "full_repository_ci_locally_run": false
+  }
+}

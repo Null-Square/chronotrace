@@ -1,0 +1,7 @@
+launch pythia-14m-counterfactual-response-pilot-v1
+pilot_codebook_seed=1011473075
+confirmation_codebooks_observed=false
+scientific_settings=frozen
+primary_response_family=loss_plus_cross_susceptibility
+candidate_normalization=references_only
+endpoint_replay_required=true

@@ -1,0 +1,87 @@
+{
+  "protocol_version": "pythia-14m-four-stage-fp64-local-commutator-pilot-v1",
+  "freeze_status": "frozen_before_any_local_commutator_model_output",
+  "experiment_role": "non_confirmatory_methodology_pilot",
+  "purpose": "test whether explicitly oriented future noncommutativity at the endpoint carries chronology information that a symmetric first-order susceptibility probe missed",
+  "source_k23_protocol": "configs/pythia_14m_four_stage_k23_pilot.lock.json",
+  "source_replay_lock": "configs/pythia_14m_four_stage_k23_pilot_replay.lock.json",
+  "source_failed_first_order_result": "docs/results/PYTHIA_14M_COUNTERFACTUAL_RESPONSE_PILOT.md",
+  "model": "EleutherAI/pythia-14m-deduped",
+  "revision": "step143000",
+  "precision": "fp64",
+  "base_parameter_sha256_fp64": "f7973f1dd58380b5d8b0e10f54e3c45714c1fed90083922c8e69cb0af47b9b86",
+  "base_parameter_sha256_fp32": "cba585ef12f0a770686bffb9d1c1d00e11400106b46d943c1cae04fa7e0df2ce",
+  "tokenizer_fingerprint": "c08d95c22b6ea19a127c2e46b72a5229543eee2d35949b80334388b5ff89e51a",
+  "codebook_count_per_kind": 16,
+  "pilot_codebook_seed": 1011473075,
+  "pilot_codebook_sha256": "6424c45a6a34eddc0f80d81e93d2f2e292909c44c5be35bc3ba927e40ef1d409",
+  "pilot_dataset_sha256": {
+    "stage_a": "5e75b1e39ff9857793f8ea2667abbe844f64f83a2128f773198fa929814be3dd",
+    "stage_b": "27531392f09f7993531df66ca2b841fbf1b85c4edd3cb5333099bb2cdc9a2df9",
+    "stage_c": "30f1ef52773e49cdd54894a1d33c51562accb2c933225e795cc8e20df4ec65af",
+    "stage_d": "a802b2d5b38a032defd97aeebfcb82df6defa5e32b819338ed226927a6d4c28a",
+    "worlds": "d3b195e900c2ccbe3d70b7454927f5a7b01cdaf7c2c7108270cd0d344f830e6f"
+  },
+  "confirmation_codebooks_prohibited": [4294917749, 3885207466, 402469483, 2000073798],
+  "confirmation_codebooks_observed": false,
+  "stages": ["A", "B", "C", "D"],
+  "learning_rate": 0.0001,
+  "challenge_learning_rate_policy": "exactly reuse the chronology-blind selected stage learning rate; no challenge-rate tuning",
+  "updates_per_stage": 1,
+  "stage_randomness": {
+    "A": 1101,
+    "B": 2203,
+    "C": 3307,
+    "D": 4409,
+    "rule": "reset stage-specific seed on every stage-map invocation"
+  },
+  "candidate_state_model": "K3 exact ordered-interaction prediction from the frozen spent-pilot basis",
+  "challenge_pairs": ["AB", "AC", "AD", "BC", "BD", "CD"],
+  "local_commutator_definition": "C_AB(s)=T_B(T_A(s))-T_A(T_B(s)) for lexicographic A<B",
+  "projection_direction": "D_AB=I_AB(theta0)-I_BA(theta0), normalized by Euclidean norm; sign is fixed so D_AB has the same composition orientation as C_AB",
+  "direction_validation": "directly recompute all six base C_AB(theta0) values and require agreement with D_AB before candidate or target decoding",
+  "primary_response_family": "six signed normalized projections <C_AB(s),D_AB>/||D_AB|| in fixed challenge-pair order",
+  "reference_normalization": "fit mean and nonzero coordinate scale from the 24 K3 candidate references only; never use target responses for normalization",
+  "decoder": "nearest standardized K3 candidate response in Euclidean distance with stable tie order fixed by itertools.permutations(A,B,C,D)",
+  "target_geometry_role": "descriptive diagnosis only; target-target geometry and minimum physical probe subset may not be used to choose features or tune the decoder",
+  "integrity_gates": {
+    "endpoint_replay_exact": true,
+    "reproduce_k3_endpoint_full_order": 3,
+    "reproduce_k3_endpoint_prefix_depth3": 3,
+    "reproduce_k3_endpoint_precedence": 79,
+    "base_direction_spotcheck_all_pairs": true
+  },
+  "frozen_comparators": {
+    "k3_endpoint": {
+      "full_order_correct": 3,
+      "prefix_depth3_correct": 3,
+      "precedence_correct": 79,
+      "precedence_total": 144
+    },
+    "marginal_loss_recency": {
+      "full_order_correct": 1,
+      "prefix_depth3_correct": 1,
+      "precedence_correct": 72,
+      "precedence_total": 144
+    }
+  },
+  "primary_support_checks": {
+    "commutator_full_order_strictly_beats_k3_endpoint": "full_order_correct > 3",
+    "commutator_prefix_depth3_strictly_beats_k3_endpoint": "prefix_depth3_correct > 3",
+    "commutator_precedence_strictly_beats_k3_endpoint": "precedence_correct > 79",
+    "candidate_reference_separation_positive": "minimum standardized candidate separation > 0",
+    "target_response_separation_positive": "minimum standardized target separation > 0"
+  },
+  "primary_support_rule": "all five checks must pass; otherwise do not call the oriented probe successful and do not tune feature subsets on this output",
+  "if_primary_fails": "record whether failure is intrinsic target-response collapse or K3 reference-model mismatch; do not expose confirmation codebooks",
+  "if_primary_passes": "validate the smallest physical commutator subset and then freeze a finite behavioral continuation test before confirmation",
+  "portable_kernel_gate": {
+    "aten_cpu_capability": "default",
+    "mkldnn_enabled": false,
+    "mkl_cbwr": "COMPATIBLE",
+    "mkl_dynamic": "FALSE",
+    "omp_dynamic": "FALSE",
+    "intraop_threads": 1,
+    "interop_threads": 1
+  }
+}
